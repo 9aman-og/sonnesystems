@@ -250,12 +250,13 @@
   }
 
   function countUp(el, target) {
-    var start = 0, dur = 520, t0 = performance.now();
+    var dur = 520, t0 = performance.now();
     (function step(now) {
-      var k = Math.min(1, (now - t0) / dur);
-      el.textContent = Math.round(start + (target - start) * (1 - Math.pow(1 - k, 3)));
+      var k = Math.max(0, Math.min(1, (now - t0) / dur));
+      el.textContent = Math.round(target * (1 - Math.pow(1 - k, 3)));
       if (k < 1) requestAnimationFrame(step);
     })(t0);
+    setTimeout(function () { el.textContent = target; }, dur + 80); // guarantee final value even if rAF is throttled
   }
 
   function mapRange(v, inMin, inMax, outMin, outMax) {
