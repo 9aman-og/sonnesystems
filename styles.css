@@ -310,12 +310,10 @@ section{ max-width:var(--wrap); margin:0 auto; padding:clamp(3rem,7vw,5.5rem) cl
 .tools-grid{ display:grid; grid-template-columns:1.7fr 1fr; gap:1.1rem; }
 .tool-feature{ display:grid; grid-template-columns:auto 1fr; gap:1.6rem; align-items:center; }
 .tool-art{
-  width:150px; height:150px; border-radius:22px;
-  background:radial-gradient(120% 120% at 30% 20%, #14140f, #050505);
+  width:184px; height:184px;
   display:flex; align-items:center; justify-content:center;
-  box-shadow:var(--shadow-sm); border:1px solid #0c0c0c;
 }
-.tool-art img{ width:104px; height:104px; }
+.tool-art img{ width:184px; height:184px; }   /* gel icon carries its own gloss + shadow */
 .tool-copy .prod-desc{ flex:none; }
 .tool-actions{ display:flex; flex-direction:column; gap:.6rem; align-items:flex-start; }
 .tool-foot{ font-size:.76rem; color:var(--ink-3); }
