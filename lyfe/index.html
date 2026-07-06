@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>Lyfe</title>
+<script>
+/* apply saved theme before first paint - light=Crystal, dark=Orbit, auto=by clock
+   (legacy "day"/"night" values from older backups still resolve) */
+(function () {
+  var set = "auto";
+  try {
+    var d = JSON.parse(localStorage.getItem("lyfe.v1"));
+    if (d && d.settings && d.settings.theme) set = d.settings.theme;
+  } catch (e) { /* default auto */ }
+  var mode;
+  if (set === "day" || set === "light") mode = "light";
+  else if (set === "night" || set === "dark") mode = "dark";
+  else { var h = new Date().getHours(); mode = (h >= 7 && h < 18) ? "light" : "dark"; }
+  document.documentElement.setAttribute("data-theme", mode);
+  document.addEventListener("DOMContentLoaded", function () {
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", mode === "light" ? "#e9f1fb" : "#050505");
+  });
+})();
+</script>
+<link rel="icon" type="image/png" href="favicon-32.png?v=crystal-21">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=crystal-21">
+
+<!-- installable Android / PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#050505">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Lyfe">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- warm up the photo pipes so Wander and the daily calm land faster -->
+<link rel="preconnect" href="https://en.wikipedia.org" crossorigin>
+<link rel="dns-prefetch" href="https://upload.wikimedia.org">
+<link rel="dns-prefetch" href="https://picsum.photos">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Unbounded:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=crystal-21">
+</head>
+<body>
+<div id="scroll-progress" aria-hidden="true"></div>
+<div id="stars" aria-hidden="true"></div>
+<div id="bg-glow" aria-hidden="true"></div>
+
+<div id="app">
+  <aside id="sidebar">
+    <nav id="nav" aria-label="Sections"></nav>
+    <div class="side-foot">
+      <button class="linklike" data-action="export">Export</button>
+      <span class="sep">·</span>
+      <button class="linklike" data-action="import">Import</button>
+      <span class="sep">·</span>
+      <button class="linklike" data-action="settings">Settings</button>
+      <input type="file" id="importFile" accept=".json,application/json" hidden>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+<script src="app.js?v=crystal-21"></script>
+<script>
+/* register the service worker so Lyfe installs + runs offline on Android.
+   only over http/https (not file://). */
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () { /* offline install optional */ });
+  });
+}
+</script>
+</body>
+</html>

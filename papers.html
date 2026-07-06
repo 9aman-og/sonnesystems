@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Papers · Sonne Systems</title>
+<meta name="description" content="Password-protected research papers from Sonne Systems.">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#ece2d0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='11' fill='%23ece2d0'/%3E%3Cg fill='none' stroke='%23c06a3a' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='24' cy='24' r='6.5' fill='%23c06a3a'/%3E%3Cpath d='M24 6v4M24 38v4M6 24h4M38 24h4M11.5 11.5l2.8 2.8M33.7 33.7l2.8 2.8M11.5 36.5l2.8-2.8M33.7 14.3l2.8-2.8'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="sun-field" aria-hidden="true">
+  <svg viewBox="0 0 600 600" preserveAspectRatio="xMinYMin meet">
+    <circle class="sun-core" cx="70" cy="70" r="30"/>
+    <circle cx="70" cy="70" r="46" fill="none" stroke="var(--terra)" stroke-width="2.2"/>
+    <g class="sun-rays" stroke="var(--terra)" stroke-width="2.4" stroke-linecap="round"></g>
+  </svg>
+</div>
+
+<header class="topbar">
+  <a class="brand" href="./" aria-label="Sonne Systems home">
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 48 48"><circle class="m-core" cx="24" cy="24" r="7"/><g class="m-rays" stroke-linecap="round"></g></svg>
+    </span>
+    <span class="brand-word"><b>Sonne</b><span>Systems</span></span>
+  </a>
+  <nav class="topnav" aria-label="Primary">
+    <a href="./#demo">Demo</a>
+    <a href="./#research">Research</a>
+    <a href="./#tools">Tools</a>
+  </nav>
+  <a class="btn btn-ghost topcta" href="mailto:9aman.aa@gmail.com">Get in touch</a>
+</header>
+
+<main>
+  <section class="gate-wrap">
+    <article class="card gate" id="gate">
+      <p class="eyebrow" id="gateKind">Paper</p>
+      <h1 class="display gate-title" id="gateTitle">Loading…</h1>
+      <p class="gate-sub" id="gateSub"></p>
+
+      <form class="gate-form" id="gateForm" autocomplete="off">
+        <label class="gate-label" for="pw">This paper is password protected</label>
+        <div class="gate-row">
+          <input class="gate-input" type="password" id="pw" placeholder="Enter the password" spellcheck="false" autocapitalize="off">
+          <button class="btn btn-solid" type="submit" id="unlockBtn">Unlock</button>
+        </div>
+        <p class="gate-msg" id="gateMsg" role="status">Ask the author for access: <a href="mailto:9aman.aa@gmail.com?subject=Paper%20access">9aman.aa@gmail.com</a></p>
+      </form>
+
+      <div class="gate-done" id="gateDone" hidden>
+        <p class="gate-ok">Unlocked. The paper opened in a new tab.</p>
+        <a class="btn btn-solid" id="openLink" target="_blank" rel="noopener">Open the paper again</a>
+        <a class="btn btn-ghost" id="dlLink">Download the PDF</a>
+      </div>
+    </article>
+    <p class="gate-fine">Papers are encrypted in the file itself (AES-256-GCM). The password never leaves your browser.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  /* sun spokes for the marks */
+  function spokes(group, cx, cy, r0, r1, count) {
+    var ns = "http://www.w3.org/2000/svg";
+    for (var i = 0; i < count; i++) {
+      var a = (i / count) * Math.PI * 2 - Math.PI / 2;
+      var ln = document.createElementNS(ns, "line");
+      ln.setAttribute("x1", (cx + Math.cos(a) * r0).toFixed(1));
+      ln.setAttribute("y1", (cy + Math.sin(a) * r0).toFixed(1));
+      ln.setAttribute("x2", (cx + Math.cos(a) * r1).toFixed(1));
+      ln.setAttribute("y2", (cy + Math.sin(a) * r1).toFixed(1));
+      group.appendChild(ln);
+    }
+  }
+  document.querySelectorAll(".m-rays").forEach(function (g) { spokes(g, 24, 24, 11.5, 17.5, 12); });
+  document.querySelectorAll(".sun-rays").forEach(function (g) { spokes(g, 70, 70, 52, 108, 20); });
+
+  var PAPERS = {
+    calif: {
+      kind: "Paper · 2026",
+      title: "When Do Spiking-Convolutional Hybrids Help?",
+      sub: "Content-adaptive spiking neurons and a controlled study of the energy-accuracy frontier. Aman Agarwal, Sonne Systems.",
+      file: "papers/calif.pdf.enc",
+      filename: "Agarwal_SpikingConvHybrids_2026.pdf"
+    },
+    nnn: {
+      kind: "Paper · 2026",
+      title: "Illumination-Invariant Certified Robustness",
+      sub: "A construction and a fundamental limit. Aman Agarwal, Sonne Systems.",
+      file: "papers/nnn.pdf.enc",
+      filename: "Agarwal_IlluminationInvariantRobustness_2026.pdf"
+    }
+  };
+
+  var id = new URLSearchParams(location.search).get("p") || "calif";
+  var paper = PAPERS[id] || PAPERS.calif;
+
+  document.getElementById("gateKind").textContent = paper.kind;
+  document.getElementById("gateTitle").textContent = paper.title;
+  document.getElementById("gateSub").textContent = paper.sub;
+  document.title = paper.title + " · Sonne Systems";
+
+  var form = document.getElementById("gateForm");
+  var msg = document.getElementById("gateMsg");
+  var msgHome = msg.innerHTML;
+  var btn = document.getElementById("unlockBtn");
+  var gate = document.getElementById("gate");
+
+  async function decrypt(password) {
+    var res = await fetch(paper.file);
+    if (!res.ok) throw new Error("missing");
+    var raw = new Uint8Array(await res.arrayBuffer());
+    if (raw.length < 33 || String.fromCharCode(raw[0], raw[1], raw[2], raw[3]) !== "SSE1") throw new Error("format");
+
+    var salt = raw.slice(4, 20), iv = raw.slice(20, 32), data = raw.slice(32);
+    var enc = new TextEncoder();
+    var keyMat = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
+    var key = await crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt: salt, iterations: 310000, hash: "SHA-256" },
+      keyMat, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    var plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, data); // throws on wrong password
+    return new Blob([plain], { type: "application/pdf" });
+  }
+
+  form.addEventListener("submit", async function (e) {
+    e.preventDefault();
+    var pw = document.getElementById("pw").value;
+    if (!pw) return;
+    btn.disabled = true; btn.textContent = "Unlocking…";
+    msg.textContent = "Deriving key…";
+    try {
+      var blob = await decrypt(pw);
+      var url = URL.createObjectURL(blob);
+      form.hidden = true;
+      var done = document.getElementById("gateDone");
+      done.hidden = false;
+      var open = document.getElementById("openLink");
+      var dl = document.getElementById("dlLink");
+      open.href = url;
+      dl.href = url; dl.download = paper.filename;
+      window.open(url, "_blank");
+    } catch (err) {
+      btn.disabled = false; btn.textContent = "Unlock";
+      if (err && err.message === "missing") {
+        msg.textContent = "This paper is still being prepared for release. Check back soon.";
+      } else {
+        msg.innerHTML = "That password is not right. " + msgHome;
+        gate.classList.remove("shake"); void gate.offsetWidth; gate.classList.add("shake");
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>
