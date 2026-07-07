@@ -2,7 +2,7 @@
    HTML is network-first (always fresh when online); versioned assets cache-first. */
 "use strict";
 
-const CACHE = "lyfe-crystal-21";
+const CACHE = "lyfe-crystal-22";
 const SHELL = [
   "./",
   "./index.html",
@@ -43,6 +43,20 @@ self.addEventListener("fetch", (e) => {
         caches.open(CACHE).then((c) => c.put("./index.html", copy)).catch(() => {});
         return res;
       }).catch(() => caches.match(req).then((h) => h || caches.match("./index.html")))
+    );
+    return;
+  }
+
+  // the cloud config must never be served stale: filling in the Supabase keys
+  // later has to take effect without bumping a version. Network-first, with the
+  // cache only as an offline fallback.
+  if (url.pathname.endsWith("supabase-config.js")) {
+    e.respondWith(
+      fetch(req).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+        return res;
+      }).catch(() => caches.match(req))
     );
     return;
   }
