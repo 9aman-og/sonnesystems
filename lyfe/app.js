@@ -483,6 +483,12 @@ function normalize(raw) {
   if (raw.settings && typeof raw.settings === "object") {
     base.settings = Object.assign(base.settings, raw.settings);
   }
+  // older builds shipped "Aman" as the default name; clear that leftover so no
+  // one sees it. Only touches pre-onboarding installs (no onboarded field yet),
+  // so a real name chosen during onboarding is never wiped.
+  if (raw.settings && raw.settings.name === "Aman" && raw.settings.onboarded === undefined) {
+    base.settings.name = "";
+  }
   // heal a bad model id that shipped briefly (qwen3.5:9b is not a real Ollama tag)
   if (base.settings.ollamaModel === "qwen3.5:9b") base.settings.ollamaModel = "qwen3:8b";
   // theme names moved from day/night to light/dark - carry old choices over
@@ -3327,9 +3333,11 @@ document.addEventListener("click", (e) => {
 
     /* accounts */
     case "auth-google":
-      if (window.LyfeCloud) { LyfeCloud.signInGoogle().catch(() => toast("Could not reach sign-in - try again")); }
+      if (window.LyfeCloud && LyfeCloud.configured) { LyfeCloud.signInGoogle().catch(() => toast("Could not reach sign-in - try again")); }
+      else { toast("Google sign-in is being set up - continue as guest for now"); }
       break;
     case "auth-guest": enterGuest(); break;
+    case "sign-in-gate": showAuthGate(); break;
     case "onboard-focus": el.classList.toggle("sel"); sfxClick("chip"); break;
     case "onboard-commit":
       document.querySelectorAll(".onb-segbtn").forEach(b => b.classList.remove("sel"));
@@ -3878,8 +3886,10 @@ function submitOnboarding(fd) {
 }
 
 function enterGuest() {
+  if (booted) { hideAuthGate(); return; }   // opened the gate mid-session: just close it
   CLOUD_MODE = false;
   ACTIVE_KEY = STORAGE_KEY;
+  document.body.classList.remove("signed-in");
   state.data = loadData();
   hideAuthGate();
   bootApp();
@@ -3889,6 +3899,7 @@ function enterGuest() {
    login), cache it locally for offline, then run */
 async function enterCloud() {
   CLOUD_MODE = true;
+  document.body.classList.add("signed-in");
   ACTIVE_KEY = "lyfe.cloud." + LyfeCloud.user.id;
   const deviceApiKey = (state.data.settings && state.data.settings.apiKey) || "";
 

@@ -2,7 +2,7 @@
    HTML is network-first (always fresh when online); versioned assets cache-first. */
 "use strict";
 
-const CACHE = "lyfe-crystal-24";
+const CACHE = "lyfe-crystal-25";
 const SHELL = [
   "./",
   "./index.html",

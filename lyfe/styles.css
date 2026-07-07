@@ -3654,3 +3654,9 @@ body.gated #scroll-progress { display: none; }
   margin-top: 24px; background: var(--accent); color: #fff; border-color: transparent;
 }
 .onb-submit:hover { box-shadow: 0 6px 18px var(--accent-glow); }
+
+/* sidebar sign-in link: stands out a touch, hidden once signed in */
+.signin-link { color: var(--accent); font-weight: 600; }
+.signin-link:hover { color: var(--accent-deep); }
+body.signed-in #signin-link,
+body.signed-in #signin-sep { display: none; }
