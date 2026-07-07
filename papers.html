@@ -11,9 +11,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<body data-page="research">
 
 <div class="sun-field" aria-hidden="true">
   <svg viewBox="0 0 600 600" preserveAspectRatio="xMinYMin meet">
@@ -23,22 +23,9 @@
   </svg>
 </div>
 
-<header class="topbar">
-  <a class="brand" href="./" aria-label="Sonne Systems home">
-    <span class="brand-mark" aria-hidden="true">
-      <svg viewBox="0 0 48 48"><circle class="m-core" cx="24" cy="24" r="7"/><g class="m-rays" stroke-linecap="round"></g></svg>
-    </span>
-    <span class="brand-word"><b>Sonne</b><span>Systems</span></span>
-  </a>
-  <nav class="topnav" aria-label="Primary">
-    <a href="./#demo">Demo</a>
-    <a href="./#research">Research</a>
-    <a href="./#tools">Tools</a>
-  </nav>
-  <a class="btn btn-ghost topcta" href="mailto:9aman.aa@gmail.com">Get in touch</a>
-</header>
+<header id="site-header"></header>
 
-<main>
+<main class="page">
   <section class="gate-wrap">
     <article class="card gate" id="gate">
       <p class="eyebrow" id="gateKind">Paper</p>
@@ -64,25 +51,11 @@
   </section>
 </main>
 
+<footer id="site-footer"></footer>
+<script src="js/site.js"></script>
 <script>
 (function () {
   "use strict";
-
-  /* sun spokes for the marks */
-  function spokes(group, cx, cy, r0, r1, count) {
-    var ns = "http://www.w3.org/2000/svg";
-    for (var i = 0; i < count; i++) {
-      var a = (i / count) * Math.PI * 2 - Math.PI / 2;
-      var ln = document.createElementNS(ns, "line");
-      ln.setAttribute("x1", (cx + Math.cos(a) * r0).toFixed(1));
-      ln.setAttribute("y1", (cy + Math.sin(a) * r0).toFixed(1));
-      ln.setAttribute("x2", (cx + Math.cos(a) * r1).toFixed(1));
-      ln.setAttribute("y2", (cy + Math.sin(a) * r1).toFixed(1));
-      group.appendChild(ln);
-    }
-  }
-  document.querySelectorAll(".m-rays").forEach(function (g) { spokes(g, 24, 24, 11.5, 17.5, 12); });
-  document.querySelectorAll(".sun-rays").forEach(function (g) { spokes(g, 70, 70, 52, 108, 20); });
 
   var PAPERS = {
     calif: {

@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Demo · Spiking Mammal · Sonne Systems</title>
+<meta name="description" content="Upload a cat photo and watch a spiking network accumulate evidence, decide early, and save compute.">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#ece2d0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='11' fill='%23ece2d0'/%3E%3Cg fill='none' stroke='%23c06a3a' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='24' cy='24' r='6.5' fill='%23c06a3a'/%3E%3Cpath d='M24 6v4M24 38v4M6 24h4M38 24h4M11.5 11.5l2.8 2.8M33.7 33.7l2.8 2.8M11.5 36.5l2.8-2.8M33.7 14.3l2.8-2.8'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="demo">
+
+<div class="sun-field" aria-hidden="true">
+  <svg viewBox="0 0 600 600" preserveAspectRatio="xMinYMin meet">
+    <circle class="sun-core" cx="70" cy="70" r="30"/>
+    <circle cx="70" cy="70" r="46" fill="none" stroke="var(--terra)" stroke-width="2.2"/>
+    <g class="sun-rays" stroke="var(--terra)" stroke-width="2.4" stroke-linecap="round"></g>
+  </svg>
+</div>
+
+<header id="site-header"></header>
+
+<main class="page">
+  <section class="page-hero">
+    <p class="eyebrow">Research demo</p>
+    <h1 class="display page-title">Spiking Mammal</h1>
+    <p class="page-intro">
+      Upload a cat photo. A compact convolutional backbone reads it once, then a
+      content-adaptive spiking head accumulates evidence and stops the moment it is
+      confident. Easy images decide early; hard ones get more time.
+    </p>
+  </section>
+
+  <section class="page-section demo" id="demo">
+    <div class="demo-grid">
+
+      <!-- INPUT -->
+      <article class="card input-card reveal">
+        <header class="card-head">
+          <span class="tag">Input</span>
+          <h2 class="card-title">Upload a cat photo</h2>
+        </header>
+
+        <label class="dropzone" id="dropzone" tabindex="0" aria-label="Upload a cat photo">
+          <input type="file" id="file" accept="image/png,image/jpeg,image/webp" hidden>
+          <div class="dz-empty" id="dzEmpty">
+            <span class="dz-mark" aria-hidden="true">
+              <svg viewBox="0 0 48 48"><circle class="m-core" cx="24" cy="24" r="6.5"/><g class="m-rays" stroke-linecap="round"></g></svg>
+            </span>
+            <p class="dz-lead">Drop an image here</p>
+            <p class="dz-sub">or click to browse · JPG, PNG or WebP</p>
+          </div>
+          <div class="dz-preview" id="dzPreview" hidden>
+            <img id="previewImg" alt="Your uploaded photo">
+            <div class="dz-meta"><span id="fileName">photo.jpg</span><span id="fileSize">·</span></div>
+          </div>
+        </label>
+
+        <div class="card-actions">
+          <button class="btn btn-solid" id="runBtn" disabled>Identify breed</button>
+          <button class="btn btn-ghost" id="clearBtn" disabled>Clear</button>
+        </div>
+      </article>
+
+      <!-- RESULT -->
+      <article class="card result-card reveal" data-delay="90">
+        <header class="card-head">
+          <span class="tag">Result</span>
+          <h2 class="card-title">Predicted breed</h2>
+        </header>
+
+        <div class="result-empty" id="resultEmpty">
+          <p>Upload a photo to watch the network accumulate evidence.</p>
+        </div>
+
+        <div class="result-body" id="resultBody" hidden>
+          <div class="verdict">
+            <p class="verdict-breed display" id="breedName">·</p>
+            <p class="verdict-conf"><span id="confVal">0</span><span class="pct">% confidence</span></p>
+          </div>
+          <ul class="ranks" id="ranks"></ul>
+          <p class="verdict-why" id="whyText"></p>
+        </div>
+      </article>
+    </div>
+
+    <!-- HOW IT WORKS -->
+    <article class="card pipeline-card reveal">
+      <header class="card-head">
+        <span class="tag">How it works</span>
+        <h2 class="card-title">Hybrid pipeline &amp; efficiency</h2>
+      </header>
+
+      <ol class="pipeline">
+        <li>
+          <span class="step-no">01</span>
+          <h3>MobileNet v3 · small</h3>
+          <p>A compact convolutional backbone reads the image once and hands up a feature vector.</p>
+        </li>
+        <li>
+          <span class="step-no">02</span>
+          <h3>ca-LIF spiking head</h3>
+          <p>A leaky integrate-and-fire layer whose leak β and threshold ϑ adapt to each image.</p>
+        </li>
+        <li>
+          <span class="step-no">03</span>
+          <h3>Breed by spike count</h3>
+          <p>Evidence accumulates over time; the class that spikes most, and soonest, wins.</p>
+        </li>
+      </ol>
+
+      <div class="stats" id="stats">
+        <div class="stat"><span class="stat-label">CPU passes</span><span class="stat-val display" id="statPasses">1</span></div>
+        <div class="stat"><span class="stat-label">Spike activity</span><span class="stat-val display" id="statSpikes">·</span></div>
+        <div class="stat"><span class="stat-label">Compute saved</span><span class="stat-val display" id="statSaved">·</span></div>
+        <div class="stat"><span class="stat-label">Head params</span><span class="stat-val display" id="statParams">150.8K</span></div>
+      </div>
+
+      <div class="evidence">
+        <div class="evidence-head">
+          <span class="evidence-title">Adaptive compute · evidence accumulation</span>
+          <span class="evidence-note" id="evidenceNote">idle</span>
+        </div>
+        <div class="raster" id="raster" role="img" aria-label="Spike raster over time"></div>
+      </div>
+
+      <p class="honesty">
+        Runs entirely in your browser: a live illustration of the content-adaptive LIF
+        (<code>ca-lif</code>) pipeline driven by real pixel statistics, not a benchmarked model.
+        The full method is in <a href="research.html">the research</a>.
+      </p>
+    </article>
+  </section>
+</main>
+
+<footer id="site-footer"></footer>
+<script src="js/site.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

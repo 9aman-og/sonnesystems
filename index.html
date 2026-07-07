@@ -4,11 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sonne Systems · neuromorphic engineering &amp; BCI research</title>
-<meta name="description" content="Sonne Systems is a neuromorphic engineering and BCI research studio. We build brain-inspired spiking models that compute only when the signal demands it.">
+<meta name="description" content="Sonne Systems is a neuromorphic engineering and BCI research studio. Brain-inspired spiking models that compute only when the signal demands it.">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#ece2d0">
 
-<!-- social -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Sonne Systems · intelligence that computes only when it counts">
 <meta property="og:description" content="A neuromorphic engineering and BCI research studio building spiking-convolutional hybrids.">
@@ -20,11 +19,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
+<body data-page="home">
 
-<!-- soft radiant sun bleeding in from the top-left, behind everything -->
 <div class="sun-field" aria-hidden="true">
   <svg viewBox="0 0 600 600" preserveAspectRatio="xMinYMin meet">
     <circle class="sun-core" cx="70" cy="70" r="30"/>
@@ -33,276 +31,64 @@
   </svg>
 </div>
 
-<header class="topbar">
-  <a class="brand" href="#top" aria-label="Sonne Systems home">
-    <span class="brand-mark" aria-hidden="true">
+<header id="site-header"></header>
+
+<main class="land">
+  <!-- ──────────────  animated hero  ────────────── -->
+  <section class="land-hero">
+    <div class="land-orb" aria-hidden="true"></div>
+    <span class="land-sun" aria-hidden="true">
       <svg viewBox="0 0 48 48"><circle class="m-core" cx="24" cy="24" r="7"/><g class="m-rays" stroke-linecap="round"></g></svg>
     </span>
-    <span class="brand-word"><b>Sonne</b><span>Systems</span></span>
-  </a>
-  <nav class="topnav" aria-label="Primary">
-    <a href="#demo">Demo</a>
-    <a href="#research">Research</a>
-    <a href="#tools">Tools</a>
-    <a href="#about">About</a>
-  </nav>
-  <a class="btn btn-ghost topcta" href="mailto:9aman.aa@gmail.com">Get in touch</a>
-</header>
-
-<main id="top">
-
-  <!-- ────────────────────────  HERO  ──────────────────────── -->
-  <section class="hero">
-    <span class="hero-mark" aria-hidden="true">
-      <svg viewBox="0 0 48 48"><circle class="m-core" cx="24" cy="24" r="7"/><g class="m-rays" stroke-linecap="round"></g></svg>
-    </span>
-    <p class="eyebrow">Neuromorphic engineering · BCI research</p>
-    <h1 class="display">
+    <p class="eyebrow reveal">Neuromorphic engineering · BCI research</p>
+    <h1 class="display land-title reveal" data-delay="80">
       Brain-inspired models that
       <em>compute only when it counts.</em>
     </h1>
-    <p class="lede">
+    <p class="land-lede reveal" data-delay="160">
       Sonne Systems is a neuromorphic research studio. We build spiking-convolutional
-      hybrids that spend energy the way a brain does: sparsely, adaptively, and only on
-      the part of the signal that actually matters.
+      hybrids that spend energy the way a brain does: sparsely, adaptively, and only
+      on the part of the signal that actually matters.
     </p>
-    <div class="hero-actions">
-      <a class="btn btn-solid" href="#demo">See the pipeline run ↓</a>
-      <a class="btn btn-ghost" href="#research">Read the research</a>
+    <div class="land-actions reveal" data-delay="240">
+      <a class="btn btn-solid" href="demo.html">Try the live demo</a>
+      <a class="btn btn-ghost" href="research.html">Read the research</a>
     </div>
   </section>
 
-  <!-- ────────────────────────  LIVE DEMO  ──────────────────────── -->
-  <section class="demo" id="demo">
-    <div class="demo-grid">
+  <!-- ──────────────  each section is its own page  ────────────── -->
+  <nav class="section-links" aria-label="Site sections">
+    <a class="slink feature wide reveal" href="demo.html">
+      <span class="slink-no">01 · Research demo</span>
+      <span class="slink-title display">Spiking Mammal: watch the pipeline decide in real time</span>
+      <span class="slink-desc">Upload a cat photo. A spiking head accumulates evidence and stops the moment it is sure, so easy images cost less compute.</span>
+      <span class="slink-go">Try the demo →</span>
+    </a>
 
-      <!-- INPUT -->
-      <article class="card input-card">
-        <header class="card-head">
-          <span class="tag">Input</span>
-          <h2 class="card-title">Spiking Mammal: upload a cat photo</h2>
-        </header>
+    <a class="slink reveal" data-delay="80" href="research.html">
+      <span class="slink-no">02 · Research</span>
+      <span class="slink-title display">Projects &amp; papers</span>
+      <span class="slink-desc">The ca-lif neuron, certified robustness, and an open evidence protocol. Negative results included.</span>
+      <span class="slink-go">Explore the research →</span>
+    </a>
 
-        <label class="dropzone" id="dropzone" tabindex="0" aria-label="Upload a cat photo">
-          <input type="file" id="file" accept="image/png,image/jpeg,image/webp" hidden>
-          <div class="dz-empty" id="dzEmpty">
-            <span class="dz-mark" aria-hidden="true">
-              <svg viewBox="0 0 48 48"><circle class="m-core" cx="24" cy="24" r="6.5"/><g class="m-rays" stroke-linecap="round"></g></svg>
-            </span>
-            <p class="dz-lead">Drop an image here</p>
-            <p class="dz-sub">or click to browse · JPG, PNG or WebP</p>
-          </div>
-          <div class="dz-preview" id="dzPreview" hidden>
-            <img id="previewImg" alt="Your uploaded photo">
-            <div class="dz-meta"><span id="fileName">photo.jpg</span><span id="fileSize">·</span></div>
-          </div>
-        </label>
+    <a class="slink reveal" data-delay="160" href="tools.html">
+      <span class="slink-no">03 · Utility apps</span>
+      <span class="slink-title display">Small tools, freely shared</span>
+      <span class="slink-desc">Lyfe, a calm life tracker with Sol, its companion. No accounts, no cloud. Your data stays on your device.</span>
+      <span class="slink-go">See the apps →</span>
+    </a>
 
-        <div class="card-actions">
-          <button class="btn btn-solid" id="runBtn" disabled>Identify breed</button>
-          <button class="btn btn-ghost" id="clearBtn" disabled>Clear</button>
-        </div>
-      </article>
-
-      <!-- RESULT -->
-      <article class="card result-card">
-        <header class="card-head">
-          <span class="tag">Result</span>
-          <h2 class="card-title">Predicted breed</h2>
-        </header>
-
-        <div class="result-empty" id="resultEmpty">
-          <p>Upload a photo to watch the network accumulate evidence.</p>
-        </div>
-
-        <div class="result-body" id="resultBody" hidden>
-          <div class="verdict">
-            <p class="verdict-breed display" id="breedName">·</p>
-            <p class="verdict-conf"><span id="confVal">0</span><span class="pct">% confidence</span></p>
-          </div>
-          <ul class="ranks" id="ranks"></ul>
-          <p class="verdict-why" id="whyText"></p>
-        </div>
-      </article>
-    </div>
-
-    <!-- HOW IT WORKS -->
-    <article class="card pipeline-card">
-      <header class="card-head">
-        <span class="tag">How it works</span>
-        <h2 class="card-title">Hybrid pipeline &amp; efficiency</h2>
-      </header>
-
-      <ol class="pipeline">
-        <li>
-          <span class="step-no">01</span>
-          <h3>MobileNet v3 · small</h3>
-          <p>A compact convolutional backbone reads the image once and hands up a feature vector.</p>
-        </li>
-        <li>
-          <span class="step-no">02</span>
-          <h3>ca-LIF spiking head</h3>
-          <p>A leaky integrate-and-fire layer whose leak β and threshold ϑ adapt to each image.</p>
-        </li>
-        <li>
-          <span class="step-no">03</span>
-          <h3>Breed by spike count</h3>
-          <p>Evidence accumulates over time; the class that spikes most, and soonest, wins.</p>
-        </li>
-      </ol>
-
-      <div class="stats" id="stats">
-        <div class="stat"><span class="stat-label">CPU passes</span><span class="stat-val display" id="statPasses">1</span></div>
-        <div class="stat"><span class="stat-label">Spike activity</span><span class="stat-val display" id="statSpikes">·</span></div>
-        <div class="stat"><span class="stat-label">Compute saved</span><span class="stat-val display" id="statSaved">·</span></div>
-        <div class="stat"><span class="stat-label">Head params</span><span class="stat-val display" id="statParams">150.8K</span></div>
-      </div>
-
-      <div class="evidence">
-        <div class="evidence-head">
-          <span class="evidence-title">Adaptive compute · evidence accumulation</span>
-          <span class="evidence-note" id="evidenceNote">idle</span>
-        </div>
-        <div class="raster" id="raster" role="img" aria-label="Spike raster over time"></div>
-      </div>
-
-      <p class="honesty">
-        Runs entirely in your browser: a live illustration of the content-adaptive LIF
-        (<code>ca-lif</code>) pipeline driven by real pixel statistics, not a benchmarked model.
-      </p>
-    </article>
-  </section>
-
-  <!-- ────────────────────────  RESEARCH  ──────────────────────── -->
-  <section class="products" id="research">
-    <div class="section-head">
-      <p class="eyebrow">Research</p>
-      <h2 class="display">Projects &amp; papers</h2>
-      <p class="section-lede">Everything we publish comes with its controls, its seeds, and its negative results intact.</p>
-    </div>
-
-    <div class="prod-grid">
-      <article class="card prod">
-        <p class="prod-kind">Research project · live demo</p>
-        <h3 class="prod-name">Spiking Mammal</h3>
-        <p class="prod-desc">
-          A content-adaptive spiking classifier. Easy images decide in a few timesteps;
-          harder ones are given more time. Compute follows difficulty, not a fixed budget.
-        </p>
-        <a class="prod-link" href="#demo">Try the demo →</a>
-      </article>
-
-      <article class="card prod">
-        <p class="prod-kind">Paper · 2026 <span class="lock-chip">Password protected</span></p>
-        <h3 class="prod-name">When Do Spiking-Convolutional Hybrids Help?</h3>
-        <p class="prod-desc">
-          Introduces <code>ca-lif</code>, a content-adaptive spiking neuron, and a pre-registered
-          evidence protocol. We ran the dense controls, the headline effect did not survive,
-          and we published that anyway.
-        </p>
-        <a class="prod-link" href="papers.html?p=calif">Unlock the PDF →</a>
-      </article>
-
-      <article class="card prod">
-        <p class="prod-kind">Paper · 2026 <span class="lock-chip">Password protected</span></p>
-        <h3 class="prod-name">Illumination-Invariant Certified Robustness</h3>
-        <p class="prod-desc">
-          A construction and a fundamental limit. A rank front-end beneath a 1-Lipschitz network
-          yields predictions exactly invariant to every monotonic illumination change, then proves
-          the sharp price that invariance has to pay.
-        </p>
-        <a class="prod-link" href="papers.html?p=nnn">Unlock the PDF →</a>
-      </article>
-
-      <article class="card prod">
-        <p class="prod-kind">Open benchmark · in progress</p>
-        <h3 class="prod-name">The Evidence Protocol</h3>
-        <p class="prod-desc">
-          An open harness for asking when spikes actually help: honest baselines, multi-seed
-          statistics, and transparent energy accounting. Built so results replicate.
-        </p>
-        <a class="prod-link" href="mailto:9aman.aa@gmail.com?subject=Evidence%20Protocol">Follow along →</a>
-      </article>
-    </div>
-  </section>
-
-  <!-- ────────────────────────  UTILITY APPS  ──────────────────────── -->
-  <section class="tools" id="tools">
-    <div class="section-head">
-      <p class="eyebrow">Utility apps for you</p>
-      <h2 class="display">Small tools, freely shared</h2>
-      <p class="section-lede">Things we build for ourselves and leave open for anyone. No accounts, no cloud. They run on your device and keep your data there.</p>
-    </div>
-
-    <div class="tools-grid">
-      <article class="card tool-feature">
-        <div class="tool-art" aria-hidden="true">
-          <img src="assets/lyfe_logo.png" alt="Lyfe" width="184" height="184" loading="lazy">
-        </div>
-        <div class="tool-copy">
-          <p class="prod-kind">Life tracker · PWA</p>
-          <h3 class="prod-name">Lyfe</h3>
-          <p class="prod-desc">
-            Your life, lightly kept: one calm place for tasks, projects, goals, notes and docs,
-            with <b>Sol</b>, a companion you can just talk to. No frameworks, no build step;
-            installs to your phone and works offline.
-          </p>
-          <div class="tool-actions">
-            <a class="btn btn-solid" href="lyfe/" target="_blank" rel="noopener">Open Lyfe →</a>
-            <span class="tool-foot">Installs as an app · works offline · data stays on-device</span>
-          </div>
-        </div>
-      </article>
-
-      <article class="card tool-soon">
-        <p class="prod-kind">More on the way</p>
-        <h3 class="prod-name">Sol &amp; friends</h3>
-        <p class="prod-desc">Sol, the companion inside Lyfe, is becoming its own thing. Other small, private-by-default tools are in the workshop.</p>
-        <a class="prod-link" href="mailto:9aman.aa@gmail.com?subject=Tell%20me%20when">Get a nudge when they land →</a>
-      </article>
-    </div>
-  </section>
-
-  <!-- ────────────────────────  ABOUT  ──────────────────────── -->
-  <section class="about" id="about">
-    <div class="about-inner">
-      <p class="eyebrow">About</p>
-      <h2 class="display">A one-person studio, working in the open.</h2>
-      <p class="about-body">
-        Sonne Systems is the research studio of <b>Aman Agarwal</b>: neuromorphic engineering and
-        brain-computer interfaces, from the algorithm down to the silicon it should run on. The
-        working principle is simple. Report what the experiments actually show.
-      </p>
-      <div class="about-links">
-        <a class="btn btn-ghost" href="https://www.linkedin.com/in/aman-agarwal-628880317/" target="_blank" rel="noopener">LinkedIn ↗</a>
-        <a class="btn btn-ghost" href="https://github.com/9aman-og" target="_blank" rel="noopener">GitHub ↗</a>
-        <a class="btn btn-ghost" href="mailto:9aman.aa@gmail.com">Email</a>
-      </div>
-    </div>
-  </section>
+    <a class="slink wide reveal" href="about.html">
+      <span class="slink-no">04 · About</span>
+      <span class="slink-title display">A one-person studio, working in the open</span>
+      <span class="slink-desc">Who is behind Sonne Systems, the working principles, and how to get in touch.</span>
+      <span class="slink-go">Meet the studio →</span>
+    </a>
+  </nav>
 </main>
 
-<footer class="footer">
-  <div class="footer-inner">
-    <a class="brand" href="#top" aria-label="Sonne Systems home">
-      <span class="brand-mark" aria-hidden="true">
-        <svg viewBox="0 0 48 48"><circle class="m-core" cx="24" cy="24" r="7"/><g class="m-rays" stroke-linecap="round"></g></svg>
-      </span>
-      <span class="brand-word"><b>Sonne</b><span>Systems</span></span>
-    </a>
-    <p class="footer-line">Neuromorphic engineering &amp; BCI research. Built in the open.</p>
-    <nav class="footer-nav">
-      <a href="#demo">Demo</a>
-      <a href="#research">Research</a>
-      <a href="#tools">Tools</a>
-      <a href="https://www.linkedin.com/in/aman-agarwal-628880317/" target="_blank" rel="noopener">LinkedIn</a>
-      <a href="https://github.com/9aman-og" target="_blank" rel="noopener">GitHub</a>
-      <a href="mailto:9aman.aa@gmail.com">Contact</a>
-    </nav>
-  </div>
-  <p class="footer-fine">© <span id="year">2026</span> Sonne Systems · sonnesystems.com</p>
-</footer>
-
-<script src="app.js"></script>
+<footer id="site-footer"></footer>
+<script src="js/site.js"></script>
 </body>
 </html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Utility apps · Sonne Systems</title>
+<meta name="description" content="Small tools from Sonne Systems, freely shared. Lyfe: a calm life tracker with Sol, its companion. No accounts, no cloud.">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#ece2d0">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='11' fill='%23ece2d0'/%3E%3Cg fill='none' stroke='%23c06a3a' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='24' cy='24' r='6.5' fill='%23c06a3a'/%3E%3Cpath d='M24 6v4M24 38v4M6 24h4M38 24h4M11.5 11.5l2.8 2.8M33.7 33.7l2.8 2.8M11.5 36.5l2.8-2.8M33.7 14.3l2.8-2.8'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body data-page="tools">
+
+<div class="sun-field" aria-hidden="true">
+  <svg viewBox="0 0 600 600" preserveAspectRatio="xMinYMin meet">
+    <circle class="sun-core" cx="70" cy="70" r="30"/>
+    <circle cx="70" cy="70" r="46" fill="none" stroke="var(--terra)" stroke-width="2.2"/>
+    <g class="sun-rays" stroke="var(--terra)" stroke-width="2.4" stroke-linecap="round"></g>
+  </svg>
+</div>
+
+<header id="site-header"></header>
+
+<main class="page">
+  <section class="page-hero">
+    <p class="eyebrow">Utility apps for you</p>
+    <h1 class="display page-title">Small tools, <em>freely shared</em></h1>
+    <p class="page-intro">
+      Things we build for ourselves and leave open for anyone. No accounts, no cloud.
+      They run on your device and keep your data there.
+    </p>
+  </section>
+
+  <div class="tools-layout">
+    <!-- ──────────  utility apps sidebar  ────────── -->
+    <aside class="app-sidebar reveal">
+      <h2>Utility apps</h2>
+      <ul class="app-list">
+        <li><a href="#lyfe" class="active" aria-current="true"><img src="assets/lyfe_logo.png" alt="">Lyfe</a></li>
+        <li><a href="mailto:9aman.aa@gmail.com?subject=Sol" class="app-soon"><span class="dot">☀</span>Sol · soon</a></li>
+        <li><a href="mailto:9aman.aa@gmail.com?subject=Tool%20idea" class="app-soon"><span class="dot">+</span>Suggest a tool</a></li>
+      </ul>
+    </aside>
+
+    <!-- ──────────  featured app  ────────── -->
+    <section class="app-main" id="lyfe">
+      <article class="card app-hero reveal">
+        <div class="app-art" aria-hidden="true">
+          <img src="assets/lyfe_logo.png" alt="Lyfe" width="200" height="200">
+        </div>
+        <div class="app-copy">
+          <p class="prod-kind">Life tracker · installable web app</p>
+          <h1>Lyfe</h1>
+          <p class="app-tagline">Your life, lightly kept.</p>
+          <p>
+            One calm place for tasks, projects, goals, education, notes and docs,
+            with <b>Sol</b>, a companion you can just talk to. No frameworks, no build
+            step, no dependencies: three files that will still open in twenty years.
+          </p>
+          <div class="app-cta">
+            <a class="btn btn-solid" href="lyfe/" target="_blank" rel="noopener">Open Lyfe →</a>
+            <span class="tool-foot">Free · installs to your phone · works offline</span>
+          </div>
+        </div>
+      </article>
+
+      <div class="app-features">
+        <article class="app-feature reveal" data-delay="60">
+          <h3>Sol, the companion</h3>
+          <p>Talk like you would text a friend. "remind me to email prof tomorrow" becomes a task; "log 2h on spike encoder" becomes a work entry.</p>
+        </article>
+        <article class="app-feature reveal" data-delay="120">
+          <h3>Works offline</h3>
+          <p>Install it from the browser and it runs full-screen on your phone, with or without a connection.</p>
+        </article>
+        <article class="app-feature reveal" data-delay="180">
+          <h3>Your data stays yours</h3>
+          <p>Everything lives in your browser storage. Export a JSON backup any time; nothing is sent to any server.</p>
+        </article>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer id="site-footer"></footer>
+<script src="js/site.js"></script>
+</body>
+</html>

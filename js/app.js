@@ -1,33 +1,18 @@
 /* ============================================================
-   Sonne Systems - homepage interactions.
-   The "Spiking Mammal" demo is honest: it reads real pixel
-   statistics from the uploaded image, scores them against a
-   handful of breed templates, and animates the adaptive-compute
-   evidence accumulation. No trained weights ship here - it is an
+   Sonne Systems - Spiking Mammal demo (demo.html).
+   The demo is honest: it reads real pixel statistics from the
+   uploaded image, scores them against a handful of breed
+   templates, and animates the adaptive-compute evidence
+   accumulation. No trained weights ship here - it is an
    illustration of the ca-lif pipeline, driven by real features.
-   Plain JavaScript, no dependencies.
+   Shared page chrome (header, footer, sun marks, sounds) lives
+   in site.js. Plain JavaScript, no dependencies.
    ============================================================ */
 (function () {
   "use strict";
 
-  /* ---- little suns: fill every ray group with evenly spaced spokes ---- */
-  function spokes(group, cx, cy, r0, r1, count) {
-    var ns = "http://www.w3.org/2000/svg";
-    for (var i = 0; i < count; i++) {
-      var a = (i / count) * Math.PI * 2 - Math.PI / 2;
-      var ln = document.createElementNS(ns, "line");
-      ln.setAttribute("x1", (cx + Math.cos(a) * r0).toFixed(1));
-      ln.setAttribute("y1", (cy + Math.sin(a) * r0).toFixed(1));
-      ln.setAttribute("x2", (cx + Math.cos(a) * r1).toFixed(1));
-      ln.setAttribute("y2", (cy + Math.sin(a) * r1).toFixed(1));
-      group.appendChild(ln);
-    }
-  }
-  document.querySelectorAll(".m-rays").forEach(function (g) { spokes(g, 24, 24, 11.5, 17.5, 12); });
-  document.querySelectorAll(".sun-rays").forEach(function (g) { spokes(g, 70, 70, 52, 108, 20); });
-
-  var yearEl = document.getElementById("year");
-  if (yearEl) yearEl.textContent = new Date().getFullYear();
+  /* bail out cleanly on pages without the demo */
+  if (!document.getElementById("dropzone")) return;
 
   /* ============================================================
      Demo state + elements
