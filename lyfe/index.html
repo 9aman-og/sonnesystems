@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -9,11 +9,11 @@
 /* apply saved theme before first paint - light=Crystal, dark=Orbit, auto=by clock
    (legacy "day"/"night" values from older backups still resolve) */
 (function () {
-  var set = "auto";
+  var set = "light";   // default to Crystal light for the landing + login
   try {
     var d = JSON.parse(localStorage.getItem("lyfe.v1"));
     if (d && d.settings && d.settings.theme) set = d.settings.theme;
-  } catch (e) { /* default auto */ }
+  } catch (e) { /* default light */ }
   var mode;
   if (set === "day" || set === "light") mode = "light";
   else if (set === "night" || set === "dark") mode = "dark";
@@ -44,7 +44,7 @@
 <link rel="dns-prefetch" href="https://upload.wikimedia.org">
 <link rel="dns-prefetch" href="https://picsum.photos">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Unbounded:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=crystal-22">
+<link rel="stylesheet" href="styles.css?v=crystal-24">
 </head>
 <body>
 <div id="scroll-progress" aria-hidden="true"></div>
@@ -90,11 +90,13 @@
   </div>
 </div>
 
+<div id="onboard-gate" hidden role="dialog" aria-modal="true" aria-label="Set up your Lyfe"></div>
+
 <div id="modal-root"></div>
 <div id="toast-root"></div>
-<script src="supabase-config.js?v=crystal-22"></script>
-<script src="cloud.js?v=crystal-22"></script>
-<script src="app.js?v=crystal-22"></script>
+<script src="supabase-config.js?v=crystal-24"></script>
+<script src="cloud.js?v=crystal-24"></script>
+<script src="app.js?v=crystal-24"></script>
 <script>
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */
