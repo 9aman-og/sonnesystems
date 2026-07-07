@@ -10,6 +10,17 @@
 
 const STORAGE_KEY = "lyfe.v1";
 
+/* Which localStorage key holds the live data. Guests use STORAGE_KEY (as always);
+   signed-in users get a per-account cache key so accounts and guest never collide
+   on a shared browser. Set by enterGuest()/enterCloud() during boot. */
+let ACTIVE_KEY = STORAGE_KEY;
+let CLOUD_MODE = false;
+
+function readKey(k) {
+  try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : null; }
+  catch (e) { return null; }
+}
+
 const VIEWS = [
   { id: "today",     label: "Today" },
   { id: "sol",       label: "Sol" },
@@ -482,7 +493,7 @@ function normalize(raw) {
 
 function loadData() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(ACTIVE_KEY);
     if (!raw) return firstRunData();
     return normalize(JSON.parse(raw));
   } catch (e) {
@@ -502,7 +513,7 @@ function revOfRaw(raw) {
 }
 
 function storedRev() {
-  try { return revOfRaw(localStorage.getItem(STORAGE_KEY)); }
+  try { return revOfRaw(localStorage.getItem(ACTIVE_KEY)); }
   catch (e) { return -1; }
 }
 
@@ -516,8 +527,10 @@ function save(force) {
     }
     state.data.rev = Math.max(state.data.rev || 0, stored) + 1;
     state.data.savedAt = Date.now();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data));
+    localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data));
     padDirty = false;
+    // when signed in, mirror the write up to the cloud (debounced, fails soft)
+    if (CLOUD_MODE && window.LyfeCloud) LyfeCloud.pushDebounced(state.data, state.data.rev);
     return true;
   } catch (e) {
     toast("Could not save - storage may be full");
@@ -2536,11 +2549,29 @@ function eduModal(e) {
   );
 }
 
+function accountRowHtml() {
+  if (CLOUD_MODE && window.LyfeCloud && LyfeCloud.user) {
+    const u = LyfeCloud.user;
+    return `<div class="acct-row">
+      <div class="acct-info"><span class="acct-dot on"></span>
+        <div><b>${esc(u.name || "Signed in")}</b><span>${esc(u.email || "synced to your account")}</span></div></div>
+      <button type="button" class="btn btn-sm" data-action="sign-out">Sign out</button>
+    </div>`;
+  }
+  const canSignIn = !!(window.LyfeCloud && LyfeCloud.configured);
+  return `<div class="acct-row">
+    <div class="acct-info"><span class="acct-dot"></span>
+      <div><b>Guest on this device</b><span>Everything stays in this browser only</span></div></div>
+    ${canSignIn ? `<button type="button" class="btn btn-sm" data-action="sign-in">Sign in to sync</button>` : ""}
+  </div>`;
+}
+
 function settingsModal() {
   const s = state.data.settings;
   openModal(
     `<div class="modal-head"><h3>Settings</h3></div>
      <form data-form="settings">
+       ${accountRowHtml()}
        <div class="fld-row">
          ${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How Sol greets you">`)}
          ${fld("Appearance", selectHtml("theme", [["auto", "Auto (by time)"], ["light", "Light - Crystal"], ["dark", "Dark - Orbit"]],
@@ -2560,7 +2591,9 @@ function settingsModal() {
        ${fld("Anthropic API key (for Claude brain)", `<input type="password" name="apiKey" value="${esc(s.apiKey || "")}" placeholder="sk-ant-…" autocomplete="off">`)}
        <p class="fld-note">Stored only in this browser and sent only to api.anthropic.com.</p>
        ${fld("Claude model", selectHtml("model", MODELS, s.model || "claude-opus-4-8"))}
-       <p class="fld-note">All your data stays in this browser. Export a backup from the sidebar now and then.</p>
+       <p class="fld-note">${CLOUD_MODE
+         ? "Your data syncs privately to your account and is cached on this device for offline use. Your Anthropic key is never uploaded. Export still gives you a full backup."
+         : "All your data stays in this browser. Export a backup from the sidebar now and then."}</p>
        ${modalActions("Save")}
      </form>`
   );
@@ -3271,6 +3304,24 @@ document.addEventListener("click", (e) => {
     case "import": document.getElementById("importFile").click(); break;
     case "settings": settingsModal(); break;
     case "cmd-pick": cmdActivate(cmdItems[+el.dataset.i]); break;
+
+    /* accounts */
+    case "auth-google":
+      if (window.LyfeCloud) { LyfeCloud.signInGoogle().catch(() => toast("Could not reach sign-in - try again")); }
+      break;
+    case "auth-guest": enterGuest(); break;
+    case "sign-in":
+      closeModal();
+      if (window.LyfeCloud && LyfeCloud.configured) showAuthGate();
+      else toast("Cloud sign-in is not set up yet");
+      break;
+    case "sign-out":
+      confirmDialog(
+        "Sign out of this account on this device? Your data stays safe in the cloud.",
+        () => { const done = () => location.reload(); (window.LyfeCloud ? LyfeCloud.signOut() : Promise.resolve()).then(done, done); },
+        "Sign out"
+      );
+      break;
   }
 });
 
@@ -3607,7 +3658,7 @@ window.addEventListener("beforeunload", () => {
    stale (and later clobbering it on unload) */
 function absorbStored() {
   let obj = null;
-  try { obj = JSON.parse(localStorage.getItem(STORAGE_KEY)); }
+  try { obj = JSON.parse(localStorage.getItem(ACTIVE_KEY)); }
   catch (e) { return; }
   if (!obj || typeof obj !== "object") return;
 
@@ -3647,7 +3698,7 @@ function absorbStored() {
 }
 
 window.addEventListener("storage", (e) => {
-  if (e.key !== STORAGE_KEY) return;
+  if (e.key !== ACTIVE_KEY) return;
   if (revOfRaw(e.newValue) > (state.data.rev || 0)) absorbStored();
 });
 
@@ -3659,14 +3710,21 @@ function syncFromStorage() {
 document.addEventListener("visibilitychange", () => { if (!document.hidden) syncFromStorage(); });
 window.addEventListener("pageshow", (e) => { if (e.persisted) syncFromStorage(); });
 
-/* ---------------- init ---------------- */
+/* ---------------- boot + auth ---------------- */
 
-(function init() {
-  applyTheme();
-  const h = location.hash.replace(/^#\//, "");
-  if (VIEWS.some(v => v.id === h)) state.view = h;
+/* The app can start in three ways, decided by resolveAuthAndBoot():
+   - guest  : local-only, exactly as Lyfe has always worked
+   - cloud  : signed in, data synced to the user's own row in Supabase
+   - gate   : configured but signed out, show the login screen and wait
+   When cloud is not configured at all, it silently runs guest, so the
+   app never breaks while the backend is half set up. */
+
+let booted = false;
+function bootApp() {
+  if (booted) return;   // sign-out reloads the page, so boot runs once per load
+  booted = true;
   try {
-    if (!localStorage.getItem(STORAGE_KEY)) save();
+    if (!localStorage.getItem(ACTIVE_KEY)) save();
   } catch (e) { /* storage unavailable - session-only mode */ }
 
   // record today's login for the 30-day heatmap
@@ -3691,4 +3749,89 @@ window.addEventListener("pageshow", (e) => { if (e.persisted) syncFromStorage();
   document.addEventListener("pointerdown", () => {
     try { if (sfxCtx && sfxCtx.state === "suspended") sfxCtx.resume(); } catch (e) { /* fine */ }
   });
+}
+
+function showAuthGate() {
+  const el = document.getElementById("auth-gate");
+  if (el) el.hidden = false;
+  document.body.classList.add("gated");
+}
+function hideAuthGate() {
+  const el = document.getElementById("auth-gate");
+  if (el) el.hidden = true;
+  document.body.classList.remove("gated");
+}
+
+function enterGuest() {
+  CLOUD_MODE = false;
+  ACTIVE_KEY = STORAGE_KEY;
+  state.data = loadData();
+  hideAuthGate();
+  bootApp();
+}
+
+/* signed in: pull the account's data (or seed it from this device on first
+   login), cache it locally for offline, then run */
+async function enterCloud() {
+  CLOUD_MODE = true;
+  ACTIVE_KEY = "lyfe.cloud." + LyfeCloud.user.id;
+  const deviceApiKey = (state.data.settings && state.data.settings.apiKey) || "";
+
+  let cloud = null;
+  try { cloud = await LyfeCloud.pull(); } catch (e) { cloud = null; }
+
+  if (cloud && cloud.data) {
+    state.data = normalize(cloud.data);
+    state.data.rev = Math.max(state.data.rev || 0, cloud.rev || 0);
+  } else {
+    // first sign-in on this account: bring this device's guest data up
+    const guest = readKey(STORAGE_KEY);
+    state.data = normalize(guest || {});
+    try { await LyfeCloud.push(state.data, (state.data.rev || 0) + 1); }
+    catch (e) { /* offline: the next save re-pushes */ }
+  }
+
+  // the Anthropic API key is deliberately never uploaded; keep this device's own
+  if (deviceApiKey && state.data.settings) state.data.settings.apiKey = deviceApiKey;
+  try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data)); } catch (e) {}
+
+  LyfeCloud.subscribe(onCloudRemote);
+  hideAuthGate();
+  bootApp();
+}
+
+/* another device wrote a newer revision - fold it in like a cross-tab change */
+function onCloudRemote(payload) {
+  if (!payload || (payload.rev || 0) <= (state.data.rev || 0)) return;
+  const deviceApiKey = (state.data.settings && state.data.settings.apiKey) || "";
+  state.data = normalize(payload.data);
+  state.data.rev = payload.rev;
+  if (deviceApiKey && state.data.settings) state.data.settings.apiKey = deviceApiKey;
+  try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data)); } catch (e) {}
+  if (state.noteId && !state.data.notes.some(n => n.id === state.noteId)) state.noteId = null;
+  if (state.docId && !state.data.docs.some(n => n.id === state.docId)) state.docId = null;
+  applyTheme();
+  const ae = document.activeElement;
+  const typing = ae && (ae.id === "pad-title" || ae.id === "pad-body");
+  if (!typing) render();
+}
+
+async function resolveAuthAndBoot() {
+  if (!window.LyfeCloud) { enterGuest(); return; }   // module blocked: never break
+  let status = "unconfigured";
+  try { status = await LyfeCloud.init(); } catch (e) { status = "unconfigured"; }
+  if (status === "cloud") { await enterCloud(); }
+  else if (status === "gate") { showAuthGate(); }
+  else { enterGuest(); }                              // unconfigured: local as today
+}
+
+(function init() {
+  applyTheme();
+  const h = location.hash.replace(/^#\//, "");
+  if (VIEWS.some(v => v.id === h)) state.view = h;
+  // hide the app shell up front only when a backend exists, so a signed-in
+  // user never flashes an empty app and a signed-out user never flashes it
+  // before the login screen. Unconfigured installs skip this entirely.
+  if (window.LyfeCloud && LyfeCloud.configured) document.body.classList.add("gated");
+  resolveAuthAndBoot();
 })();
