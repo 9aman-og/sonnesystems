@@ -411,8 +411,8 @@ function defaultData() {
     savedAt: 0,
     version: 1,
     settings: {
-      name: "Aman",
-      theme: "auto",                 // auto | light | dark
+      name: "",
+      theme: "light",                // auto | light | dark - default Crystal light
       provider: "ollama",            // ollama | claude | offline
       ollamaUrl: "http://localhost:11434",
       ollamaModel: "qwen3:8b",
@@ -420,6 +420,12 @@ function defaultData() {
       model: "claude-opus-4-8",
       lastGreeted: "",
       sound: true,
+      // profile, collected at onboarding after Google sign-in; Sol uses these
+      age: "",
+      country: "",
+      focus: [],                     // what they are here to do (goal areas)
+      commitment: "",                // how committed: exploring | committed | all-in
+      onboarded: false,
     },
     game: { xp: 0, streak: 0, lastActiveDay: "", bestStreak: 0, logins: [] },
     tasks: [],
@@ -1013,7 +1019,9 @@ function viewToday() {
   const t = todayStr();
   const hour = new Date().getHours();
   const part = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+  const partCap = part.charAt(0).toUpperCase() + part.slice(1);   // "Good Morning"
   const name = (d.settings.name || "").trim();
+  const who = name || "Human";   // greeting knows their name once onboarded
 
   const open = d.tasks.filter(x => x.status !== "done");
   const overdue = open.filter(x => x.due && x.due < t).sort(taskCmp);
@@ -1083,7 +1091,7 @@ function viewToday() {
     <section class="cx-hero" data-reveal>
       <div class="cx-hero-copy">
         <div class="cx-kicker home-index">LYFE ::CRYSTAL • ${esc(fmtLongISO(t))}</div>
-        <h1 class="cx-title">Good ${part}${name ? ",<br>" + esc(name) : "<br>friend"}<span class="blink-dot">.</span></h1>
+        <h1 class="cx-title">Good ${partCap},<br>${esc(who)}<span class="blink-dot">.</span></h1>
         <p class="cx-deck">${open.length
           ? `<b>${open.length} open loop${open.length === 1 ? "" : "s"}</b> in orbit - everything else is handled.`
           : `Nothing waiting on you. <b>Protect that feeling.</b>`}</p>
@@ -1191,7 +1199,7 @@ function viewToday() {
     <section class="home-intro">
       <div class="home-index">LYFE / ${String(new Date().getMonth() + 1).padStart(2, "0")}.${String(new Date().getDate()).padStart(2, "0")}</div>
       <div class="home-title-row">
-        <h1>Good ${part}${name ? ", " + esc(name) : ""}<span class="blink-dot">.</span></h1>
+        <h1>Good ${partCap}, ${esc(who)}<span class="blink-dot">.</span></h1>
         <div class="home-actions">
           <button class="btn ghost-pill" data-action="nav" data-view="sol">${icon("sol")} talk to Sol</button>
           <button class="btn btn-primary punch-pill" data-action="new-task">+ capture</button>
@@ -2241,7 +2249,15 @@ function contextSnapshot() {
   const goals = d.goals.filter(g => g.status !== "achieved").slice(0, 6).map(g => "- " + g.title).join("\n");
   const edu = d.education.filter(e => e.status === "in-progress").slice(0, 6)
     .map(e => `- ${e.title} (${e.progress || 0}%)`).join("\n");
-  return `Today is ${fmtLongISO(t)} (${t}). The user's name is ${d.settings.name || "unknown"}.
+  const s = d.settings;
+  const profile = [
+    s.name ? `name ${s.name}` : "",
+    s.age ? `age ${s.age}` : "",
+    s.country ? `from ${s.country}` : "",
+    (Array.isArray(s.focus) && s.focus.length) ? `here to ${s.focus.join(", ")}` : "",
+    s.commitment ? `commitment: ${s.commitment}` : "",
+  ].filter(Boolean).join("; ");
+  return `Today is ${fmtLongISO(t)} (${t}). About the user: ${profile || "unknown"}. Address them by name and keep their goals and commitment in mind.
 Hours logged this week: ${fmtHours(weekHours())}.
 Open tasks:\n${open || "(none)"}
 Active projects:\n${projects || "(none)"}
@@ -2577,6 +2593,10 @@ function settingsModal() {
          ${fld("Appearance", selectHtml("theme", [["auto", "Auto (by time)"], ["light", "Light - Crystal"], ["dark", "Dark - Orbit"]],
            s.theme === "day" ? "light" : s.theme === "night" ? "dark" : (["auto", "light", "dark"].includes(s.theme) ? s.theme : "auto")))}
          ${fld("Sound FX", selectHtml("sound", [["on", "On"], ["off", "Off"]], s.sound === false ? "off" : "on"))}
+       </div>
+       <div class="fld-row">
+         ${fld("Age", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="optional">`)}
+         ${fld("Country", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="optional">`)}
        </div>
        ${fld("Sol's brain", selectHtml("provider", [
          ["ollama", "Qwen via Ollama (local, free, private)"],
@@ -3310,6 +3330,10 @@ document.addEventListener("click", (e) => {
       if (window.LyfeCloud) { LyfeCloud.signInGoogle().catch(() => toast("Could not reach sign-in - try again")); }
       break;
     case "auth-guest": enterGuest(); break;
+    case "onboard-focus": el.classList.toggle("sel"); sfxClick("chip"); break;
+    case "onboard-commit":
+      document.querySelectorAll(".onb-segbtn").forEach(b => b.classList.remove("sel"));
+      el.classList.add("sel"); sfxClick("chip"); break;
     case "sign-in":
       closeModal();
       if (window.LyfeCloud && LyfeCloud.configured) showAuthGate();
@@ -3485,6 +3509,8 @@ document.addEventListener("submit", (e) => {
 
     case "settings": {
       d.settings.name = val("name");
+      d.settings.age = val("age");
+      d.settings.country = val("country");
       d.settings.theme = ["auto", "light", "dark"].includes(val("theme")) ? val("theme") : "auto";
       d.settings.sound = val("sound") !== "off";
       d.settings.provider = ["ollama", "claude", "offline"].includes(val("provider")) ? val("provider") : "ollama";
@@ -3498,6 +3524,8 @@ document.addEventListener("submit", (e) => {
       save(); closeModal(); render(); toast("Settings saved");
       break;
     }
+
+    case "onboarding": submitOnboarding(fd); break;
   }
 });
 
@@ -3762,6 +3790,93 @@ function hideAuthGate() {
   document.body.classList.remove("gated");
 }
 
+/* ---- onboarding: collect who they are, once, after first Google sign-in ---- */
+
+const FOCUS_OPTIONS = [
+  "Build discipline", "Track my work", "Learn new skills", "Health and habits",
+  "Beat procrastination", "Ship big projects", "Just get organised",
+];
+const COMMIT_OPTIONS = [
+  ["exploring", "Just exploring"],
+  ["committed", "Committed"],
+  ["all-in", "All in"],
+];
+const COMMON_COUNTRIES = [
+  "United States", "United Kingdom", "Canada", "Australia", "India", "Germany",
+  "France", "Spain", "Italy", "Netherlands", "Ireland", "Portugal", "Sweden",
+  "Norway", "Denmark", "Finland", "Poland", "Switzerland", "Austria", "Belgium",
+  "Brazil", "Mexico", "Argentina", "Chile", "Colombia", "Japan", "South Korea",
+  "China", "Singapore", "Malaysia", "Indonesia", "Philippines", "Thailand",
+  "Vietnam", "United Arab Emirates", "Saudi Arabia", "Israel", "Turkey", "Egypt",
+  "South Africa", "Nigeria", "Kenya", "New Zealand", "Pakistan", "Bangladesh",
+];
+
+function onboardSunMark() {
+  return `<span class="auth-mark" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><circle cx="32" cy="32" r="10"/><path d="M32 6v6M32 52v6M6 32h6M52 32h6M13 13l4 4M47 47l4 4M13 51l4-4M47 17l4-4"/></svg></span>`;
+}
+
+function showOnboarding() {
+  const el = document.getElementById("onboard-gate");
+  if (!el) { bootApp(); return; }   // failsafe: never trap the user out of the app
+  const s = state.data.settings;
+  const suggestedName = s.name || (window.LyfeCloud && LyfeCloud.user ? LyfeCloud.user.name : "") || "";
+  el.innerHTML =
+    `<div class="onb-card">
+      <div class="onb-head">
+        ${onboardSunMark()}
+        <h1 class="onb-title">Welcome to Lyfe</h1>
+        <p class="onb-sub">A few quick things, so Lyfe and Sol actually know you.</p>
+      </div>
+      <form data-form="onboarding" class="onb-form" autocomplete="off">
+        <div class="onb-row">
+          ${fld("Your name", `<input type="text" name="name" maxlength="60" required value="${esc(suggestedName)}" placeholder="What should we call you?">`)}
+          ${fld("Age", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="e.g. 20">`)}
+        </div>
+        ${fld("Country", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="Where are you?" list="onb-countries">
+          <datalist id="onb-countries">${COMMON_COUNTRIES.map(c => `<option value="${esc(c)}"></option>`).join("")}</datalist>`)}
+        <div class="onb-group">
+          <span class="onb-label">What are you here to do?</span>
+          <div class="onb-chips">${FOCUS_OPTIONS.map(g =>
+            `<button type="button" class="onb-chip${(s.focus || []).includes(g) ? " sel" : ""}" data-action="onboard-focus" data-v="${esc(g)}">${esc(g)}</button>`).join("")}</div>
+        </div>
+        <div class="onb-group">
+          <span class="onb-label">How committed are you?</span>
+          <div class="onb-seg">${COMMIT_OPTIONS.map(([v, l]) =>
+            `<button type="button" class="onb-segbtn${s.commitment === v ? " sel" : ""}" data-action="onboard-commit" data-v="${v}">${esc(l)}</button>`).join("")}</div>
+        </div>
+        <button type="submit" class="auth-btn onb-submit">Enter Lyfe</button>
+      </form>
+    </div>`;
+  el.hidden = false;
+  document.body.classList.add("gated");   // reuse the gate's app-hiding
+  setTimeout(() => { const i = el.querySelector('input[name="name"]'); if (i) i.focus(); }, 30);
+}
+
+function hideOnboarding() {
+  const el = document.getElementById("onboard-gate");
+  if (el) { el.hidden = true; el.innerHTML = ""; }
+  document.body.classList.remove("gated");
+}
+
+function submitOnboarding(fd) {
+  const val = k => String(fd.get(k) == null ? "" : fd.get(k)).trim();
+  const name = val("name");
+  if (!name) { toast("A name helps Sol talk to you"); return; }
+  const s = state.data.settings;
+  s.name = name;
+  s.age = val("age");
+  s.country = val("country");
+  s.focus = [...document.querySelectorAll(".onb-chip.sel")].map(b => b.dataset.v);
+  const commit = document.querySelector(".onb-segbtn.sel");
+  s.commitment = commit ? commit.dataset.v : "";
+  s.onboarded = true;
+  save();
+  hideOnboarding();
+  applyTheme();
+  bootApp();
+  toast("Welcome, " + name.split(/\s+/)[0]);
+}
+
 function enterGuest() {
   CLOUD_MODE = false;
   ACTIVE_KEY = STORAGE_KEY;
@@ -3784,9 +3899,9 @@ async function enterCloud() {
     state.data = normalize(cloud.data);
     state.data.rev = Math.max(state.data.rev || 0, cloud.rev || 0);
   } else {
-    // first sign-in on this account: bring this device's guest data up
-    const guest = readKey(STORAGE_KEY);
-    state.data = normalize(guest || {});
+    // brand-new account: start on a clean, empty slate. No demo content and no
+    // leftover guest data, so a fresh login never shows data that isn't yours.
+    state.data = defaultData();
     try { await LyfeCloud.push(state.data, (state.data.rev || 0) + 1); }
     catch (e) { /* offline: the next save re-pushes */ }
   }
@@ -3797,6 +3912,12 @@ async function enterCloud() {
 
   LyfeCloud.subscribe(onCloudRemote);
   hideAuthGate();
+  // seed the name from the Google profile so onboarding is prefilled
+  if (!state.data.settings.name && LyfeCloud.user && LyfeCloud.user.name) {
+    state.data.settings.name = LyfeCloud.user.name;
+  }
+  // first time on this account: collect their details before opening the app
+  if (!state.data.settings.onboarded) { showOnboarding(); return; }
   bootApp();
 }
 

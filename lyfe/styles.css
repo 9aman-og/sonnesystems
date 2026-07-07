@@ -2021,7 +2021,16 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
   .nav-item.active::after { display: none; }
   /* the HUD rides the strip as a compact chip instead of a squeezed column */
   .hud { flex: 0 0 auto; width: 150px; margin: 0 0 0 8px; padding: 8px 11px; }
-  .side-foot { display: none; }
+  /* keep Export / Import / Settings reachable on mobile (was display:none,
+     which hid the only way to open Settings on a phone). ORBIT's sidebar is a
+     flex column, so the footer stacks naturally below the nav strip. */
+  .side-foot {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    padding: 2px 12px 8px;
+    border-top: 0;
+  }
   #main { padding: 34px 18px 70px; }
   .home-title-row { align-items: flex-start; flex-direction: column; }
   .home-actions { width: 100%; }
@@ -3487,7 +3496,12 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
     min-height: 54px;
     margin: 8px 10px 2px;
     padding: 6px 8px;
+    flex-wrap: wrap;
   }
+  /* CRYSTAL's sidebar is a horizontal bar; let the footer wrap onto its own
+     row so Export / Import / Settings stay reachable and centered on a phone */
+  :root[data-theme="light"] #nav { flex: 1 1 100%; min-width: 0; }
+  :root[data-theme="light"] .side-foot { flex: 1 1 100%; justify-content: center; padding-top: 4px; }
   /* ORBIT hides the sunnav on mobile; CRYSTAL keeps its wordmark */
   :root[data-theme="light"] .sunnav { display: block; }
   :root[data-theme="light"] .sunnav-foot { padding: 0 8px 0 6px; }
@@ -3523,6 +3537,14 @@ body.gated #app,
 body.gated #scroll-progress { display: none; }
 
 #auth-gate {
+  /* the login screen is always Crystal light, whatever theme the app uses.
+     Redefining the shared tokens here keeps every child (card, buttons) light. */
+  --bg: #e9f1fb; --panel: #f8fbff; --panel-2: #edf4fd;
+  --ink: #0b2545; --ink-2: #3f5e8c; --ink-3: #7b93b8;
+  --hair: #bfd4ee; --accent: #2b5cf0; --accent-glow: rgba(64, 118, 255, .30);
+  --shadow-lift: 0 6px 14px rgba(23, 64, 140, .08), 0 34px 80px rgba(23, 64, 140, .16);
+  --display: "Unbounded", "Space Grotesk", "Helvetica Neue", sans-serif;
+
   position: fixed; inset: 0; z-index: 200;
   display: grid; place-items: center; padding: 24px; overflow: auto;
   background: radial-gradient(125% 90% at 50% 0%, var(--panel), var(--bg) 72%);
@@ -3580,3 +3602,55 @@ body.gated #scroll-progress { display: none; }
 }
 .acct-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; background: var(--ink-3); }
 .acct-dot.on { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+
+/* ============================================================
+   Onboarding: same Crystal-light chassis as the login screen,
+   but a short form (name, age, country, goals, commitment).
+   ============================================================ */
+#onboard-gate {
+  --bg: #e9f1fb; --panel: #f8fbff; --panel-2: #edf4fd;
+  --ink: #0b2545; --ink-2: #3f5e8c; --ink-3: #7b93b8;
+  --hair: #bfd4ee; --accent: #2b5cf0; --accent-2: #6f97ff; --accent-glow: rgba(64, 118, 255, .30);
+  --shadow-lift: 0 6px 14px rgba(23, 64, 140, .08), 0 34px 80px rgba(23, 64, 140, .16);
+  --display: "Unbounded", "Space Grotesk", "Helvetica Neue", sans-serif;
+
+  position: fixed; inset: 0; z-index: 200;
+  display: grid; place-items: center; padding: 24px; overflow: auto;
+  background: radial-gradient(125% 90% at 50% 0%, var(--panel), var(--bg) 72%);
+}
+#onboard-gate[hidden] { display: none; }
+.onb-card {
+  width: 100%; max-width: 440px; margin: auto;
+  background: var(--panel); border: 1px solid var(--hair); border-radius: 22px;
+  box-shadow: var(--shadow-lift); padding: 32px 28px 26px;
+}
+.onb-head { text-align: center; margin-bottom: 20px; }
+.onb-head .auth-mark { margin: 0 auto 8px; width: 46px; height: 46px; }
+.onb-title { font-family: var(--display); font-size: 1.7rem; font-weight: 700; margin: 0; color: var(--ink); }
+.onb-sub { margin: 5px 0 0; color: var(--ink-2); font-size: .9rem; }
+.onb-form .fld-row { display: flex; gap: 12px; }
+.onb-form .fld-row > * { flex: 1; min-width: 0; }
+.onb-group { margin-top: 15px; }
+.onb-label { display: block; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 9px; }
+.onb-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.onb-chip {
+  font-family: var(--sans); font-size: .85rem; font-weight: 500;
+  padding: 8px 13px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--hair); background: var(--panel-2); color: var(--ink-2);
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.onb-chip:hover { border-color: var(--accent-2); }
+.onb-chip.sel { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); }
+.onb-seg { display: flex; gap: 8px; }
+.onb-segbtn {
+  flex: 1; font-family: var(--sans); font-size: .85rem; font-weight: 600;
+  padding: 10px 8px; border-radius: 12px; cursor: pointer;
+  border: 1px solid var(--hair); background: var(--panel-2); color: var(--ink-2);
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+.onb-segbtn:hover { border-color: var(--accent-2); }
+.onb-segbtn.sel { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 4px 12px var(--accent-glow); }
+.onb-submit {
+  margin-top: 24px; background: var(--accent); color: #fff; border-color: transparent;
+}
+.onb-submit:hover { box-shadow: 0 6px 18px var(--accent-glow); }

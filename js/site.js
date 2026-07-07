@@ -119,77 +119,97 @@
   }
 
   /* ============================================================
-     Boot
+     Boot - every step is isolated so one failing piece (a bad push,
+     a missing element, an unsupported API) can never blank the page.
+     The reveal content is force-shown no matter what.
      ============================================================ */
-  buildHeader();
-  buildFooter();
-
-  document.querySelectorAll(".m-rays").forEach(function (g) { spokes(g, 24, 24, 11.5, 17.5, 12); });
-  document.querySelectorAll(".sun-rays").forEach(function (g) { spokes(g, 70, 70, 52, 108, 20); });
-  document.querySelectorAll(".year").forEach(function (y) { y.textContent = new Date().getFullYear(); });
-
-  /* mobile menu */
-  var toggle = document.querySelector(".nav-toggle");
-  var nav = document.querySelector(".topnav");
-  if (toggle && nav) {
-    toggle.addEventListener("click", function () {
-      var open = document.body.classList.toggle("nav-open");
-      toggle.setAttribute("aria-expanded", open ? "true" : "false");
-    });
-    nav.addEventListener("click", function (e) {
-      if (e.target.tagName === "A") { document.body.classList.remove("nav-open"); toggle.setAttribute("aria-expanded", "false"); }
-    });
+  function revealAll() {
+    try {
+      document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("revealed"); });
+    } catch (e) { /* nothing more we can do */ }
   }
 
-  /* sound toggle */
-  updateSoundBtn();
-  var sbtn = document.querySelector(".sound-toggle");
-  if (sbtn) sbtn.addEventListener("click", function () {
-    soundOn = !soundOn;
-    try { localStorage.setItem("sonne.sound", soundOn ? "on" : "off"); } catch (e) {}
-    updateSoundBtn();
-    if (soundOn) clickSound();
-  });
+  try { buildHeader(); } catch (e) { /* header optional; page still reads */ }
+  try { buildFooter(); } catch (e) { /* footer optional */ }
 
-  /* click sounds, delegated */
-  document.addEventListener("pointerdown", function (e) {
-    var t = e.target.closest("a, button, .sounds");
-    if (!t || t.classList.contains("sound-toggle")) return;
-    if (t.classList.contains("btn") || t.tagName === "BUTTON") clickSound();
-    else softTick();
-  }, true);
+  try {
+    document.querySelectorAll(".m-rays").forEach(function (g) { spokes(g, 24, 24, 11.5, 17.5, 12); });
+    document.querySelectorAll(".sun-rays").forEach(function (g) { spokes(g, 70, 70, 52, 108, 20); });
+    document.querySelectorAll(".year").forEach(function (y) { y.textContent = new Date().getFullYear(); });
+  } catch (e) { /* decorative */ }
+
+  try {
+    /* mobile menu */
+    var toggle = document.querySelector(".nav-toggle");
+    var nav = document.querySelector(".topnav");
+    if (toggle && nav) {
+      toggle.addEventListener("click", function () {
+        var open = document.body.classList.toggle("nav-open");
+        toggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+      nav.addEventListener("click", function (e) {
+        if (e.target.tagName === "A") { document.body.classList.remove("nav-open"); toggle.setAttribute("aria-expanded", "false"); }
+      });
+    }
+  } catch (e) { /* menu optional */ }
+
+  try {
+    /* sound toggle */
+    updateSoundBtn();
+    var sbtn = document.querySelector(".sound-toggle");
+    if (sbtn) sbtn.addEventListener("click", function () {
+      soundOn = !soundOn;
+      try { localStorage.setItem("sonne.sound", soundOn ? "on" : "off"); } catch (e) {}
+      updateSoundBtn();
+      if (soundOn) clickSound();
+    });
+
+    /* click sounds, delegated */
+    document.addEventListener("pointerdown", function (e) {
+      var t = e.target.closest("a, button, .sounds");
+      if (!t || t.classList.contains("sound-toggle")) return;
+      if (t.classList.contains("btn") || t.tagName === "BUTTON") clickSound();
+      else softTick();
+    }, true);
+  } catch (e) { /* sound is a bonus */ }
 
   /* scroll-reveal (respects reduced motion).
      Above-fold content must NEVER depend on an observer firing, so anything
      already in the first viewport is revealed immediately; the observer only
      handles elements the visitor scrolls to later. */
-  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  var reveals = Array.prototype.slice.call(document.querySelectorAll(".reveal"));
+  try {
+    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var reveals = Array.prototype.slice.call(document.querySelectorAll(".reveal"));
 
-  function show(el) {
-    var d = el.getAttribute("data-delay");
-    if (d) el.style.transitionDelay = d + "ms";
-    el.classList.add("revealed");
-  }
+    var show = function (el) {
+      var d = el.getAttribute("data-delay");
+      if (d) el.style.transitionDelay = d + "ms";
+      el.classList.add("revealed");
+    };
 
-  if (reduce || !("IntersectionObserver" in window)) {
-    reveals.forEach(show);
-  } else {
-    var vh = window.innerHeight || document.documentElement.clientHeight;
-    var later = [];
-    reveals.forEach(function (el) {
-      if (el.getBoundingClientRect().top < vh * 0.96) show(el);
-      else later.push(el);
-    });
-    if (later.length) {
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (en) {
-          if (en.isIntersecting) { show(en.target); io.unobserve(en.target); }
-        });
-      }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
-      later.forEach(function (el) { io.observe(el); });
+    if (reduce || !("IntersectionObserver" in window)) {
+      reveals.forEach(show);
+    } else {
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      var later = [];
+      reveals.forEach(function (el) {
+        if (el.getBoundingClientRect().top < vh * 0.96) show(el);
+        else later.push(el);
+      });
+      if (later.length) {
+        var io = new IntersectionObserver(function (entries) {
+          entries.forEach(function (en) {
+            if (en.isIntersecting) { show(en.target); io.unobserve(en.target); }
+          });
+        }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
+        later.forEach(function (el) { io.observe(el); });
+      }
+      /* safety net: nothing stays invisible forever */
+      setTimeout(revealAll, 2600);
     }
-    /* absolute safety net: nothing stays invisible forever */
-    setTimeout(function () { reveals.forEach(function (el) { el.classList.add("revealed"); }); }, 2600);
-  }
+  } catch (e) { revealAll(); }
+
+  /* last-resort failsafe, independent of everything above: even if the whole
+     boot threw before the reveal step, content becomes visible after 3s. */
+  setTimeout(revealAll, 3000);
 })();
