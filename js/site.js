@@ -225,6 +225,42 @@
     }
   } catch (e) { revealAll(); }
 
+  /* Home page 3D core. The object follows a pointer by a few degrees only,
+     so it feels dimensional without becoming distracting or hard to read. */
+  try {
+    var stage = document.querySelector("[data-neural-stage]");
+    var canTilt = window.matchMedia &&
+      window.matchMedia("(pointer:fine)").matches &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (stage && canTilt) {
+      var tiltFrame = 0;
+      var nextTiltX = 7;
+      var nextTiltY = -8;
+
+      function paintTilt() {
+        tiltFrame = 0;
+        stage.style.setProperty("--tilt-x", nextTiltX.toFixed(2) + "deg");
+        stage.style.setProperty("--tilt-y", nextTiltY.toFixed(2) + "deg");
+      }
+
+      stage.addEventListener("pointermove", function (e) {
+        var box = stage.getBoundingClientRect();
+        var px = (e.clientX - box.left) / box.width - .5;
+        var py = (e.clientY - box.top) / box.height - .5;
+        nextTiltX = 7 - py * 12;
+        nextTiltY = -8 + px * 15;
+        if (!tiltFrame) tiltFrame = requestAnimationFrame(paintTilt);
+      });
+
+      stage.addEventListener("pointerleave", function () {
+        nextTiltX = 7;
+        nextTiltY = -8;
+        if (!tiltFrame) tiltFrame = requestAnimationFrame(paintTilt);
+      });
+    }
+  } catch (e) { /* dimensional motion is decorative */ }
+
   /* last-resort failsafe, independent of everything above: even if the whole
      boot threw before the reveal step, content becomes visible after 3s. */
   setTimeout(revealAll, 3000);
