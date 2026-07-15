@@ -21,13 +21,13 @@
 <meta name="twitter:description" content="Independent neuromorphic engineering and BCI research for sparse, adaptive intelligence.">
 <meta name="twitter:image" content="https://sonnesystems.com/assets/og-home.png">
 
-<link rel="icon" type="image/svg+xml" href="assets/logo-options/sonne-mark-signal.svg">
+<link rel="icon" type="image/png" href="assets/sonne-mark-v2.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=7">
+<link rel="stylesheet" href="css/styles.css?v=8">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://sonnesystems.com/#organization","name":"Sonne Systems","url":"https://sonnesystems.com/","logo":{"@type":"ImageObject","url":"https://sonnesystems.com/assets/logo-options/sonne-mark-signal.svg"},"description":"Independent neuromorphic engineering and brain-computer interface research studio.","founder":{"@type":"Person","name":"Aman Agarwal"},"sameAs":["https://github.com/9aman-og","https://www.linkedin.com/in/aman-agarwal-628880317/"]},{"@type":"WebSite","@id":"https://sonnesystems.com/#website","url":"https://sonnesystems.com/","name":"Sonne Systems","publisher":{"@id":"https://sonnesystems.com/#organization"},"inLanguage":"en"}]}
+{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://sonnesystems.com/#organization","name":"Sonne Systems","url":"https://sonnesystems.com/","logo":{"@type":"ImageObject","url":"https://sonnesystems.com/assets/sonne-mark-v2.png"},"description":"Independent neuromorphic engineering and brain-computer interface research studio.","founder":{"@type":"Person","name":"Aman Agarwal"},"sameAs":["https://github.com/9aman-og","https://www.linkedin.com/in/aman-agarwal-628880317/"]},{"@type":"WebSite","@id":"https://sonnesystems.com/#website","url":"https://sonnesystems.com/","name":"Sonne Systems","publisher":{"@id":"https://sonnesystems.com/#organization"},"inLanguage":"en"}]}
 </script>
 </head>
 <body data-page="home">
@@ -43,69 +43,53 @@
 <header id="site-header"></header>
 
 <main class="home-main" id="main-content" tabindex="-1">
-  <section class="company-story" data-company-story aria-labelledby="home-title">
-    <div class="company-story-sticky">
-      <div class="company-story-copy">
-        <article class="story-step is-active" data-story-step="0">
-          <p class="system-status"><span class="status-pulse" aria-hidden="true"></span>Independent neuromorphic R&amp;D</p>
-          <h1 class="display story-title" id="home-title">Intelligence that <em>knows when to act.</em></h1>
-          <p class="story-lede">Sonne Systems builds brain-inspired models that listen for meaningful change, gather evidence, and stop computing as soon as the answer is clear.</p>
-          <div class="home-actions">
-            <a class="btn home-btn-primary" href="demo.html"><span>Experience the model</span><span aria-hidden="true">&rarr;</span></a>
-            <a class="home-text-link" href="research.html">Explore the evidence <span aria-hidden="true">&#8599;</span></a>
-          </div>
-        </article>
-
-        <article class="story-step" data-story-step="1" aria-hidden="true">
-          <p class="story-number">01 / Observe</p>
-          <h2 class="display story-title">Listen for <em>change.</em></h2>
-          <p class="story-lede">Most AI spends energy on every frame. Our systems wake when the signal changes, so silence costs almost nothing.</p>
-        </article>
-
-        <article class="story-step" data-story-step="2" aria-hidden="true">
-          <p class="story-number">02 / Integrate</p>
-          <h2 class="display story-title">Let evidence <em>build.</em></h2>
-          <p class="story-lede">Sparse events accumulate into a compact state over time. Easy inputs become obvious early; difficult ones earn more thought.</p>
-        </article>
-
-        <article class="story-step" data-story-step="3" aria-hidden="true">
-          <p class="story-number">03 / Decide</p>
-          <h2 class="display story-title">Stop when <em>certain.</em></h2>
-          <p class="story-lede">Confidence gates end the computation the moment more processing stops adding value. Less waste, clearer decisions.</p>
-        </article>
-
-        <div class="story-progress" aria-hidden="true">
-          <span data-story-progress-label>01 / 04</span>
-          <i><b data-story-progress-bar></b></i>
-        </div>
+  <section class="home-intro" aria-labelledby="home-title">
+    <div class="home-intro-copy">
+      <p class="system-status"><span class="status-pulse" aria-hidden="true"></span>Independent neuromorphic R&amp;D</p>
+      <h1 class="display home-intro-title" id="home-title">Intelligence that <em>knows when to act.</em></h1>
+      <p class="home-intro-lede">Sonne Systems builds brain-inspired intelligence that listens for meaningful change, gathers evidence over time, and stops computing when the answer is clear.</p>
+      <div class="home-actions">
+        <a class="btn home-btn-primary" href="demo.html"><span>Experience the model</span><span aria-hidden="true">&rarr;</span></a>
+        <a class="home-text-link" href="research.html">Explore the evidence <span aria-hidden="true">&#8599;</span></a>
       </div>
+    </div>
+    <div class="intro-scroll" aria-hidden="true"><span></span> Enter the system</div>
+  </section>
 
-      <div class="company-engine" data-company-engine tabindex="0" role="group" aria-label="Interactive Sonne intelligence engine. Drag to rotate it in 360 degrees, or use the arrow keys.">
-        <div class="engine-reticle" aria-hidden="true"></div>
-        <div class="engine-scene" aria-hidden="true">
-          <div class="engine-field field-a"></div>
-          <div class="engine-field field-b"></div>
-          <div class="engine-ring engine-ring-a"><i></i><i></i><i></i></div>
-          <div class="engine-ring engine-ring-b"><i></i><i></i><i></i><i></i></div>
-          <div class="engine-ring engine-ring-c"><i></i><i></i></div>
-          <div class="engine-node node-observe"><span></span></div>
-          <div class="engine-node node-integrate"><span></span></div>
-          <div class="engine-node node-decide"><span></span></div>
-          <div class="engine-node node-rest"><span></span></div>
-          <div class="engine-core">
-            <div class="engine-core-shell"><img src="assets/logo-options/sonne-mark-signal.svg" alt=""></div>
-            <div class="engine-core-depth"></div>
-          </div>
+  <section class="cinema-story" data-cinema-story aria-labelledby="cinema-title">
+    <div class="cinema-sticky">
+      <div class="cinema-frame" data-cinema-frame tabindex="0" role="group" aria-label="A scroll-controlled three-dimensional explanation of how Sonne Systems intelligence works. Use the arrow keys to inspect the structure.">
+        <div class="cinema-vignette" aria-hidden="true"></div>
+        <div class="cinema-world" aria-hidden="true">
+          <div class="signal-spine"></div>
+          <div class="signal-slice signal-slice-a"><span>signal</span><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="signal-slice signal-slice-b"><span>event</span><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="signal-slice signal-slice-c"><span>state</span><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="signal-slice signal-slice-d"><span>decision</span><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="signal-core"><img src="assets/sonne-mark-v2.png" alt=""></div>
         </div>
-        <div class="engine-readout" aria-live="polite">
-          <span data-engine-index>SONNE / 00</span>
-          <strong data-engine-title>Event-driven intelligence</strong>
-          <p data-engine-copy>Compute begins only when the signal has something to say.</p>
+
+        <div class="cinema-copy" aria-live="polite">
+          <p data-cinema-label>01 / Observe</p>
+          <h2 class="display" id="cinema-title" data-cinema-title>Change wakes the system.</h2>
+          <div data-cinema-copy>Input becomes computation only when something meaningful changes.</div>
         </div>
-        <p class="engine-hint">Drag to explore 360&deg; <span aria-hidden="true">&middot;</span> Arrow keys supported</p>
+
+        <div class="cinema-meta" aria-hidden="true">
+          <span data-cinema-time>00:00</span>
+          <b data-cinema-chapter>Observe</b>
+          <i><u data-cinema-progress></u></i>
+          <span>04 chapters</span>
+        </div>
+        <div class="cinema-scroll-hint" aria-hidden="true">Scroll to play <span>&darr;</span></div>
+
+        <ol class="cinema-transcript">
+          <li>Observe. Change wakes the system. Input becomes computation only when something meaningful changes.</li>
+          <li>Encode. Change becomes an event. Silence disappears and only useful temporal information moves forward.</li>
+          <li>Integrate. Evidence builds over time. Sparse events accumulate into a compact confidence-bearing state.</li>
+          <li>Decide. Certainty ends the work. The system exits as soon as more computation stops adding value.</li>
+        </ol>
       </div>
-
-      <div class="story-scroll-cue" aria-hidden="true"><span></span> Scroll to move through the system</div>
     </div>
   </section>
 
@@ -149,6 +133,6 @@
 </main>
 
 <footer id="site-footer"></footer>
-<script src="js/site.js?v=6"></script>
+<script src="js/site.js?v=7"></script>
 </body>
 </html>

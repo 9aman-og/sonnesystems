@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title id="title">Sonne Systems event horizon mark</title>
-  <g fill="#e8b86c">
-    <circle cx="32" cy="32" r="13"/>
-    <path d="M29 4h6v13h-6zM29 47h6v13h-6zM4 29h13v6H4zM47 29h13v6H47z"/>
-    <path fill-rule="evenodd" d="M32 8a24 24 0 0 1 24 24h-6a18 18 0 0 0-18-18V8Zm0 48A24 24 0 0 1 8 32h6a18 18 0 0 0 18 18v6Z"/>
-  </g>
-</svg>
