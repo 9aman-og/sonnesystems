@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Sonne Systems solar aperture mark</title>
+  <g fill="none" stroke="#e8b86c" stroke-linecap="round" stroke-linejoin="round" stroke-width="7">
+    <path d="M49 13A24 24 0 0 0 17 14"/>
+    <path d="M17 14c0 13 30 7 30 20 0 10-12 17-24 12"/>
+    <path d="M15 49a24 24 0 0 0 34 1"/>
+  </g>
+</svg>

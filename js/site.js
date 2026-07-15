@@ -17,7 +17,7 @@
   /* ---- reusable Sonne mark ---- */
   function sunMark(cls) {
     return '<span class="' + cls + '" aria-hidden="true">' +
-      '<img src="' + ASSET_ROOT + 'sonne-mark-v2.png" alt="" width="48" height="48">' +
+      '<img src="' + ASSET_ROOT + 'logo-options/sonne-mark-signal.svg" alt="" width="48" height="48">' +
       '</span>';
   }
 
@@ -109,13 +109,13 @@
       o.start(t); o.stop(t + dur + 0.02);
     } catch (e) {}
   }
-  /* a soft two-layer tick - a body thunk + a bright top */
+  /* A quiet, warm interface signature tuned to the site palette. */
   function clickSound() {
-    ping(196, 0.09, 0.022, "sine");
-    ping(523, 0.07, 0.052, "triangle", .006);
-    ping(1568, 0.05, 0.018, "sine", .012);
+    ping(146.83, 0.12, 0.022, "sine");
+    ping(220, 0.09, 0.035, "triangle", .008);
+    ping(440, 0.06, 0.012, "sine", .018);
   }
-  function softTick() { ping(740, 0.05, 0.024, "sine"); ping(1110, 0.035, 0.01, "triangle", .008); }
+  function softTick() { ping(293.66, 0.055, 0.014, "sine"); ping(440, 0.035, 0.006, "triangle", .008); }
 
   function updateSoundBtn() {
     var b = document.querySelector(".sound-toggle");
@@ -232,94 +232,124 @@
     }
   } catch (e) { revealAll(); }
 
-  /* Interactive 360-degree home model. Drag, touch, or use the arrow keys.
-     Four rotation sectors explain the system without turning the visual into
-     a diagram. Reduced-motion visitors get the same information, held still. */
+  /* Homepage story and 360-degree intelligence engine. Scroll controls the
+     four-part explanation; drag and arrow keys let visitors inspect the
+     object without exposing mechanical pause or reset controls. */
   try {
-    var stage = document.querySelector("[data-neural-stage]");
-    if (stage) {
-      var scene = stage.querySelector(".neural-scene");
-      var modelTitle = stage.querySelector("[data-model-title]");
-      var modelCopy = stage.querySelector("[data-model-copy]");
-      var modelAngle = stage.querySelector("[data-model-angle]");
-      var pauseModel = stage.querySelector("[data-model-pause]");
-      var resetModel = stage.querySelector("[data-model-reset]");
-      var reduceModelMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      var modelViews = [
-        { title: "Event capture", copy: "Sparse sensors wake only when the input changes." },
-        { title: "Evidence integration", copy: "Spikes accumulate into a confidence-bearing state over time." },
-        { title: "Confidence gate", copy: "The system measures certainty before spending another timestep." },
-        { title: "Early exit", copy: "Inference stops as soon as the evidence is sufficient." }
+    var story = document.querySelector("[data-company-story]");
+    var engine = document.querySelector("[data-company-engine]");
+    if (story && engine) {
+      var engineScene = engine.querySelector(".engine-scene");
+      var engineIndex = engine.querySelector("[data-engine-index]");
+      var engineTitle = engine.querySelector("[data-engine-title]");
+      var engineCopy = engine.querySelector("[data-engine-copy]");
+      var storySteps = Array.prototype.slice.call(story.querySelectorAll("[data-story-step]"));
+      var progressLabel = story.querySelector("[data-story-progress-label]");
+      var progressBar = story.querySelector("[data-story-progress-bar]");
+      var pageProgress = document.querySelector("[data-scroll-progress]");
+      var reduceEngineMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var engineViews = [
+        { index: "SONNE / 00", title: "Event-driven intelligence", copy: "Compute begins only when the signal has something to say." },
+        { index: "01 / OBSERVE", title: "Change becomes an event", copy: "Sparse sensors wake only when input changes." },
+        { index: "02 / INTEGRATE", title: "Evidence compounds", copy: "Events accumulate into a confidence-bearing state." },
+        { index: "03 / DECIDE", title: "Certainty ends the work", copy: "Inference stops when more compute adds no value." }
       ];
-      var yaw = -8, pitch = 7, dragging = false, lastX = 0, lastY = 0;
-      var autoRotate = !reduceModelMotion, lastModelTime = 0, currentView = -1;
+      var engineYaw = -18, enginePitch = 8, scrollYaw = 0;
+      var engineDragging = false, engineLastX = 0, engineLastY = 0;
+      var engineLastTime = 0, activeStoryStep = -1, scrollQueued = false;
 
-      function normalizedYaw() { return ((yaw % 360) + 360) % 360; }
-      function paintModel() {
-        stage.style.setProperty("--tilt-x", pitch.toFixed(2) + "deg");
-        stage.style.setProperty("--tilt-y", yaw.toFixed(2) + "deg");
-        var angle = normalizedYaw();
-        var view = Math.floor(((angle + 45) % 360) / 90);
-        if (view !== currentView) {
-          currentView = view;
-          if (modelTitle) modelTitle.textContent = modelViews[view].title;
-          if (modelCopy) modelCopy.textContent = modelViews[view].copy;
+      function clamp(value, minimum, maximum) { return Math.max(minimum, Math.min(maximum, value)); }
+      function setStoryStep(index) {
+        index = clamp(index, 0, storySteps.length - 1);
+        if (index === activeStoryStep) return;
+        activeStoryStep = index;
+        storySteps.forEach(function (step, stepIndex) {
+          var active = stepIndex === index;
+          step.classList.toggle("is-active", active);
+          step.setAttribute("aria-hidden", reduceEngineMotion ? "false" : (active ? "false" : "true"));
+        });
+        var view = engineViews[index];
+        if (view) {
+          if (engineIndex) engineIndex.textContent = view.index;
+          if (engineTitle) engineTitle.textContent = view.title;
+          if (engineCopy) engineCopy.textContent = view.copy;
         }
-        if (modelAngle) modelAngle.textContent = Math.round(angle) + "\u00b0";
+        if (progressLabel) progressLabel.textContent = "0" + (index + 1) + " / 04";
       }
-      function setAutoRotate(on) {
-        autoRotate = !!on && !reduceModelMotion;
-        if (pauseModel) {
-          pauseModel.textContent = autoRotate ? "Pause rotation" : (reduceModelMotion ? "Motion reduced" : "Resume rotation");
-          pauseModel.setAttribute("aria-pressed", autoRotate ? "false" : "true");
-          pauseModel.disabled = !!reduceModelMotion;
+      function paintEngine() {
+        engine.style.setProperty("--engine-pitch", enginePitch.toFixed(2) + "deg");
+        engine.style.setProperty("--engine-yaw", (engineYaw + scrollYaw).toFixed(2) + "deg");
+      }
+      function paintScroll() {
+        scrollQueued = false;
+        var rect = story.getBoundingClientRect();
+        var total = Math.max(1, story.offsetHeight - window.innerHeight);
+        var storyProgress = clamp(-rect.top / total, 0, 1);
+        var step = Math.min(storySteps.length - 1, Math.floor(storyProgress * storySteps.length));
+        setStoryStep(step);
+        scrollYaw = storyProgress * 210;
+        if (progressBar) progressBar.style.transform = "scaleX(" + storyProgress.toFixed(4) + ")";
+        if (pageProgress) {
+          var pageTotal = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+          pageProgress.style.transform = "scaleX(" + clamp(window.scrollY / pageTotal, 0, 1).toFixed(4) + ")";
         }
+        paintEngine();
       }
-      function stopDrag(e) {
-        if (!dragging) return;
-        dragging = false;
-        stage.classList.remove("dragging");
-        try { stage.releasePointerCapture(e.pointerId); } catch (err) {}
+      function queueScrollPaint() {
+        if (scrollQueued) return;
+        scrollQueued = true;
+        requestAnimationFrame(paintScroll);
+      }
+      function stopEngineDrag(e) {
+        if (!engineDragging) return;
+        engineDragging = false;
+        engine.classList.remove("is-dragging");
+        try { engine.releasePointerCapture(e.pointerId); } catch (err) {}
       }
 
-      stage.addEventListener("pointerdown", function (e) {
-        if (e.target.closest("[data-model-control]")) return;
-        dragging = true; lastX = e.clientX; lastY = e.clientY;
-        stage.classList.add("dragging");
-        setAutoRotate(false);
-        try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+      engine.addEventListener("pointerdown", function (e) {
+        engineDragging = true;
+        engineLastX = e.clientX;
+        engineLastY = e.clientY;
+        engine.classList.add("is-dragging");
+        try { engine.setPointerCapture(e.pointerId); } catch (err) {}
       });
-      stage.addEventListener("pointermove", function (e) {
-        if (!dragging) return;
-        yaw += (e.clientX - lastX) * .58;
-        pitch = Math.max(-24, Math.min(24, pitch - (e.clientY - lastY) * .32));
-        lastX = e.clientX; lastY = e.clientY;
-        paintModel();
+      engine.addEventListener("pointermove", function (e) {
+        if (!engineDragging) return;
+        engineYaw += (e.clientX - engineLastX) * .68;
+        enginePitch = clamp(enginePitch - (e.clientY - engineLastY) * .38, -28, 28);
+        engineLastX = e.clientX;
+        engineLastY = e.clientY;
+        paintEngine();
       });
-      stage.addEventListener("pointerup", stopDrag);
-      stage.addEventListener("pointercancel", stopDrag);
-      stage.addEventListener("keydown", function (e) {
-        var used = true;
-        if (e.key === "ArrowLeft") yaw -= 12;
-        else if (e.key === "ArrowRight") yaw += 12;
-        else if (e.key === "ArrowUp") pitch = Math.max(-24, pitch - 5);
-        else if (e.key === "ArrowDown") pitch = Math.min(24, pitch + 5);
-        else used = false;
-        if (used) { e.preventDefault(); setAutoRotate(false); paintModel(); }
+      engine.addEventListener("pointerup", stopEngineDrag);
+      engine.addEventListener("pointercancel", stopEngineDrag);
+      engine.addEventListener("keydown", function (e) {
+        var handled = true;
+        if (e.key === "ArrowLeft") engineYaw -= 12;
+        else if (e.key === "ArrowRight") engineYaw += 12;
+        else if (e.key === "ArrowUp") enginePitch = clamp(enginePitch - 5, -28, 28);
+        else if (e.key === "ArrowDown") enginePitch = clamp(enginePitch + 5, -28, 28);
+        else handled = false;
+        if (handled) { e.preventDefault(); paintEngine(); }
       });
-      if (pauseModel) pauseModel.addEventListener("click", function () { setAutoRotate(!autoRotate); });
-      if (resetModel) resetModel.addEventListener("click", function () { yaw = -8; pitch = 7; setAutoRotate(!reduceModelMotion); paintModel(); });
 
-      function modelLoop(now) {
-        if (!lastModelTime) lastModelTime = now;
-        var elapsed = Math.min(40, now - lastModelTime);
-        lastModelTime = now;
-        if (autoRotate && scene) { yaw += elapsed * .004; paintModel(); }
-        requestAnimationFrame(modelLoop);
+      function engineLoop(now) {
+        if (!engineLastTime) engineLastTime = now;
+        var elapsed = Math.min(40, now - engineLastTime);
+        engineLastTime = now;
+        if (!reduceEngineMotion && !engineDragging && engineScene) {
+          engineYaw += elapsed * .006;
+          paintEngine();
+        }
+        requestAnimationFrame(engineLoop);
       }
-      setAutoRotate(autoRotate);
-      paintModel();
-      requestAnimationFrame(modelLoop);
+
+      window.addEventListener("scroll", queueScrollPaint, { passive: true });
+      window.addEventListener("resize", queueScrollPaint);
+      setStoryStep(0);
+      paintScroll();
+      requestAnimationFrame(engineLoop);
     }
   } catch (e) { /* the model remains readable and static */ }
 
