@@ -17,7 +17,7 @@
   /* ---- reusable Sonne mark ---- */
   function sunMark(cls) {
     return '<span class="' + cls + '" aria-hidden="true">' +
-      '<img src="' + ASSET_ROOT + 'sonnesystems_logo.png" alt="" width="48" height="48">' +
+      '<img src="' + ASSET_ROOT + 'SonneSystemsCompanyLogo.png" alt="" width="48" height="48">' +
       '</span>';
   }
 
@@ -40,8 +40,8 @@
     el.className = "topbar";
     el.innerHTML =
       '<a class="skip-link" href="#main-content">Skip to content</a>' +
-      '<a class="brand" href="/" aria-label="Sonne Systems home">' +
-        sunMark("brand-mark") +
+      '<a class="brand' + (PAGE === "home" ? ' brand-word-only' : '') + '" href="/" aria-label="Sonne Systems home">' +
+        (PAGE === "home" ? "" : sunMark("brand-mark")) +
         '<span class="brand-word"><b>Sonne</b><span>Systems</span></span>' +
       "</a>" +
       '<button class="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="primary-nav"><span></span><span></span><span></span></button>' +
@@ -58,8 +58,8 @@
     el.className = "footer";
     el.innerHTML =
       '<div class="footer-inner">' +
-        '<a class="brand" href="/" aria-label="Sonne Systems home">' +
-          sunMark("brand-mark") +
+        '<a class="brand' + (PAGE === "home" ? ' brand-word-only' : '') + '" href="/" aria-label="Sonne Systems home">' +
+          (PAGE === "home" ? "" : sunMark("brand-mark")) +
           '<span class="brand-word"><b>Sonne</b><span>Systems</span></span>' +
         "</a>" +
         '<p class="footer-line">Sparse intelligence. Built with evidence.</p>' +
@@ -277,6 +277,7 @@
         var rect = cinemaStory.getBoundingClientRect();
         var total = Math.max(1, cinemaStory.offsetHeight - window.innerHeight);
         var progress = cinemaClamp(-rect.top / total, 0, 1);
+        var cameraProgress = progress * progress * (3 - 2 * progress);
         var step = Math.min(cinemaViews.length - 1, Math.floor(progress * cinemaViews.length));
         var seconds = Math.round(progress * 18);
         var depth = -80 + Math.sin(progress * Math.PI) * 105;
@@ -284,11 +285,11 @@
         var coreScale = .88 + progress * .18;
         setCinemaStep(step);
         cinemaFrame.style.setProperty("--cinema-progress", progress.toFixed(4));
-        cinemaFrame.style.setProperty("--cinema-yaw", (-28 + progress * 312 + cinemaManualYaw).toFixed(2) + "deg");
-        cinemaFrame.style.setProperty("--cinema-pitch", (12 - progress * 18).toFixed(2) + "deg");
+        cinemaFrame.style.setProperty("--cinema-yaw", (-28 + cameraProgress * 312 + cinemaManualYaw).toFixed(2) + "deg");
+        cinemaFrame.style.setProperty("--cinema-pitch", (12 - cameraProgress * 18).toFixed(2) + "deg");
         cinemaFrame.style.setProperty("--cinema-depth", depth.toFixed(2) + "px");
         cinemaFrame.style.setProperty("--reactor-bloom", bloom.toFixed(3));
-        cinemaFrame.style.setProperty("--reactor-twist", (progress * 168).toFixed(2) + "deg");
+        cinemaFrame.style.setProperty("--reactor-twist", (cameraProgress * 168).toFixed(2) + "deg");
         cinemaFrame.style.setProperty("--reactor-core-scale", coreScale.toFixed(3));
         cinemaFrame.style.setProperty("--reactor-glow", (progress * 42).toFixed(2) + "px");
         if (cinemaProgress) cinemaProgress.style.transform = "scaleX(" + progress.toFixed(4) + ")";
@@ -337,6 +338,50 @@
       paintCinema();
     }
   } catch (e) { /* the film remains a readable static explanation */ }
+
+  /* The live-model section is a second, quieter scroll instrument. Its
+     evidence trace fills as the section enters instead of playing on a loop. */
+  try {
+    var liveFocus = document.querySelector("[data-live-focus]");
+    if (liveFocus) {
+      var liveBars = Array.prototype.slice.call(liveFocus.querySelectorAll(".timeline-signal i"));
+      var liveQueued = false;
+      var liveReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      function liveClamp(value, minimum, maximum) { return Math.max(minimum, Math.min(maximum, value)); }
+      function paintLiveFocus() {
+        liveQueued = false;
+        var rect = liveFocus.getBoundingClientRect();
+        var viewport = window.innerHeight || document.documentElement.clientHeight;
+        var reveal = liveReduce ? 1 : liveClamp((viewport * .94 - rect.top) / (viewport * .74), 0, 1);
+        var journey = liveReduce ? 1 : liveClamp((viewport * .72 - rect.top) / Math.max(viewport * .8, rect.height), 0, 1);
+        var eased = journey * journey * (3 - 2 * journey);
+        liveFocus.style.setProperty("--live-reveal", reveal.toFixed(4));
+        liveFocus.style.setProperty("--live-progress", eased.toFixed(4));
+        liveFocus.style.setProperty("--live-rotation", (eased * 118).toFixed(2) + "deg");
+        liveFocus.style.setProperty("--live-copy-opacity", (.38 + reveal * .62).toFixed(4));
+        liveFocus.style.setProperty("--live-copy-shift", ((1 - reveal) * 58).toFixed(2) + "px");
+        liveFocus.style.setProperty("--live-panel-opacity", (.42 + reveal * .58).toFixed(4));
+        liveFocus.style.setProperty("--live-panel-shift", ((1 - reveal) * 56).toFixed(2) + "px");
+        liveFocus.style.setProperty("--live-panel-scale", (.94 + reveal * .06).toFixed(4));
+        liveFocus.style.setProperty("--live-glow-x", (34 + eased * 30).toFixed(2) + "%");
+        liveFocus.style.setProperty("--threshold-scale", (.18 + eased * .82).toFixed(4));
+        liveFocus.style.setProperty("--signal-label-opacity", (.35 + eased * .65).toFixed(4));
+        liveBars.forEach(function (bar, index) {
+          var fill = liveClamp(eased * (liveBars.length + 2) - index, 0, 1);
+          bar.style.setProperty("--bar-fill", fill.toFixed(3));
+          bar.style.setProperty("--bar-opacity", (.34 + fill * .66).toFixed(3));
+        });
+      }
+      function queueLiveFocus() {
+        if (liveQueued) return;
+        liveQueued = true;
+        requestAnimationFrame(paintLiveFocus);
+      }
+      window.addEventListener("scroll", queueLiveFocus, { passive: true });
+      window.addEventListener("resize", queueLiveFocus);
+      paintLiveFocus();
+    }
+  } catch (e) { /* content and evidence remain fully readable */ }
 
   /* last-resort failsafe, independent of everything above: even if the whole
      boot threw before the reveal step, content becomes visible after 3s. */
