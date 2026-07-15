@@ -3,7 +3,8 @@ from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
+from sqlalchemy import delete, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .. import config, security
@@ -29,7 +30,11 @@ def current_user(
     token = db.scalar(
         select(AuthToken).where(AuthToken.token_hash == security.hash_token(creds.credentials))
     )
-    if token is None or token.expires_at < utcnow():
+    if token is None:
+        raise unauthorized
+    if token.expires_at < utcnow():
+        db.delete(token)
+        db.commit()
         raise unauthorized
     user = db.get(User, token.user_id)
     if user is None:
@@ -43,7 +48,13 @@ def register(body: RegisterIn, db: Session = Depends(get_db)) -> User:
         raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists")
     user = User(email=body.email, password_hash=security.hash_password(body.password))
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:  # closes the race between the pre-check and INSERT
+        db.rollback()
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "An account with this email already exists"
+        ) from None
     db.refresh(user)
     return user
 
@@ -51,9 +62,14 @@ def register(body: RegisterIn, db: Session = Depends(get_db)) -> User:
 @router.post("/login", response_model=TokenOut)
 def login(body: LoginIn, db: Session = Depends(get_db)) -> TokenOut:
     user = db.scalar(select(User).where(User.email == body.email))
-    # one generic error: never reveal which half was wrong
-    if user is None or not security.verify_password(body.password, user.password_hash):
+    # Always perform one full password derivation. This keeps the generic error
+    # generic in timing as well as wording, reducing account enumeration risk.
+    stored_hash = user.password_hash if user else security.dummy_password_hash()
+    password_ok = security.verify_password(body.password, stored_hash)
+    if user is None or not password_ok:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid email or password")
+    # Opportunistically clear this user's expired sessions before issuing one.
+    db.execute(delete(AuthToken).where(AuthToken.user_id == user.id, AuthToken.expires_at < utcnow()))
     raw, token_hash = security.new_token()
     token = AuthToken(
         user_id=user.id,

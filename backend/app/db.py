@@ -2,7 +2,7 @@
 import os
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from . import config
@@ -20,11 +20,23 @@ def get_engine():
     global _engine
     if _engine is None:
         path = config.db_path()
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         _engine = create_engine(
             f"sqlite:///{path}",
             connect_args={"check_same_thread": False},  # FastAPI threadpool
+            pool_pre_ping=True,
         )
+        # SQLite is a durable local default when its concurrency and integrity
+        # switches are explicit. These run for every pooled connection.
+        @event.listens_for(_engine, "connect")
+        def _sqlite_pragmas(connection, _record) -> None:
+            cursor = connection.cursor()
+            cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA busy_timeout=5000")
+            cursor.close()
     return _engine
 
 

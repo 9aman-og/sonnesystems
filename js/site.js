@@ -11,19 +11,22 @@
   var MAIL = "mailto:9aman.aa@gmail.com";
   var LINKEDIN = "https://www.linkedin.com/in/aman-agarwal-628880317/";
   var GITHUB = "https://github.com/9aman-og";
+  var SCRIPT_SRC = document.currentScript && document.currentScript.src;
+  var ASSET_ROOT = new URL("../assets/", SCRIPT_SRC || location.href).href;
 
-  /* ---- reusable sun mark ---- */
+  /* ---- reusable Sonne mark ---- */
   function sunMark(cls) {
-    return '<span class="' + cls + '" aria-hidden="true"><svg viewBox="0 0 48 48">' +
-      '<circle class="m-core" cx="24" cy="24" r="7"/><g class="m-rays" stroke-linecap="round"></g></svg></span>';
+    return '<span class="' + cls + '" aria-hidden="true">' +
+      '<img src="' + ASSET_ROOT + 'sonne-mark-v2.png" alt="" width="48" height="48">' +
+      '</span>';
   }
 
   var NAV = [
-    { id: "home", label: "Home", href: "index.html" },
-    { id: "demo", label: "Demo", href: "demo.html" },
-    { id: "research", label: "Research", href: "research.html" },
-    { id: "tools", label: "Tools", href: "tools.html" },
-    { id: "about", label: "About", href: "about.html" }
+    { id: "home", label: "Home", href: "/" },
+    { id: "demo", label: "Demo", href: "/demo.html" },
+    { id: "research", label: "Research", href: "/research.html" },
+    { id: "tools", label: "Tools", href: "/tools.html" },
+    { id: "about", label: "About", href: "/about.html" }
   ];
 
   /* ---- header ---- */
@@ -37,7 +40,7 @@
     el.className = "topbar";
     el.innerHTML =
       '<a class="skip-link" href="#main-content">Skip to content</a>' +
-      '<a class="brand" href="index.html" aria-label="Sonne Systems home">' +
+      '<a class="brand" href="/" aria-label="Sonne Systems home">' +
         sunMark("brand-mark") +
         '<span class="brand-word"><b>Sonne</b><span>Systems</span></span>' +
       "</a>" +
@@ -55,14 +58,14 @@
     el.className = "footer";
     el.innerHTML =
       '<div class="footer-inner">' +
-        '<a class="brand" href="index.html" aria-label="Sonne Systems home">' +
+        '<a class="brand" href="/" aria-label="Sonne Systems home">' +
           sunMark("brand-mark") +
           '<span class="brand-word"><b>Sonne</b><span>Systems</span></span>' +
         "</a>" +
-        '<p class="footer-line">Neuromorphic engineering &amp; BCI research. Built in the open.</p>' +
+        '<p class="footer-line">Sparse intelligence. Built with evidence.</p>' +
         '<nav class="footer-nav" aria-label="Footer">' +
-          '<a href="demo.html">Demo</a><a href="research.html">Research</a>' +
-          '<a href="tools.html">Tools</a><a href="about.html">About</a>' +
+          '<a href="/demo.html">Demo</a><a href="/research.html">Research</a>' +
+          '<a href="/tools.html">Tools</a><a href="/about.html">About</a>' +
           '<a href="' + LINKEDIN + '" target="_blank" rel="noopener">LinkedIn</a>' +
           '<a href="' + GITHUB + '" target="_blank" rel="noopener">GitHub</a>' +
           '<a href="' + MAIL + '">Contact</a>' +
@@ -107,8 +110,12 @@
     } catch (e) {}
   }
   /* a soft two-layer tick - a body thunk + a bright top */
-  function clickSound() { ping(523, 0.07, 0.06, "triangle"); ping(1568, 0.05, 0.022, "sine"); }
-  function softTick()   { ping(880, 0.045, 0.03, "sine"); }
+  function clickSound() {
+    ping(196, 0.09, 0.022, "sine");
+    ping(523, 0.07, 0.052, "triangle", .006);
+    ping(1568, 0.05, 0.018, "sine", .012);
+  }
+  function softTick() { ping(740, 0.05, 0.024, "sine"); ping(1110, 0.035, 0.01, "triangle", .008); }
 
   function updateSoundBtn() {
     var b = document.querySelector(".sound-toggle");
@@ -225,41 +232,96 @@
     }
   } catch (e) { revealAll(); }
 
-  /* Home page 3D core. The object follows a pointer by a few degrees only,
-     so it feels dimensional without becoming distracting or hard to read. */
+  /* Interactive 360-degree home model. Drag, touch, or use the arrow keys.
+     Four rotation sectors explain the system without turning the visual into
+     a diagram. Reduced-motion visitors get the same information, held still. */
   try {
     var stage = document.querySelector("[data-neural-stage]");
-    var canTilt = window.matchMedia &&
-      window.matchMedia("(pointer:fine)").matches &&
-      !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (stage) {
+      var scene = stage.querySelector(".neural-scene");
+      var modelTitle = stage.querySelector("[data-model-title]");
+      var modelCopy = stage.querySelector("[data-model-copy]");
+      var modelAngle = stage.querySelector("[data-model-angle]");
+      var pauseModel = stage.querySelector("[data-model-pause]");
+      var resetModel = stage.querySelector("[data-model-reset]");
+      var reduceModelMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var modelViews = [
+        { title: "Event capture", copy: "Sparse sensors wake only when the input changes." },
+        { title: "Evidence integration", copy: "Spikes accumulate into a confidence-bearing state over time." },
+        { title: "Confidence gate", copy: "The system measures certainty before spending another timestep." },
+        { title: "Early exit", copy: "Inference stops as soon as the evidence is sufficient." }
+      ];
+      var yaw = -8, pitch = 7, dragging = false, lastX = 0, lastY = 0;
+      var autoRotate = !reduceModelMotion, lastModelTime = 0, currentView = -1;
 
-    if (stage && canTilt) {
-      var tiltFrame = 0;
-      var nextTiltX = 7;
-      var nextTiltY = -8;
-
-      function paintTilt() {
-        tiltFrame = 0;
-        stage.style.setProperty("--tilt-x", nextTiltX.toFixed(2) + "deg");
-        stage.style.setProperty("--tilt-y", nextTiltY.toFixed(2) + "deg");
+      function normalizedYaw() { return ((yaw % 360) + 360) % 360; }
+      function paintModel() {
+        stage.style.setProperty("--tilt-x", pitch.toFixed(2) + "deg");
+        stage.style.setProperty("--tilt-y", yaw.toFixed(2) + "deg");
+        var angle = normalizedYaw();
+        var view = Math.floor(((angle + 45) % 360) / 90);
+        if (view !== currentView) {
+          currentView = view;
+          if (modelTitle) modelTitle.textContent = modelViews[view].title;
+          if (modelCopy) modelCopy.textContent = modelViews[view].copy;
+        }
+        if (modelAngle) modelAngle.textContent = Math.round(angle) + "\u00b0";
+      }
+      function setAutoRotate(on) {
+        autoRotate = !!on && !reduceModelMotion;
+        if (pauseModel) {
+          pauseModel.textContent = autoRotate ? "Pause rotation" : (reduceModelMotion ? "Motion reduced" : "Resume rotation");
+          pauseModel.setAttribute("aria-pressed", autoRotate ? "false" : "true");
+          pauseModel.disabled = !!reduceModelMotion;
+        }
+      }
+      function stopDrag(e) {
+        if (!dragging) return;
+        dragging = false;
+        stage.classList.remove("dragging");
+        try { stage.releasePointerCapture(e.pointerId); } catch (err) {}
       }
 
+      stage.addEventListener("pointerdown", function (e) {
+        if (e.target.closest("[data-model-control]")) return;
+        dragging = true; lastX = e.clientX; lastY = e.clientY;
+        stage.classList.add("dragging");
+        setAutoRotate(false);
+        try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+      });
       stage.addEventListener("pointermove", function (e) {
-        var box = stage.getBoundingClientRect();
-        var px = (e.clientX - box.left) / box.width - .5;
-        var py = (e.clientY - box.top) / box.height - .5;
-        nextTiltX = 7 - py * 12;
-        nextTiltY = -8 + px * 15;
-        if (!tiltFrame) tiltFrame = requestAnimationFrame(paintTilt);
+        if (!dragging) return;
+        yaw += (e.clientX - lastX) * .58;
+        pitch = Math.max(-24, Math.min(24, pitch - (e.clientY - lastY) * .32));
+        lastX = e.clientX; lastY = e.clientY;
+        paintModel();
       });
+      stage.addEventListener("pointerup", stopDrag);
+      stage.addEventListener("pointercancel", stopDrag);
+      stage.addEventListener("keydown", function (e) {
+        var used = true;
+        if (e.key === "ArrowLeft") yaw -= 12;
+        else if (e.key === "ArrowRight") yaw += 12;
+        else if (e.key === "ArrowUp") pitch = Math.max(-24, pitch - 5);
+        else if (e.key === "ArrowDown") pitch = Math.min(24, pitch + 5);
+        else used = false;
+        if (used) { e.preventDefault(); setAutoRotate(false); paintModel(); }
+      });
+      if (pauseModel) pauseModel.addEventListener("click", function () { setAutoRotate(!autoRotate); });
+      if (resetModel) resetModel.addEventListener("click", function () { yaw = -8; pitch = 7; setAutoRotate(!reduceModelMotion); paintModel(); });
 
-      stage.addEventListener("pointerleave", function () {
-        nextTiltX = 7;
-        nextTiltY = -8;
-        if (!tiltFrame) tiltFrame = requestAnimationFrame(paintTilt);
-      });
+      function modelLoop(now) {
+        if (!lastModelTime) lastModelTime = now;
+        var elapsed = Math.min(40, now - lastModelTime);
+        lastModelTime = now;
+        if (autoRotate && scene) { yaw += elapsed * .004; paintModel(); }
+        requestAnimationFrame(modelLoop);
+      }
+      setAutoRotate(autoRotate);
+      paintModel();
+      requestAnimationFrame(modelLoop);
     }
-  } catch (e) { /* dimensional motion is decorative */ }
+  } catch (e) { /* the model remains readable and static */ }
 
   /* last-resort failsafe, independent of everything above: even if the whole
      boot threw before the reveal step, content becomes visible after 3s. */

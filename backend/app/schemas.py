@@ -20,11 +20,13 @@ class _EmailedModel(BaseModel):
 
 
 class RegisterIn(_EmailedModel):
-    password: str = Field(min_length=8, max_length=200)
+    # Long passphrases beat brittle composition rules; the upper bound also
+    # prevents attackers from turning password hashing into a memory/CPU sink.
+    password: str = Field(min_length=12, max_length=128)
 
 
 class LoginIn(_EmailedModel):
-    password: str = Field(min_length=1, max_length=200)
+    password: str = Field(min_length=1, max_length=128)
 
 
 class UserOut(BaseModel):
@@ -44,6 +46,18 @@ class ContactIn(_EmailedModel):
     name: str = Field(min_length=1, max_length=200)
     subject: str | None = Field(default=None, max_length=200)
     message: str = Field(min_length=1, max_length=5000)
+
+    @field_validator("name", "subject", "message")
+    @classmethod
+    def _clean_human_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            raise ValueError("must contain visible text")
+        if any(ord(char) < 32 and char not in "\n\r\t" for char in value):
+            raise ValueError("contains unsupported control characters")
+        return value
 
 
 class NewsletterIn(_EmailedModel):
