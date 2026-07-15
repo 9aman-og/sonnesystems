@@ -3,92 +3,197 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Sonne Systems · neuromorphic engineering &amp; BCI research</title>
-<meta name="description" content="Sonne Systems is a neuromorphic engineering and BCI research studio. Brain-inspired spiking models that compute only when the signal demands it.">
-<meta name="color-scheme" content="light">
-<meta name="theme-color" content="#ece2d0">
+<title>Sonne Systems &middot; neuromorphic intelligence</title>
+<meta name="description" content="Sonne Systems is an independent neuromorphic engineering and BCI research studio building event-driven intelligence that computes only when the signal demands it.">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#070907">
 
 <meta property="og:type" content="website">
-<meta property="og:title" content="Sonne Systems · intelligence that computes only when it counts">
-<meta property="og:description" content="A neuromorphic engineering and BCI research studio building spiking-convolutional hybrids.">
+<meta property="og:title" content="Sonne Systems &middot; intelligence, timed to the signal">
+<meta property="og:description" content="Independent neuromorphic engineering and BCI research for sparse, adaptive intelligence.">
 <meta property="og:url" content="https://sonnesystems.com">
-<meta property="og:image" content="https://sonnesystems.com/assets/sonnesystems_logo.png">
+<meta property="og:image" content="https://sonnesystems.com/assets/og-home.png">
+<meta property="og:image:alt" content="Sonne Systems - Intelligence, timed to the signal.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Sonne Systems - intelligence, timed to the signal">
+<meta name="twitter:description" content="Independent neuromorphic engineering and BCI research for sparse, adaptive intelligence.">
+<meta name="twitter:image" content="https://sonnesystems.com/assets/og-home.png">
 
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='11' fill='%23ece2d0'/%3E%3Cg fill='none' stroke='%23c06a3a' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='24' cy='24' r='6.5' fill='%23c06a3a'/%3E%3Cpath d='M24 6v4M24 38v4M6 24h4M38 24h4M11.5 11.5l2.8 2.8M33.7 33.7l2.8 2.8M11.5 36.5l2.8-2.8M33.7 14.3l2.8-2.8'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='11' fill='%23070907'/%3E%3Cg fill='none' stroke='%23e8b86c' stroke-width='2.6' stroke-linecap='round'%3E%3Ccircle cx='24' cy='24' r='6.5' fill='%23e8b86c'/%3E%3Cpath d='M24 6v4M24 38v4M6 24h4M38 24h4M11.5 11.5l2.8 2.8M33.7 33.7l2.8 2.8M11.5 36.5l2.8-2.8M33.7 14.3l2.8-2.8'/%3E%3C/g%3E%3C/svg%3E">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=2">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap">
+<link rel="stylesheet" href="css/styles.css?v=3">
 </head>
 <body data-page="home">
 
-<div class="sun-field" aria-hidden="true">
-  <svg viewBox="0 0 600 600" preserveAspectRatio="xMinYMin meet">
-    <circle class="sun-core" cx="70" cy="70" r="30"/>
-    <circle cx="70" cy="70" r="46" fill="none" stroke="var(--terra)" stroke-width="2.2"/>
-    <g class="sun-rays" stroke="var(--terra)" stroke-width="2.4" stroke-linecap="round"></g>
-  </svg>
+<div class="home-atmosphere" aria-hidden="true">
+  <div class="home-glow home-glow-a"></div>
+  <div class="home-glow home-glow-b"></div>
+  <div class="home-grid"></div>
+  <div class="home-noise"></div>
 </div>
 
 <header id="site-header"></header>
 
-<main class="land" id="main-content" tabindex="-1">
-  <!-- ──────────────  animated hero  ────────────── -->
-  <section class="land-hero">
-    <div class="land-orb" aria-hidden="true"></div>
-    <span class="land-sun" aria-hidden="true">
-      <svg viewBox="0 0 48 48"><circle class="m-core" cx="24" cy="24" r="7"/><g class="m-rays" stroke-linecap="round"></g></svg>
-    </span>
-    <p class="eyebrow reveal">Neuromorphic engineering · BCI research</p>
-    <h1 class="display land-title reveal" data-delay="80">
-      Brain-inspired models that
-      <em>compute only when it counts.</em>
-    </h1>
-    <p class="land-lede reveal" data-delay="160">
-      Sonne Systems is a neuromorphic research studio. We build spiking-convolutional
-      hybrids that spend energy the way a brain does: sparsely, adaptively, and only
-      on the part of the signal that actually matters.
-    </p>
-    <div class="land-actions reveal" data-delay="240">
-      <a class="btn btn-solid" href="demo.html">Try the live demo</a>
-      <a class="btn btn-ghost" href="research.html">Read the research</a>
+<main class="home-main" id="main-content" tabindex="-1">
+  <section class="premium-hero" aria-labelledby="home-title">
+    <div class="hero-copy">
+      <p class="system-status reveal">
+        <span class="status-pulse" aria-hidden="true"></span>
+        Independent neuromorphic R&amp;D
+      </p>
+
+      <h1 class="home-title display reveal" id="home-title" data-delay="70">
+        Intelligence,
+        <em>timed to the signal.</em>
+      </h1>
+
+      <p class="home-lede reveal" data-delay="140">
+        Sonne Systems engineers brain-inspired models that stay quiet when the world is quiet, then respond with precision when information arrives.
+      </p>
+
+      <div class="home-actions reveal" data-delay="210">
+        <a class="btn home-btn-primary" href="demo.html">
+          <span>Experience the model</span><span aria-hidden="true">&rarr;</span>
+        </a>
+        <a class="home-text-link" href="research.html">Explore our research <span aria-hidden="true">&#8599;</span></a>
+      </div>
+
+      <dl class="hero-principles reveal" data-delay="280">
+        <div><dt>01</dt><dd>Event-native</dd></div>
+        <div><dt>02</dt><dd>Adaptive compute</dd></div>
+        <div><dt>03</dt><dd>Open research</dd></div>
+      </dl>
+    </div>
+
+    <div class="neural-stage reveal" data-delay="120" data-neural-stage aria-hidden="true">
+      <div class="stage-reticle"></div>
+      <div class="neural-scene">
+        <div class="core-aura"></div>
+        <div class="orbit orbit-one"><i></i><i></i><i></i></div>
+        <div class="orbit orbit-two"><i></i><i></i><i></i><i></i></div>
+        <div class="orbit orbit-three"><i></i><i></i></div>
+        <div class="neural-core">
+          <div class="core-shell">
+            <span class="core-lens"></span>
+            <span class="core-flare"></span>
+          </div>
+          <div class="core-shadow"></div>
+        </div>
+        <div class="signal-field">
+          <b style="--x:10%;--y:30%;--d:.2s"></b><b style="--x:20%;--y:68%;--d:1.1s"></b>
+          <b style="--x:36%;--y:12%;--d:1.8s"></b><b style="--x:67%;--y:17%;--d:.6s"></b>
+          <b style="--x:82%;--y:34%;--d:1.4s"></b><b style="--x:89%;--y:68%;--d:2.1s"></b>
+          <b style="--x:64%;--y:88%;--d:.9s"></b><b style="--x:33%;--y:86%;--d:2.5s"></b>
+        </div>
+      </div>
+
+      <div class="instrument instrument-top">
+        <span class="instrument-label">Signal state</span>
+        <strong><i></i> Active inference</strong>
+      </div>
+      <div class="instrument instrument-side">
+        <span class="instrument-label">Event stream</span>
+        <span class="mini-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>
+      </div>
+      <div class="instrument instrument-bottom">
+        <span class="instrument-label">Compute policy</span>
+        <strong>Stop when certain</strong>
+      </div>
+    </div>
+
+    <div class="hero-scroll" aria-hidden="true"><span></span> Scroll to discover</div>
+  </section>
+
+  <div class="signal-tape" aria-label="Research focus">
+    <div class="signal-track">
+      <span>Spiking systems</span><i></i><span>Adaptive inference</span><i></i><span>BCI signal intelligence</span><i></i><span>Certified robustness</span><i></i><span>Open evidence</span><i></i>
+      <span aria-hidden="true">Spiking systems</span><i aria-hidden="true"></i><span aria-hidden="true">Adaptive inference</span><i aria-hidden="true"></i><span aria-hidden="true">BCI signal intelligence</span><i aria-hidden="true"></i><span aria-hidden="true">Certified robustness</span><i aria-hidden="true"></i><span aria-hidden="true">Open evidence</span><i aria-hidden="true"></i>
+    </div>
+  </div>
+
+  <section class="home-section systems-section" aria-labelledby="systems-title">
+    <div class="section-kicker reveal"><span>01</span> What we build</div>
+    <div class="home-section-head reveal">
+      <h2 class="display" id="systems-title">A new operating rhythm for machine intelligence.</h2>
+      <p>Most models compute continuously. Ours listen first, act selectively, and stop when the evidence is enough.</p>
+    </div>
+
+    <div class="premium-grid">
+      <a class="premium-card flagship-card reveal" href="demo.html">
+        <div class="card-topline"><span>Flagship system</span><span>Live prototype &#8599;</span></div>
+        <div class="flagship-copy">
+          <p class="card-index">S-01</p>
+          <h3 class="display">Spiking Mammal</h3>
+          <p>A spiking-convolutional classifier that accumulates evidence over time and exits as soon as confidence stabilizes.</p>
+        </div>
+        <div class="compute-visual" aria-hidden="true">
+          <div class="compute-axis"><span>T0</span><span>T1</span><span>T2</span><span>T3</span><span>T4</span></div>
+          <div class="spike-row"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="threshold-line"><span>confidence gate</span></div>
+          <div class="early-stop">decision</div>
+        </div>
+      </a>
+
+      <a class="premium-card principle-card reveal" data-delay="70" href="research.html">
+        <div class="card-topline"><span>Principle</span><span>01</span></div>
+        <span class="principle-orb orb-sparse" aria-hidden="true"></span>
+        <div>
+          <h3 class="display">Sparse by nature</h3>
+          <p>Activity appears only where and when the signal changes.</p>
+        </div>
+      </a>
+
+      <a class="premium-card principle-card reveal" data-delay="120" href="research.html">
+        <div class="card-topline"><span>Principle</span><span>02</span></div>
+        <span class="principle-orb orb-adaptive" aria-hidden="true"></span>
+        <div>
+          <h3 class="display">Certain, then still</h3>
+          <p>Confidence gates let easy decisions finish early.</p>
+        </div>
+      </a>
+
+      <a class="premium-card evidence-card reveal" data-delay="170" href="research.html">
+        <div class="card-topline"><span>Research standard</span><span>Open evidence &#8599;</span></div>
+        <blockquote class="display">Good research shows the uncertainty, not just the result.</blockquote>
+        <div class="evidence-points"><span>Methods</span><span>Limits</span><span>Negative results</span></div>
+      </a>
     </div>
   </section>
 
-  <!-- ──────────────  each section is its own page  ────────────── -->
-  <nav class="section-links" aria-label="Site sections">
-    <a class="slink feature wide reveal" href="demo.html">
-      <span class="slink-no">01 · Research demo</span>
-      <span class="slink-title display">Spiking Mammal: watch the pipeline decide in real time</span>
-      <span class="slink-desc">Upload a cat photo. A spiking head accumulates evidence and stops the moment it is sure, so easy images cost less compute.</span>
-      <span class="slink-go">Try the demo →</span>
-    </a>
+  <section class="home-section intelligence-section" aria-labelledby="intelligence-title">
+    <div class="intelligence-copy reveal">
+      <div class="section-kicker"><span>02</span> Our perspective</div>
+      <h2 class="display" id="intelligence-title">The future of intelligence is not always on.</h2>
+      <p>Biological systems do not spend maximum energy on every moment. They wait, integrate and react. That restraint is not a limitation. It is the architecture.</p>
+      <a class="home-text-link" href="about.html">How Sonne works <span aria-hidden="true">&rarr;</span></a>
+    </div>
 
-    <a class="slink reveal" data-delay="80" href="research.html">
-      <span class="slink-no">02 · Research</span>
-      <span class="slink-title display">Projects &amp; papers</span>
-      <span class="slink-desc">The ca-lif neuron, certified robustness, and an open evidence protocol. Negative results included.</span>
-      <span class="slink-go">Explore the research →</span>
-    </a>
+    <div class="intelligence-stack reveal" data-delay="100">
+      <article><span>Listen</span><strong>Capture change, not repetition.</strong><i>01</i></article>
+      <article><span>Integrate</span><strong>Let evidence compound over time.</strong><i>02</i></article>
+      <article><span>Decide</span><strong>Spend compute only until certainty.</strong><i>03</i></article>
+    </div>
+  </section>
 
-    <a class="slink reveal" data-delay="160" href="tools.html">
-      <span class="slink-no">03 · Utility apps</span>
-      <span class="slink-title display">Small tools, freely shared</span>
-      <span class="slink-desc">Lyfe, a calm local-first life tracker with Sol, its companion. Use it privately on one device, or opt into encrypted account sync.</span>
-      <span class="slink-go">See the apps →</span>
-    </a>
-
-    <a class="slink wide reveal" href="about.html">
-      <span class="slink-no">04 · About</span>
-      <span class="slink-title display">A one-person studio, working in the open</span>
-      <span class="slink-desc">Who is behind Sonne Systems, the working principles, and how to get in touch.</span>
-      <span class="slink-go">Meet the studio →</span>
-    </a>
-  </nav>
+  <section class="home-section final-callout reveal" aria-labelledby="final-title">
+    <div>
+      <p class="section-kicker"><span>03</span> Sonne Systems</p>
+      <h2 class="display" id="final-title">Begin with the signal.</h2>
+    </div>
+    <div class="final-copy">
+      <p>Explore the research, test the prototype, or start a conversation about sparse intelligence.</p>
+      <div class="final-actions">
+        <a class="btn home-btn-primary" href="demo.html">Enter the lab <span aria-hidden="true">&rarr;</span></a>
+        <a class="home-text-link" href="mailto:9aman.aa@gmail.com">Start a conversation</a>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer id="site-footer"></footer>
-<script src="js/site.js?v=3"></script>
+<script src="js/site.js?v=4"></script>
 </body>
 </html>
