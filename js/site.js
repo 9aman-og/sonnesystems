@@ -17,7 +17,7 @@
   /* ---- reusable Sonne mark ---- */
   function sunMark(cls) {
     return '<span class="' + cls + '" aria-hidden="true">' +
-      '<img src="' + ASSET_ROOT + 'sonne-mark-v2.png" alt="" width="48" height="48">' +
+      '<img src="' + ASSET_ROOT + 'sonnesystems_logo.png" alt="" width="48" height="48">' +
       '</span>';
   }
 
@@ -280,11 +280,17 @@
         var step = Math.min(cinemaViews.length - 1, Math.floor(progress * cinemaViews.length));
         var seconds = Math.round(progress * 18);
         var depth = -80 + Math.sin(progress * Math.PI) * 105;
+        var bloom = .86 + Math.sin(progress * Math.PI) * .24;
+        var coreScale = .88 + progress * .18;
         setCinemaStep(step);
         cinemaFrame.style.setProperty("--cinema-progress", progress.toFixed(4));
         cinemaFrame.style.setProperty("--cinema-yaw", (-28 + progress * 312 + cinemaManualYaw).toFixed(2) + "deg");
         cinemaFrame.style.setProperty("--cinema-pitch", (12 - progress * 18).toFixed(2) + "deg");
         cinemaFrame.style.setProperty("--cinema-depth", depth.toFixed(2) + "px");
+        cinemaFrame.style.setProperty("--reactor-bloom", bloom.toFixed(3));
+        cinemaFrame.style.setProperty("--reactor-twist", (progress * 168).toFixed(2) + "deg");
+        cinemaFrame.style.setProperty("--reactor-core-scale", coreScale.toFixed(3));
+        cinemaFrame.style.setProperty("--reactor-glow", (progress * 42).toFixed(2) + "px");
         if (cinemaProgress) cinemaProgress.style.transform = "scaleX(" + progress.toFixed(4) + ")";
         if (cinemaTime) cinemaTime.textContent = "00:" + (seconds < 10 ? "0" : "") + seconds;
         if (pageProgress) {
