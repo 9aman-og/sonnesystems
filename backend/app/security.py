@@ -7,6 +7,7 @@ from . import config
 
 _SCHEME = "pbkdf2"
 _HASH = "sha256"
+_dummy_hash: str | None = None
 
 
 def hash_password(password: str) -> str:
@@ -38,3 +39,11 @@ def new_token() -> tuple[str, str]:
 
 def hash_token(raw: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def dummy_password_hash() -> str:
+    """A valid hash used to equalize missing-user and wrong-password timing."""
+    global _dummy_hash
+    if _dummy_hash is None:
+        _dummy_hash = hash_password("not-a-real-account-passphrase")
+    return _dummy_hash

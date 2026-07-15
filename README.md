@@ -17,17 +17,19 @@ A **zero-build static site** plus a **scaffolded API backend**:
 ## Repository map
 
 ```
-├── index.html          Landing page (animated hero + section links)
+├── index.html          Landing page (interactive 360-degree system model)
 ├── demo.html           Spiking Mammal live demo
 ├── research.html       Projects & papers
-├── tools.html          Utility apps (Lyfe) with sidebar
+├── tools.html          Premium utility-app showcase (Lyfe)
 ├── about.html          Studio, principles, contact
 ├── papers.html         Password gate for encrypted paper PDFs
 ├── 404.html            Not-found page (GitHub Pages serves this automatically)
-├── css/styles.css      The one stylesheet (design tokens at the top)
-├── js/site.js          Shared chrome: header/footer injection, nav, reveal animations, click sounds
+├── css/styles.css      Labeled design system, 3D objects, page components, responsive rules
+├── js/site.js          Shared chrome, accessible nav, 360 model, reveal motion, generated click sounds
 ├── js/app.js           Demo logic only (demo.html)
-├── assets/             Brand images (Sonne mark, Lyfe gel icon)
+├── assets/             Versioned brand mark, social card, and Lyfe identity
+├── robots.txt          Crawler policy (private paper vault excluded)
+├── sitemap.xml         Canonical public URLs for search engines
 ├── papers/*.pdf.enc    AES-256-GCM encrypted papers (safe to host publicly)
 ├── lyfe/               The Lyfe app, copied from G:\CLAUDE\lyfe (see "Lyfe sync" below)
 ├── backend/            FastAPI + SQLite API scaffold with tests (not yet deployed)

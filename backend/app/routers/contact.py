@@ -1,6 +1,7 @@
 """Contact messages and newsletter signups."""
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..db import get_db
@@ -29,6 +30,12 @@ def newsletter(body: NewsletterIn, response: Response, db: Session = Depends(get
         return CreatedOut(id=existing.id)
     row = NewsletterSignup(email=body.email)
     db.add(row)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:  # idempotent even if two workers insert together
+        db.rollback()
+        existing = db.scalar(select(NewsletterSignup).where(NewsletterSignup.email == body.email))
+        response.status_code = status.HTTP_200_OK
+        return CreatedOut(id=existing.id)
     db.refresh(row)
     return CreatedOut(id=row.id)
