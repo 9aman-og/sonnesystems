@@ -17,7 +17,7 @@
   /* ---- reusable Sonne mark ---- */
   function sunMark(cls) {
     return '<span class="' + cls + '" aria-hidden="true">' +
-      '<img src="' + ASSET_ROOT + 'logo-options/sonne-mark-signal.svg" alt="" width="48" height="48">' +
+      '<img src="' + ASSET_ROOT + 'sonne-mark-v2.png" alt="" width="48" height="48">' +
       '</span>';
   }
 
@@ -232,126 +232,105 @@
     }
   } catch (e) { revealAll(); }
 
-  /* Homepage story and 360-degree intelligence engine. Scroll controls the
-     four-part explanation; drag and arrow keys let visitors inspect the
-     object without exposing mechanical pause or reset controls. */
+  /* Cinematic company story. The page scroll behaves like a video timeline:
+     it rotates a layered signal volume and advances one explanation at a time. */
   try {
-    var story = document.querySelector("[data-company-story]");
-    var engine = document.querySelector("[data-company-engine]");
-    if (story && engine) {
-      var engineScene = engine.querySelector(".engine-scene");
-      var engineIndex = engine.querySelector("[data-engine-index]");
-      var engineTitle = engine.querySelector("[data-engine-title]");
-      var engineCopy = engine.querySelector("[data-engine-copy]");
-      var storySteps = Array.prototype.slice.call(story.querySelectorAll("[data-story-step]"));
-      var progressLabel = story.querySelector("[data-story-progress-label]");
-      var progressBar = story.querySelector("[data-story-progress-bar]");
+    var cinemaStory = document.querySelector("[data-cinema-story]");
+    var cinemaFrame = document.querySelector("[data-cinema-frame]");
+    if (cinemaStory && cinemaFrame) {
+      var cinemaLabel = cinemaFrame.querySelector("[data-cinema-label]");
+      var cinemaTitle = cinemaFrame.querySelector("[data-cinema-title]");
+      var cinemaCopy = cinemaFrame.querySelector("[data-cinema-copy]");
+      var cinemaChapter = cinemaFrame.querySelector("[data-cinema-chapter]");
+      var cinemaTime = cinemaFrame.querySelector("[data-cinema-time]");
+      var cinemaProgress = cinemaFrame.querySelector("[data-cinema-progress]");
+      var cinemaCopyGroup = cinemaFrame.querySelector(".cinema-copy");
       var pageProgress = document.querySelector("[data-scroll-progress]");
-      var reduceEngineMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      var engineViews = [
-        { index: "SONNE / 00", title: "Event-driven intelligence", copy: "Compute begins only when the signal has something to say." },
-        { index: "01 / OBSERVE", title: "Change becomes an event", copy: "Sparse sensors wake only when input changes." },
-        { index: "02 / INTEGRATE", title: "Evidence compounds", copy: "Events accumulate into a confidence-bearing state." },
-        { index: "03 / DECIDE", title: "Certainty ends the work", copy: "Inference stops when more compute adds no value." }
+      var cinemaViews = [
+        { label: "01 / Observe", chapter: "Observe", title: "Change wakes the system.", copy: "Input becomes computation only when something meaningful changes." },
+        { label: "02 / Encode", chapter: "Encode", title: "Change becomes an event.", copy: "Silence disappears. Only useful temporal information moves forward." },
+        { label: "03 / Integrate", chapter: "Integrate", title: "Evidence builds over time.", copy: "Sparse events accumulate into a compact, confidence-bearing state." },
+        { label: "04 / Decide", chapter: "Decide", title: "Certainty ends the work.", copy: "The system exits as soon as more computation stops adding value." }
       ];
-      var engineYaw = -18, enginePitch = 8, scrollYaw = 0;
-      var engineDragging = false, engineLastX = 0, engineLastY = 0;
-      var engineLastTime = 0, activeStoryStep = -1, scrollQueued = false;
+      var cinemaStep = -1, cinemaQueued = false;
+      var cinemaManualYaw = 0, cinemaDragging = false, cinemaLastX = 0;
 
-      function clamp(value, minimum, maximum) { return Math.max(minimum, Math.min(maximum, value)); }
-      function setStoryStep(index) {
-        index = clamp(index, 0, storySteps.length - 1);
-        if (index === activeStoryStep) return;
-        activeStoryStep = index;
-        storySteps.forEach(function (step, stepIndex) {
-          var active = stepIndex === index;
-          step.classList.toggle("is-active", active);
-          step.setAttribute("aria-hidden", reduceEngineMotion ? "false" : (active ? "false" : "true"));
-        });
-        var view = engineViews[index];
-        if (view) {
-          if (engineIndex) engineIndex.textContent = view.index;
-          if (engineTitle) engineTitle.textContent = view.title;
-          if (engineCopy) engineCopy.textContent = view.copy;
+      function cinemaClamp(value, minimum, maximum) { return Math.max(minimum, Math.min(maximum, value)); }
+      function setCinemaStep(index) {
+        index = cinemaClamp(index, 0, cinemaViews.length - 1);
+        if (index === cinemaStep) return;
+        cinemaStep = index;
+        var view = cinemaViews[index];
+        cinemaFrame.setAttribute("data-step", String(index));
+        if (cinemaLabel) cinemaLabel.textContent = view.label;
+        if (cinemaTitle) cinemaTitle.textContent = view.title;
+        if (cinemaCopy) cinemaCopy.textContent = view.copy;
+        if (cinemaChapter) cinemaChapter.textContent = view.chapter;
+        if (cinemaCopyGroup) {
+          cinemaCopyGroup.classList.remove("is-changing");
+          void cinemaCopyGroup.offsetWidth;
+          cinemaCopyGroup.classList.add("is-changing");
         }
-        if (progressLabel) progressLabel.textContent = "0" + (index + 1) + " / 04";
       }
-      function paintEngine() {
-        engine.style.setProperty("--engine-pitch", enginePitch.toFixed(2) + "deg");
-        engine.style.setProperty("--engine-yaw", (engineYaw + scrollYaw).toFixed(2) + "deg");
-      }
-      function paintScroll() {
-        scrollQueued = false;
-        var rect = story.getBoundingClientRect();
-        var total = Math.max(1, story.offsetHeight - window.innerHeight);
-        var storyProgress = clamp(-rect.top / total, 0, 1);
-        var step = Math.min(storySteps.length - 1, Math.floor(storyProgress * storySteps.length));
-        setStoryStep(step);
-        scrollYaw = storyProgress * 210;
-        if (progressBar) progressBar.style.transform = "scaleX(" + storyProgress.toFixed(4) + ")";
+      function paintCinema() {
+        cinemaQueued = false;
+        var rect = cinemaStory.getBoundingClientRect();
+        var total = Math.max(1, cinemaStory.offsetHeight - window.innerHeight);
+        var progress = cinemaClamp(-rect.top / total, 0, 1);
+        var step = Math.min(cinemaViews.length - 1, Math.floor(progress * cinemaViews.length));
+        var seconds = Math.round(progress * 18);
+        var depth = -80 + Math.sin(progress * Math.PI) * 105;
+        setCinemaStep(step);
+        cinemaFrame.style.setProperty("--cinema-progress", progress.toFixed(4));
+        cinemaFrame.style.setProperty("--cinema-yaw", (-28 + progress * 312 + cinemaManualYaw).toFixed(2) + "deg");
+        cinemaFrame.style.setProperty("--cinema-pitch", (12 - progress * 18).toFixed(2) + "deg");
+        cinemaFrame.style.setProperty("--cinema-depth", depth.toFixed(2) + "px");
+        if (cinemaProgress) cinemaProgress.style.transform = "scaleX(" + progress.toFixed(4) + ")";
+        if (cinemaTime) cinemaTime.textContent = "00:" + (seconds < 10 ? "0" : "") + seconds;
         if (pageProgress) {
           var pageTotal = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-          pageProgress.style.transform = "scaleX(" + clamp(window.scrollY / pageTotal, 0, 1).toFixed(4) + ")";
+          pageProgress.style.transform = "scaleX(" + cinemaClamp(window.scrollY / pageTotal, 0, 1).toFixed(4) + ")";
         }
-        paintEngine();
       }
-      function queueScrollPaint() {
-        if (scrollQueued) return;
-        scrollQueued = true;
-        requestAnimationFrame(paintScroll);
+      function queueCinema() {
+        if (cinemaQueued) return;
+        cinemaQueued = true;
+        requestAnimationFrame(paintCinema);
       }
-      function stopEngineDrag(e) {
-        if (!engineDragging) return;
-        engineDragging = false;
-        engine.classList.remove("is-dragging");
-        try { engine.releasePointerCapture(e.pointerId); } catch (err) {}
-      }
-
-      engine.addEventListener("pointerdown", function (e) {
-        engineDragging = true;
-        engineLastX = e.clientX;
-        engineLastY = e.clientY;
-        engine.classList.add("is-dragging");
-        try { engine.setPointerCapture(e.pointerId); } catch (err) {}
-      });
-      engine.addEventListener("pointermove", function (e) {
-        if (!engineDragging) return;
-        engineYaw += (e.clientX - engineLastX) * .68;
-        enginePitch = clamp(enginePitch - (e.clientY - engineLastY) * .38, -28, 28);
-        engineLastX = e.clientX;
-        engineLastY = e.clientY;
-        paintEngine();
-      });
-      engine.addEventListener("pointerup", stopEngineDrag);
-      engine.addEventListener("pointercancel", stopEngineDrag);
-      engine.addEventListener("keydown", function (e) {
-        var handled = true;
-        if (e.key === "ArrowLeft") engineYaw -= 12;
-        else if (e.key === "ArrowRight") engineYaw += 12;
-        else if (e.key === "ArrowUp") enginePitch = clamp(enginePitch - 5, -28, 28);
-        else if (e.key === "ArrowDown") enginePitch = clamp(enginePitch + 5, -28, 28);
-        else handled = false;
-        if (handled) { e.preventDefault(); paintEngine(); }
-      });
-
-      function engineLoop(now) {
-        if (!engineLastTime) engineLastTime = now;
-        var elapsed = Math.min(40, now - engineLastTime);
-        engineLastTime = now;
-        if (!reduceEngineMotion && !engineDragging && engineScene) {
-          engineYaw += elapsed * .006;
-          paintEngine();
-        }
-        requestAnimationFrame(engineLoop);
+      function stopCinemaDrag(e) {
+        if (!cinemaDragging) return;
+        cinemaDragging = false;
+        cinemaFrame.classList.remove("is-dragging");
+        try { cinemaFrame.releasePointerCapture(e.pointerId); } catch (err) {}
       }
 
-      window.addEventListener("scroll", queueScrollPaint, { passive: true });
-      window.addEventListener("resize", queueScrollPaint);
-      setStoryStep(0);
-      paintScroll();
-      requestAnimationFrame(engineLoop);
+      cinemaFrame.addEventListener("pointerdown", function (e) {
+        cinemaDragging = true;
+        cinemaLastX = e.clientX;
+        cinemaFrame.classList.add("is-dragging");
+        try { cinemaFrame.setPointerCapture(e.pointerId); } catch (err) {}
+      });
+      cinemaFrame.addEventListener("pointermove", function (e) {
+        if (!cinemaDragging) return;
+        cinemaManualYaw += (e.clientX - cinemaLastX) * .34;
+        cinemaLastX = e.clientX;
+        paintCinema();
+      });
+      cinemaFrame.addEventListener("pointerup", stopCinemaDrag);
+      cinemaFrame.addEventListener("pointercancel", stopCinemaDrag);
+      cinemaFrame.addEventListener("keydown", function (e) {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        cinemaManualYaw += e.key === "ArrowLeft" ? -12 : 12;
+        paintCinema();
+      });
+
+      window.addEventListener("scroll", queueCinema, { passive: true });
+      window.addEventListener("resize", queueCinema);
+      setCinemaStep(0);
+      paintCinema();
     }
-  } catch (e) { /* the model remains readable and static */ }
+  } catch (e) { /* the film remains a readable static explanation */ }
 
   /* last-resort failsafe, independent of everything above: even if the whole
      boot threw before the reveal step, content becomes visible after 3s. */
