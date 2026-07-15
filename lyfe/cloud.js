@@ -29,8 +29,8 @@
   var SB_ANON = String(CFG.anonKey || "").trim();
   var configured = /^https:\/\/.+\.supabase\.co\/?$/.test(SB_URL) && SB_ANON.length > 20;
 
-  // pinned major version; jsdelivr serves the latest stable 2.x
-  var SDK_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+  // Exact pin keeps an upstream release from changing the app between deploys.
+  var SDK_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.2";
   var TABLE = "lyfe_states";
 
   var sb = null;        // supabase client (created lazily)
@@ -111,10 +111,12 @@
 
     async signInGoogle() {
       await ensureClient();
-      return sb.auth.signInWithOAuth({
+      var result = await sb.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: location.origin + location.pathname }
+        options: { redirectTo: location.origin + location.pathname.replace(/index\.html$/, "") }
       });
+      if (result && result.error) throw result.error;
+      return result;
     },
 
     async signOut() {

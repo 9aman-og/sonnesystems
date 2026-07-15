@@ -44,11 +44,14 @@ Your Anthropic API key (if you use the Claude brain for Sol) is deliberately
 ## Step 3 - Create Google OAuth credentials
 
 1. Go to https://console.cloud.google.com, create (or pick) a project.
-2. **APIs & Services > OAuth consent screen**: choose **External**, fill in the
-   app name ("Lyfe"), your support email, and save. While it is in "testing"
-   mode, add your own Google address under **Test users** so you can log in.
-3. **APIs & Services > Credentials > Create credentials > OAuth client ID**:
-   - Application type: **Web application**.
+2. Open **Google Auth Platform**. Complete **Branding**, set the audience to
+   **External**, and add your own Google address as a test user while the app is
+   in testing mode.
+3. Under **Data Access**, confirm the `openid`, email, and profile scopes are
+   enabled. Supabase needs those three basic identity scopes.
+4. Open **Clients > Create client** and choose **Web application**:
+   - Under **Authorized JavaScript origins**, add every origin that hosts Lyfe,
+     such as `https://sonnesystems.com` and `http://localhost:4173`.
    - **Authorized redirect URI**: paste your Supabase callback, which is
      `https://YOUR-PROJECT-REF.supabase.co/auth/v1/callback`
      (find YOUR-PROJECT-REF in Supabase under **Project Settings > API >
@@ -73,12 +76,13 @@ Your Anthropic API key (if you use the Claude brain for Sol) is deliberately
 ## Step 6 - Paste your keys into Lyfe
 
 1. In Supabase: **Project Settings > API**. Copy the **Project URL** and the
-   **anon / public** key (NOT the service_role key).
+   **publishable** key. A legacy anon/public key also works. Never use the
+   service-role or secret key in browser code.
 2. Open `supabase-config.js` in this folder and fill both fields:
    ```js
    window.LYFE_SUPABASE = {
      url: "https://YOUR-PROJECT-REF.supabase.co",
-     anonKey: "eyJ...your anon key..."
+     anonKey: "sb_publishable_..."
    };
    ```
 3. Commit and push (or just re-upload the folder). Sign-in is now live.

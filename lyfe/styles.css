@@ -169,6 +169,29 @@ body::before {
 button { font-family: inherit; cursor: pointer; color: inherit; }
 [hidden] { display: none !important; }
 
+:where(a, button, input, select, textarea, [role="button"]):focus-visible {
+  outline: 2px solid var(--accent-2);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 300;
+  padding: 9px 13px;
+  border-radius: 10px;
+  color: var(--bg-deep);
+  background: var(--accent);
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-160%);
+  transition: transform .16s ease;
+}
+.skip-link:focus { transform: none; }
+#main:focus { outline: none; }
+body.modal-open { overflow: hidden; }
+
 h1, h2, h3 { font-family: var(--serif); font-weight: 500; }
 
 /* ---------------- icons ---------------- */
@@ -746,10 +769,11 @@ details.done-details summary::-webkit-details-marker { display: none; }
   overflow: hidden;
 }
 
-.pad-list-col { border-right: 1px solid var(--hair-soft); display: flex; flex-direction: column; min-height: 0; }
+.pad-list-col { border-right: 1px solid var(--hair-soft); display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 
 .pad-tools { display: flex; gap: 8px; padding: 12px; border-bottom: 1px solid var(--hair-soft); }
-.pad-tools input { flex: 1; font-size: 13px; padding: 6px 9px; }
+.pad-tools input { flex: 1; min-width: 0; font-size: 13px; padding: 6px 9px; }
+.pad-tools .btn { flex: 0 0 auto; }
 
 .pad-list { list-style: none; overflow-y: auto; flex: 1; max-height: 64vh; }
 
@@ -2055,6 +2079,13 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
 
 @media (max-width: 600px) {
   #main { padding-left: 12px; padding-right: 12px; }
+  .task { gap: 8px; }
+  .check, .task .check { width: 32px; height: 32px; margin-top: -5px; }
+  .check-sm { width: 28px; height: 28px; margin-top: -3px; }
+  .icon-btn { width: 32px; height: 32px; padding: 0; }
+  .filter-chip { min-height: 34px; padding: 6px 11px; }
+  .side-foot .linklike { min-height: 30px; padding: 5px 1px; }
+  .pad-tools { padding: 10px; }
   .home-title-row h1 { font-size: 59px; }
   .home-deck { margin-top: 20px; }
   .cosmos-hero { min-height: 650px; border-radius: 9px; }

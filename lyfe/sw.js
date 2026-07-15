@@ -2,10 +2,14 @@
    HTML is network-first (always fresh when online); versioned assets cache-first. */
 "use strict";
 
-const CACHE = "lyfe-crystal-25";
+const CACHE = "lyfe-crystal-28";
 const SHELL = [
   "./",
   "./index.html",
+  "./styles.css?v=crystal-28",
+  "./supabase-config.js?v=crystal-28",
+  "./cloud.js?v=crystal-28",
+  "./app.js?v=crystal-28",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
@@ -19,7 +23,7 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("lyfe-") && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -69,6 +73,6 @@ self.addEventListener("fetch", (e) => {
         caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
       }
       return res;
-    }).catch(() => undefined))
+    }).catch(() => Response.error()))
   );
 });

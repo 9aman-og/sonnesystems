@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=1">
+<link rel="stylesheet" href="css/styles.css?v=2">
 </head>
 <body data-page="research">
 
@@ -25,7 +25,7 @@
 
 <header id="site-header"></header>
 
-<main class="page">
+<main class="page" id="main-content" tabindex="-1">
   <section class="page-hero">
     <p class="eyebrow">Research</p>
     <h1 class="display page-title">Projects &amp; <em>papers</em></h1>
@@ -39,7 +39,7 @@
     <div class="prod-grid">
       <article class="card prod reveal">
         <p class="prod-kind">Research project · live demo</p>
-        <h3 class="prod-name">Spiking Mammal</h3>
+        <h2 class="prod-name">Spiking Mammal</h2>
         <p class="prod-desc">
           A content-adaptive spiking classifier. Easy images decide in a few timesteps;
           harder ones are given more time. Compute follows difficulty, not a fixed budget.
@@ -49,7 +49,7 @@
 
       <article class="card prod reveal" data-delay="70">
         <p class="prod-kind">Paper · 2026 <span class="lock-chip">Password protected</span></p>
-        <h3 class="prod-name">When Do Spiking-Convolutional Hybrids Help?</h3>
+        <h2 class="prod-name">When Do Spiking-Convolutional Hybrids Help?</h2>
         <p class="prod-desc">
           Introduces <code>ca-lif</code>, a content-adaptive spiking neuron, and a pre-registered
           evidence protocol. We ran the dense controls, the headline effect did not survive,
@@ -60,7 +60,7 @@
 
       <article class="card prod reveal" data-delay="140">
         <p class="prod-kind">Paper · 2026 <span class="lock-chip">Password protected</span></p>
-        <h3 class="prod-name">Illumination-Invariant Certified Robustness</h3>
+        <h2 class="prod-name">Illumination-Invariant Certified Robustness</h2>
         <p class="prod-desc">
           A construction and a fundamental limit. A rank front-end beneath a 1-Lipschitz network
           yields predictions exactly invariant to every monotonic illumination change, then proves
@@ -71,7 +71,7 @@
 
       <article class="card prod reveal" data-delay="210">
         <p class="prod-kind">Open benchmark · in progress</p>
-        <h3 class="prod-name">The Evidence Protocol</h3>
+        <h2 class="prod-name">The Evidence Protocol</h2>
         <p class="prod-desc">
           An open harness for asking when spikes actually help: honest baselines, multi-seed
           statistics, and transparent energy accounting. Built so results replicate.
@@ -83,6 +83,6 @@
 </main>
 
 <footer id="site-footer"></footer>
-<script src="js/site.js?v=2"></script>
+<script src="js/site.js?v=3"></script>
 </body>
 </html>

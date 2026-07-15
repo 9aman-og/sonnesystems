@@ -31,7 +31,7 @@ Browser ──▶ GitHub Pages (static)
              ├── js/site.js        shared chrome (header, footer, reveal, sounds)
              ├── js/app.js         demo logic (demo.html only)
              ├── papers/*.pdf.enc  AES-256-GCM blobs, decrypted in-browser (Web Crypto)
-             └── lyfe/             Lyfe PWA (localStorage only, no server)
+             └── lyfe/             Local-first Lyfe PWA (optional Supabase sync)
 ```
 
 Key decisions:
