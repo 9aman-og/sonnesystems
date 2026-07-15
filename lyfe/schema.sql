@@ -25,6 +25,14 @@ create table if not exists public.lyfe_states (
 -- could read every row. With it, the policies below are the only way in.
 alter table public.lyfe_states enable row level security;
 
+-- SQL-created tables are not exposed to the Data API automatically on every
+-- Supabase project. Grant only the operations the signed-in client needs, and
+-- explicitly keep the unauthenticated role out. RLS still decides which rows
+-- an authenticated user may touch.
+grant usage on schema public to authenticated;
+grant select, insert, update on table public.lyfe_states to authenticated;
+revoke all on table public.lyfe_states from anon;
+
 -- Each signed-in user may touch only the row whose user_id equals their
 -- own auth id. Unauthenticated requests have no auth.uid(), so every
 -- policy fails for them: no anonymous access at all.
@@ -34,16 +42,19 @@ drop policy if exists "lyfe update own" on public.lyfe_states;
 
 create policy "lyfe read own"
   on public.lyfe_states for select
-  using (auth.uid() = user_id);
+  to authenticated
+  using ((select auth.uid()) = user_id);
 
 create policy "lyfe insert own"
   on public.lyfe_states for insert
-  with check (auth.uid() = user_id);
+  to authenticated
+  with check ((select auth.uid()) = user_id);
 
 create policy "lyfe update own"
   on public.lyfe_states for update
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  to authenticated
+  using ((select auth.uid()) = user_id)
+  with check ((select auth.uid()) = user_id);
 
 -- Keep updated_at honest on every write.
 create or replace function public.lyfe_touch_updated_at()

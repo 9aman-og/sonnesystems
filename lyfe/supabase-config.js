@@ -16,5 +16,5 @@
    ============================================================ */
 window.LYFE_SUPABASE = {
   url: "",      // e.g. https://abcdefgh.supabase.co
-  anonKey: ""   // the "anon / public" key from Project Settings > API
+  anonKey: ""   // the publishable key (preferred) or legacy anon key
 };

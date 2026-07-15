@@ -36,12 +36,13 @@
     if (!el) return;
     el.className = "topbar";
     el.innerHTML =
+      '<a class="skip-link" href="#main-content">Skip to content</a>' +
       '<a class="brand" href="index.html" aria-label="Sonne Systems home">' +
         sunMark("brand-mark") +
         '<span class="brand-word"><b>Sonne</b><span>Systems</span></span>' +
       "</a>" +
-      '<button class="nav-toggle" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>' +
-      '<nav class="topnav" aria-label="Primary">' + links +
+      '<button class="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="primary-nav"><span></span><span></span><span></span></button>' +
+      '<nav class="topnav" id="primary-nav" aria-label="Primary">' + links +
         '<a class="btn btn-ghost topcta" href="' + MAIL + '">Get in touch</a>' +
       "</nav>" +
       '<button class="sound-toggle" aria-label="Toggle sound" title="Sound"></button>';
@@ -59,7 +60,7 @@
           '<span class="brand-word"><b>Sonne</b><span>Systems</span></span>' +
         "</a>" +
         '<p class="footer-line">Neuromorphic engineering &amp; BCI research. Built in the open.</p>' +
-        '<nav class="footer-nav">' +
+        '<nav class="footer-nav" aria-label="Footer">' +
           '<a href="demo.html">Demo</a><a href="research.html">Research</a>' +
           '<a href="tools.html">Tools</a><a href="about.html">About</a>' +
           '<a href="' + LINKEDIN + '" target="_blank" rel="noopener">LinkedIn</a>' +
@@ -113,6 +114,8 @@
     var b = document.querySelector(".sound-toggle");
     if (!b) return;
     b.classList.toggle("muted", !soundOn);
+    b.setAttribute("aria-label", soundOn ? "Turn sound off" : "Turn sound on");
+    b.setAttribute("title", soundOn ? "Turn sound off" : "Turn sound on");
     b.innerHTML = soundOn
       ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>'
       : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg>';
@@ -146,9 +149,22 @@
       toggle.addEventListener("click", function () {
         var open = document.body.classList.toggle("nav-open");
         toggle.setAttribute("aria-expanded", open ? "true" : "false");
+        toggle.setAttribute("aria-label", open ? "Close menu" : "Menu");
       });
       nav.addEventListener("click", function (e) {
-        if (e.target.tagName === "A") { document.body.classList.remove("nav-open"); toggle.setAttribute("aria-expanded", "false"); }
+        if (e.target.tagName === "A") {
+          document.body.classList.remove("nav-open");
+          toggle.setAttribute("aria-expanded", "false");
+          toggle.setAttribute("aria-label", "Menu");
+        }
+      });
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && document.body.classList.contains("nav-open")) {
+          document.body.classList.remove("nav-open");
+          toggle.setAttribute("aria-expanded", "false");
+          toggle.setAttribute("aria-label", "Menu");
+          toggle.focus();
+        }
       });
     }
   } catch (e) { /* menu optional */ }

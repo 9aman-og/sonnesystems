@@ -83,8 +83,10 @@ so Sol never goes silent.
 
 ## Your data
 
-Everything is stored in the browser's `localStorage` under the key `lyfe.v1` -
-nothing leaves your machine (except Sol's optional API calls, above).
+Guest data is stored in the browser's `localStorage` under the key `lyfe.v1`.
+It stays on that device except for Sol's optional API calls. If the optional
+Supabase integration is configured, signing in enables private cross-device
+sync; the Anthropic API key is stripped before any sync write.
 
 **The data belongs to one browser profile.** Use **Export** in the sidebar to
 download a JSON backup regularly, and **Import** to restore or move machines.

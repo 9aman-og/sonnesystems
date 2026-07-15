@@ -412,6 +412,7 @@ function defaultData() {
     version: 1,
     settings: {
       name: "",
+      nameSet: false,
       theme: "light",                // auto | light | dark - default Crystal light
       provider: "ollama",            // ollama | claude | offline
       ollamaUrl: "http://localhost:11434",
@@ -484,9 +485,10 @@ function normalize(raw) {
     base.settings = Object.assign(base.settings, raw.settings);
   }
   // older builds shipped "Aman" as the default name; clear that leftover so no
-  // one sees it. Only touches pre-onboarding installs (no onboarded field yet),
-  // so a real name chosen during onboarding is never wiped.
-  if (raw.settings && raw.settings.name === "Aman" && raw.settings.onboarded === undefined) {
+  // one ever sees it. `nameSet` is true only once the user actually chooses a
+  // name (onboarding or Settings), so a deliberately kept "Aman" survives while
+  // the stale default is wiped, whatever the onboarded flag says.
+  if (raw.settings && base.settings.name === "Aman" && !base.settings.nameSet) {
     base.settings.name = "";
   }
   // heal a bad model id that shipped briefly (qwen3.5:9b is not a real Ollama tag)
@@ -588,19 +590,51 @@ function applyTheme() {
 
 /* ---------------- generic ui ---------------- */
 
-function openModal(inner) {
-  const root = document.getElementById("modal-root");
-  root.innerHTML =
-    `<div class="overlay" data-action="overlay-close"><div class="modal" role="dialog" aria-modal="true">${inner}</div></div>`;
+let modalReturnFocus = null;
+
+function activateDialog(root) {
+  const dialog = root && root.querySelector('[role="dialog"]');
+  if (!dialog) return;
+  const heading = dialog.querySelector("h1, h2, h3");
+  if (heading && !dialog.getAttribute("aria-label")) {
+    heading.id = "lyfe-modal-title";
+    dialog.setAttribute("aria-labelledby", heading.id);
+  }
+  const app = document.getElementById("app");
+  if (app) {
+    app.inert = true;
+    app.setAttribute("inert", "");
+    app.setAttribute("aria-hidden", "true");
+  }
+  document.body.classList.add("modal-open");
   setTimeout(() => {
-    const el = root.querySelector("input:not([type=hidden]), textarea, select");
+    const el = dialog.querySelector('input:not([type=hidden]):not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])');
     if (el) el.focus();
+    else { dialog.setAttribute("tabindex", "-1"); dialog.focus(); }
   }, 0);
 }
 
+function openModal(inner) {
+  const root = document.getElementById("modal-root");
+  modalReturnFocus = document.activeElement;
+  root.innerHTML =
+    `<div class="overlay" data-action="overlay-close"><div class="modal" role="dialog" aria-modal="true">${inner}</div></div>`;
+  activateDialog(root);
+}
+
 function closeModal() {
+  const returnTo = modalReturnFocus;
+  modalReturnFocus = null;
   document.getElementById("modal-root").innerHTML = "";
+  const app = document.getElementById("app");
+  if (app) {
+    app.inert = false;
+    app.removeAttribute("inert");
+    app.removeAttribute("aria-hidden");
+  }
+  document.body.classList.remove("modal-open");
   confirmCb = null;
+  setTimeout(() => { if (returnTo && returnTo.isConnected) returnTo.focus(); }, 0);
 }
 
 let confirmCb = null;
@@ -983,13 +1017,13 @@ function taskRow(t, opts) {
     : (o.hideDue ? `<span>${timeTag}</span>` : `<span>${dueLabel(t.due) || ""}${timeTag}</span>`);
   return `<li class="task ${done ? "done" : ""} ${!done && t.important ? "important" : ""}">
     <button class="check" data-action="toggle-task" data-id="${esc(t.id)}"
-      title="${done ? "Mark as not done" : "Mark as done"}" aria-label="Toggle task">${done ? "✓" : ""}</button>
+      title="${done ? "Mark as not done" : "Mark as done"}" aria-label="${done ? "Mark task as open" : "Mark task as done"}: ${esc(t.title)}">${done ? "✓" : ""}</button>
     <div class="task-title">${!done && t.important ? `<span class="imp-flag" title="Important - will alarm">⚑</span>` : ""}${esc(t.title)}${!done && t.priority === "High" ? `<span class="prio-flag" title="High priority">!</span>` : ""}</div>
     ${side}
     <span class="row-actions">
-      ${!done && t.due && t.due < todayStr() ? `<button class="icon-btn" data-action="snooze-task" data-id="${esc(t.id)}" title="Push to tomorrow">↷</button>` : ""}
-      <button class="icon-btn" data-action="edit-task" data-id="${esc(t.id)}" title="Edit">✎</button>
-      <button class="icon-btn" data-action="delete-task" data-id="${esc(t.id)}" title="Delete">✕</button>
+      ${!done && t.due && t.due < todayStr() ? `<button class="icon-btn" data-action="snooze-task" data-id="${esc(t.id)}" title="Push to tomorrow" aria-label="Push ${esc(t.title)} to tomorrow">↷</button>` : ""}
+      <button class="icon-btn" data-action="edit-task" data-id="${esc(t.id)}" title="Edit" aria-label="Edit task: ${esc(t.title)}">✎</button>
+      <button class="icon-btn" data-action="delete-task" data-id="${esc(t.id)}" title="Delete" aria-label="Delete task: ${esc(t.title)}">✕</button>
     </span>
   </li>`;
 }
@@ -1066,7 +1100,7 @@ function viewToday() {
 
   const noteList = recentNotes.length
     ? recentNotes.map(n => `
-        <div class="mini-row mini-note" data-action="open-note" data-id="${esc(n.id)}">
+        <div class="mini-row mini-note" role="button" tabindex="0" data-action="open-note" data-id="${esc(n.id)}" aria-label="Open note: ${esc((n.title || "").trim() || "Untitled")}">
           <div class="mini-top">
             <span class="mini-name">${esc((n.title || "").trim() || "Untitled")}${n.pinned ? ` <span class="pin-mark">${icon("pin")}</span>` : ""}</span>
             <span class="mini-time">${esc(timeAgo(n.updatedAt))}</span>
@@ -1386,7 +1420,7 @@ function viewTasks() {
 
   const filterBar = `<div class="filter-bar">
     ${[["open", "Open"], ["done", "Done"], ["all", "All"]].map(([v, l]) =>
-      `<button class="filter-chip ${state.taskStatusFilter === v ? "active" : ""}" data-action="task-status" data-v="${v}">${l}</button>`
+      `<button class="filter-chip ${state.taskStatusFilter === v ? "active" : ""}" data-action="task-status" data-v="${v}" aria-pressed="${state.taskStatusFilter === v}">${l}</button>`
     ).join("")}
     <select id="task-area-filter" aria-label="Filter by area">
       <option value="all" ${state.taskAreaFilter === "all" ? "selected" : ""}>All areas</option>
@@ -1443,8 +1477,8 @@ function viewProjects() {
       <div class="card-top">
         <h3>${esc(p.name)}</h3>
         <span class="row-actions">
-          <button class="icon-btn" data-action="edit-project" data-id="${esc(p.id)}" title="Edit">✎</button>
-          <button class="icon-btn" data-action="delete-project" data-id="${esc(p.id)}" title="Delete">✕</button>
+          <button class="icon-btn" data-action="edit-project" data-id="${esc(p.id)}" title="Edit" aria-label="Edit project: ${esc(p.name)}">✎</button>
+          <button class="icon-btn" data-action="delete-project" data-id="${esc(p.id)}" title="Delete" aria-label="Delete project: ${esc(p.name)}">✕</button>
         </span>
       </div>
       ${p.status !== "active" ? `<span class="st st-${esc(p.status)}">${esc(labelOf(PROJECT_STATUSES, p.status))}</span>` : ""}
@@ -1475,8 +1509,8 @@ function viewGoals() {
       <div class="card-top">
         <h3>${esc(g.title)}</h3>
         <span class="row-actions">
-          <button class="icon-btn" data-action="edit-goal" data-id="${esc(g.id)}" title="Edit">✎</button>
-          <button class="icon-btn" data-action="delete-goal" data-id="${esc(g.id)}" title="Delete">✕</button>
+          <button class="icon-btn" data-action="edit-goal" data-id="${esc(g.id)}" title="Edit" aria-label="Edit goal: ${esc(g.title)}">✎</button>
+          <button class="icon-btn" data-action="delete-goal" data-id="${esc(g.id)}" title="Delete" aria-label="Delete goal: ${esc(g.title)}">✕</button>
         </span>
       </div>
       ${g.why ? `<div class="goal-why">“${esc(g.why)}”</div>` : ""}
@@ -1488,7 +1522,7 @@ function viewGoals() {
       ${ms.length ? `<ul class="ms-list">${ms.map(m => `
         <li class="${m.done ? "done" : ""}">
           <button class="check check-sm" data-action="toggle-milestone" data-goal="${esc(g.id)}" data-mid="${esc(m.id)}"
-            aria-label="Toggle milestone">${m.done ? "✓" : ""}</button>
+            aria-label="${m.done ? "Mark milestone as open" : "Mark milestone as done"}: ${esc(m.text)}">${m.done ? "✓" : ""}</button>
           <span>${esc(m.text)}</span>
         </li>`).join("")}</ul>` : ""}
     </div>`;
@@ -1509,9 +1543,9 @@ function viewEducation() {
   });
 
   const filterBar = `<div class="filter-bar">
-    <button class="filter-chip ${state.eduFilter === "all" ? "active" : ""}" data-action="edu-filter" data-v="all">All</button>
+    <button class="filter-chip ${state.eduFilter === "all" ? "active" : ""}" data-action="edu-filter" data-v="all" aria-pressed="${state.eduFilter === "all"}">All</button>
     ${EDU_STATUSES.map(([v, l]) =>
-      `<button class="filter-chip ${state.eduFilter === v ? "active" : ""}" data-action="edu-filter" data-v="${v}">${l}</button>`
+      `<button class="filter-chip ${state.eduFilter === v ? "active" : ""}" data-action="edu-filter" data-v="${v}" aria-pressed="${state.eduFilter === v}">${l}</button>`
     ).join("")}
   </div>`;
 
@@ -1527,8 +1561,8 @@ function viewEducation() {
         ${(e.startDate || e.targetDate) ? `<div class="edu-dates">${[e.startDate ? "since " + fmtShort(e.startDate) : "", e.targetDate ? "aim " + fmtShort(e.targetDate) : ""].filter(Boolean).join(" · ")}</div>` : ""}
       </div>
       <span class="row-actions">
-        <button class="icon-btn" data-action="edit-edu" data-id="${esc(e.id)}" title="Edit">✎</button>
-        <button class="icon-btn" data-action="delete-edu" data-id="${esc(e.id)}" title="Delete">✕</button>
+        <button class="icon-btn" data-action="edit-edu" data-id="${esc(e.id)}" title="Edit" aria-label="Edit education entry: ${esc(e.title)}">✎</button>
+        <button class="icon-btn" data-action="delete-edu" data-id="${esc(e.id)}" title="Delete" aria-label="Delete education entry: ${esc(e.title)}">✕</button>
       </span>
     </div>`).join("");
 
@@ -1615,7 +1649,7 @@ function viewWork() {
           <div class="log-text">${esc(e.text)}</div>
           ${typeof e.hours === "number" ? `<span class="hours-chip">${fmtHours(e.hours)}h</span>` : ""}
           <span class="row-actions">
-            <button class="icon-btn" data-action="delete-log" data-id="${esc(e.id)}" title="Delete">✕</button>
+            <button class="icon-btn" data-action="delete-log" data-id="${esc(e.id)}" title="Delete" aria-label="Delete work log entry">✕</button>
           </span>
         </div>`).join("")}
     </div>`;
@@ -1646,7 +1680,7 @@ function padListHtml(kind) {
     return `<div class="empty" style="padding:26px 14px;">${icon(cfg.key, "empty-ic")}<em>${state[cfg.query] ? "Nothing found." : cfg.emptyList}</em></div>`;
   }
   return items.map(n => `
-    <li class="pad-row ${n.id === state[cfg.sel] ? "active" : ""}" data-action="select-pad" data-kind="${kind}" data-id="${esc(n.id)}" data-pad-row="${esc(n.id)}">
+    <li class="pad-row ${n.id === state[cfg.sel] ? "active" : ""}" role="button" tabindex="0" aria-pressed="${n.id === state[cfg.sel]}" aria-label="Open ${cfg.noun}: ${esc((n.title || "").trim() || "Untitled")}" data-action="select-pad" data-kind="${kind}" data-id="${esc(n.id)}" data-pad-row="${esc(n.id)}">
       <div class="pad-row-line">
         <span class="pad-row-title">${esc((n.title || "").trim() || "Untitled")}</span>
         ${n.pinned ? `<span class="pin-mark">${icon("pin")}</span>` : ""}
@@ -1671,7 +1705,7 @@ function viewPad(kind) {
        </div>
        <div class="pad-thumbs">
          ${(n.images || []).map(im => `<button class="pad-thumb" data-action="open-img" data-kind="${kind}" data-id="${esc(n.id)}" data-img="${esc(im.id)}"><img src="${im.data}" alt=""></button>`).join("")}
-         <button class="pad-thumb add" data-action="pad-add-img" data-kind="${kind}" title="Add photos">${icon("photo")}</button>
+         <button class="pad-thumb add" data-action="pad-add-img" data-kind="${kind}" title="Add photos" aria-label="Add photos">${icon("photo")}</button>
        </div>
        <input type="file" id="pad-img-input" data-kind="${kind}" accept="image/*" multiple hidden>
        <textarea id="pad-body" data-kind="${kind}" placeholder="${esc(cfg.bodyPh)}">${esc(n.body)}</textarea>`
@@ -1774,9 +1808,11 @@ function openLightbox(kind, itemId, imgId) {
   const item = state.data[PADS[kind].key].find(x => x.id === itemId);
   const im = item && (item.images || []).find(i => i.id === imgId);
   if (!im) return;
-  document.getElementById("modal-root").innerHTML =
+  const root = document.getElementById("modal-root");
+  modalReturnFocus = document.activeElement;
+  root.innerHTML =
     `<div class="overlay lightbox" data-action="overlay-close">
-      <figure class="lightbox-body">
+      <figure class="lightbox-body" role="dialog" aria-modal="true" aria-label="Attached photo">
         <img src="${im.data}" alt="attached photo">
         <figcaption>
           <button class="btn btn-sm" data-action="modal-close">Close</button>
@@ -1784,6 +1820,7 @@ function openLightbox(kind, itemId, imgId) {
         </figcaption>
       </figure>
     </div>`;
+  activateDialog(root);
 }
 
 /* ---------------- view: Sol ---------------- */
@@ -2524,7 +2561,7 @@ function projectModal(p) {
 function msRowHtml(m) {
   return `<div class="ms-row" data-mid="${esc(m.id || "")}">
     <input type="text" maxlength="200" value="${esc(m.text || "")}" placeholder="A milestone along the way">
-    <button type="button" class="icon-btn" data-action="remove-ms-row" title="Remove">✕</button>
+    <button type="button" class="icon-btn" data-action="remove-ms-row" title="Remove" aria-label="Remove milestone">✕</button>
   </div>`;
 }
 
@@ -3337,11 +3374,18 @@ document.addEventListener("click", (e) => {
       else { toast("Google sign-in is being set up - continue as guest for now"); }
       break;
     case "auth-guest": enterGuest(); break;
-    case "sign-in-gate": showAuthGate(); break;
-    case "onboard-focus": el.classList.toggle("sel"); sfxClick("chip"); break;
+    case "sign-in-gate":
+      if (window.LyfeCloud && LyfeCloud.configured) showAuthGate();
+      else toast("Cloud sync is not configured on this site yet");
+      break;
+    case "onboard-focus":
+      el.classList.toggle("sel");
+      el.setAttribute("aria-pressed", el.classList.contains("sel") ? "true" : "false");
+      sfxClick("chip");
+      break;
     case "onboard-commit":
-      document.querySelectorAll(".onb-segbtn").forEach(b => b.classList.remove("sel"));
-      el.classList.add("sel"); sfxClick("chip"); break;
+      document.querySelectorAll(".onb-segbtn").forEach(b => { b.classList.remove("sel"); b.setAttribute("aria-pressed", "false"); });
+      el.classList.add("sel"); el.setAttribute("aria-pressed", "true"); sfxClick("chip"); break;
     case "sign-in":
       closeModal();
       if (window.LyfeCloud && LyfeCloud.configured) showAuthGate();
@@ -3517,6 +3561,7 @@ document.addEventListener("submit", (e) => {
 
     case "settings": {
       d.settings.name = val("name");
+      if (d.settings.name) d.settings.nameSet = true;
       d.settings.age = val("age");
       d.settings.country = val("country");
       d.settings.theme = ["auto", "light", "dark"].includes(val("theme")) ? val("theme") : "auto";
@@ -3640,6 +3685,23 @@ function openCommandBar() {
 }
 
 document.addEventListener("keydown", (e) => {
+  const dialogs = Array.from(document.querySelectorAll('[role="dialog"]'));
+  const activeDialog = dialogs.find(el => !el.hidden && getComputedStyle(el).display !== "none");
+  if (e.key === "Tab" && activeDialog) {
+    const focusable = Array.from(activeDialog.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type=hidden]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+      .filter(el => getComputedStyle(el).display !== "none" && getComputedStyle(el).visibility !== "hidden");
+    if (focusable.length) {
+      const first = focusable[0], last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); return; }
+      if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); return; }
+    }
+  }
+  const actionRole = e.target.closest && e.target.closest('[role="button"][data-action]');
+  if (actionRole && actionRole.tagName !== "BUTTON" && (e.key === "Enter" || e.key === " ")) {
+    e.preventDefault();
+    actionRole.click();
+    return;
+  }
   // Ctrl/Cmd+K opens the quick command bar anywhere
   if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
     e.preventDefault();
@@ -3756,6 +3818,7 @@ window.addEventListener("pageshow", (e) => { if (e.persisted) syncFromStorage();
    app never breaks while the backend is half set up. */
 
 let booted = false;
+let gateReturnFocus = null;
 function bootApp() {
   if (booted) return;   // sign-out reloads the page, so boot runs once per load
   booted = true;
@@ -3789,13 +3852,23 @@ function bootApp() {
 
 function showAuthGate() {
   const el = document.getElementById("auth-gate");
-  if (el) el.hidden = false;
+  gateReturnFocus = document.activeElement;
+  if (el) {
+    el.hidden = false;
+    setTimeout(() => {
+      const first = el.querySelector("button:not([disabled])");
+      if (first) first.focus();
+    }, 0);
+  }
   document.body.classList.add("gated");
 }
 function hideAuthGate() {
+  const returnTo = gateReturnFocus;
+  gateReturnFocus = null;
   const el = document.getElementById("auth-gate");
   if (el) el.hidden = true;
   document.body.classList.remove("gated");
+  if (booted) setTimeout(() => { if (returnTo && returnTo.isConnected) returnTo.focus(); }, 0);
 }
 
 /* ---- onboarding: collect who they are, once, after first Google sign-in ---- */
@@ -3843,14 +3916,14 @@ function showOnboarding() {
         ${fld("Country", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="Where are you?" list="onb-countries">
           <datalist id="onb-countries">${COMMON_COUNTRIES.map(c => `<option value="${esc(c)}"></option>`).join("")}</datalist>`)}
         <div class="onb-group">
-          <span class="onb-label">What are you here to do?</span>
-          <div class="onb-chips">${FOCUS_OPTIONS.map(g =>
-            `<button type="button" class="onb-chip${(s.focus || []).includes(g) ? " sel" : ""}" data-action="onboard-focus" data-v="${esc(g)}">${esc(g)}</button>`).join("")}</div>
+          <span class="onb-label" id="onb-focus-label">What are you here to do?</span>
+          <div class="onb-chips" role="group" aria-labelledby="onb-focus-label">${FOCUS_OPTIONS.map(g =>
+            `<button type="button" class="onb-chip${(s.focus || []).includes(g) ? " sel" : ""}" data-action="onboard-focus" data-v="${esc(g)}" aria-pressed="${(s.focus || []).includes(g)}">${esc(g)}</button>`).join("")}</div>
         </div>
         <div class="onb-group">
-          <span class="onb-label">How committed are you?</span>
-          <div class="onb-seg">${COMMIT_OPTIONS.map(([v, l]) =>
-            `<button type="button" class="onb-segbtn${s.commitment === v ? " sel" : ""}" data-action="onboard-commit" data-v="${v}">${esc(l)}</button>`).join("")}</div>
+          <span class="onb-label" id="onb-commit-label">How committed are you?</span>
+          <div class="onb-seg" role="group" aria-labelledby="onb-commit-label">${COMMIT_OPTIONS.map(([v, l]) =>
+            `<button type="button" class="onb-segbtn${s.commitment === v ? " sel" : ""}" data-action="onboard-commit" data-v="${v}" aria-pressed="${s.commitment === v}">${esc(l)}</button>`).join("")}</div>
         </div>
         <button type="submit" class="auth-btn onb-submit">Enter Lyfe</button>
       </form>
@@ -3872,6 +3945,7 @@ function submitOnboarding(fd) {
   if (!name) { toast("A name helps Sol talk to you"); return; }
   const s = state.data.settings;
   s.name = name;
+  s.nameSet = true;
   s.age = val("age");
   s.country = val("country");
   s.focus = [...document.querySelectorAll(".onb-chip.sel")].map(b => b.dataset.v);

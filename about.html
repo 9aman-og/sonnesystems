@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=1">
+<link rel="stylesheet" href="css/styles.css?v=2">
 </head>
 <body data-page="about">
 
@@ -25,7 +25,7 @@
 
 <header id="site-header"></header>
 
-<main class="page">
+<main class="page" id="main-content" tabindex="-1">
   <section class="page-hero">
     <p class="eyebrow">About</p>
     <h1 class="display page-title">A one-person studio, <em>working in the open.</em></h1>
@@ -39,7 +39,7 @@
     <div class="prod-grid">
       <article class="card prod reveal">
         <p class="prod-kind">Principle · 01</p>
-        <h3 class="prod-name">Report what the experiments show</h3>
+        <h2 class="prod-name">Report what the experiments show</h2>
         <p class="prod-desc">
           Our first paper's headline effect did not survive its own controls, and we
           published exactly that. Honest negatives beat pretty positives.
@@ -47,7 +47,7 @@
       </article>
       <article class="card prod reveal" data-delay="70">
         <p class="prod-kind">Principle · 02</p>
-        <h3 class="prod-name">Compute should follow difficulty</h3>
+        <h2 class="prod-name">Compute should follow difficulty</h2>
         <p class="prod-desc">
           Brains spend energy where the signal is. We build models with the same manners:
           sparse, adaptive, and quiet when nothing is happening.
@@ -55,10 +55,10 @@
       </article>
       <article class="card prod reveal" data-delay="140">
         <p class="prod-kind">Principle · 03</p>
-        <h3 class="prod-name">Small tools, freely shared</h3>
+        <h2 class="prod-name">Small tools, freely shared</h2>
         <p class="prod-desc">
           Useful things we build along the way are left open for anyone,
-          private by default, with no accounts and no cloud.
+          local-first and private by default, with cloud features kept optional.
         </p>
       </article>
     </div>
@@ -81,6 +81,6 @@
 </main>
 
 <footer id="site-footer"></footer>
-<script src="js/site.js?v=2"></script>
+<script src="js/site.js?v=3"></script>
 </body>
 </html>

@@ -25,8 +25,8 @@
   });
 })();
 </script>
-<link rel="icon" type="image/png" href="favicon-32.png?v=crystal-21">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=crystal-21">
+<link rel="icon" type="image/png" href="favicon-32.png?v=crystal-28">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=crystal-28">
 
 <!-- installable Android / PWA -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -44,9 +44,10 @@
 <link rel="dns-prefetch" href="https://upload.wikimedia.org">
 <link rel="dns-prefetch" href="https://picsum.photos">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Unbounded:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=crystal-25">
+<link rel="stylesheet" href="styles.css?v=crystal-28">
 </head>
 <body>
+<a class="skip-link" href="#main">Skip to content</a>
 <div id="scroll-progress" aria-hidden="true"></div>
 <div id="stars" aria-hidden="true"></div>
 <div id="bg-glow" aria-hidden="true"></div>
@@ -65,7 +66,7 @@
       <input type="file" id="importFile" accept=".json,application/json" hidden>
     </div>
   </aside>
-  <main id="main"></main>
+  <main id="main" tabindex="-1"></main>
 </div>
 
 <div id="auth-gate" hidden role="dialog" aria-modal="true" aria-label="Sign in to Lyfe">
@@ -95,10 +96,10 @@
 <div id="onboard-gate" hidden role="dialog" aria-modal="true" aria-label="Set up your Lyfe"></div>
 
 <div id="modal-root"></div>
-<div id="toast-root"></div>
-<script src="supabase-config.js?v=crystal-25"></script>
-<script src="cloud.js?v=crystal-25"></script>
-<script src="app.js?v=crystal-25"></script>
+<div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
+<script src="supabase-config.js?v=crystal-28"></script>
+<script src="cloud.js?v=crystal-28"></script>
+<script src="app.js?v=crystal-28"></script>
 <script>
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */
