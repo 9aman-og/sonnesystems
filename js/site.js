@@ -3,7 +3,7 @@
 
   /*
     SONNE SYSTEMS / SHARED EXPERIENCE LAYER
-    Navigation, restrained audio, reveal motion, scroll film and aperture input.
+    Navigation, restrained audio, reveal motion, scroll film and orbital input.
     No framework, no hidden dependencies.
   */
 
@@ -260,10 +260,10 @@
 
   function drawAperture() {
     if (!apertureRoot) return;
-    apertureRoot.style.setProperty("--aperture-yaw", (apertureYaw * 0.08).toFixed(2) + "deg");
-    apertureRoot.style.setProperty("--aperture-pitch", (aperturePitch * 0.08).toFixed(2) + "deg");
-    apertureRoot.style.setProperty("--aperture-orbit", apertureYaw.toFixed(2) + "deg");
-    if (apertureStatus) apertureStatus.textContent = "Orbit " + Math.round(((apertureYaw % 360) + 360) % 360) + " degrees";
+    var displayedAngle = Math.round(((apertureYaw % 360) + 360) % 360);
+    apertureRoot.style.setProperty("--aperture-yaw", apertureYaw.toFixed(2) + "deg");
+    apertureRoot.style.setProperty("--aperture-pitch", (aperturePitch * .35).toFixed(2) + "deg");
+    if (apertureStatus) apertureStatus.textContent = "Orbit / " + String(displayedAngle).padStart(3, "0") + "°";
   }
 
   function stopApertureInertia() {
@@ -334,13 +334,9 @@
       apertureRoot.style.setProperty("--hero-light-y", (y * 100).toFixed(1) + "%");
       apertureRoot.style.setProperty("--aperture-parallax-x", ((x - .5) * 18).toFixed(1) + "px");
       apertureRoot.style.setProperty("--aperture-parallax-y", ((y - .5) * 14).toFixed(1) + "px");
-      apertureRoot.style.setProperty("--chip-one-x", ((x - .5) * -18).toFixed(1) + "px");
-      apertureRoot.style.setProperty("--chip-one-y", ((y - .5) * -14).toFixed(1) + "px");
-      apertureRoot.style.setProperty("--chip-two-x", ((x - .5) * 13).toFixed(1) + "px");
-      apertureRoot.style.setProperty("--chip-two-y", ((y - .5) * 11).toFixed(1) + "px");
     });
     apertureRoot.addEventListener("pointerleave", function () {
-      ["--aperture-parallax-x", "--aperture-parallax-y", "--chip-one-x", "--chip-one-y", "--chip-two-x", "--chip-two-y"].forEach(function (property) {
+      ["--aperture-parallax-x", "--aperture-parallax-y"].forEach(function (property) {
         apertureRoot.style.setProperty(property, "0px");
       });
       apertureRoot.style.setProperty("--hero-light-x", "57%");
@@ -353,7 +349,7 @@
     var rect = apertureRoot.getBoundingClientRect();
     var visibleProgress = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
     var scrollOrbit = Math.max(0, Math.min(1, visibleProgress)) * 110;
-    apertureRoot.style.setProperty("--aperture-orbit", (apertureYaw + scrollOrbit).toFixed(2) + "deg");
+    apertureRoot.style.setProperty("--aperture-scroll-yaw", scrollOrbit.toFixed(2) + "deg");
     apertureRoot.style.setProperty("--aperture-shift", (scrollOrbit * -0.07).toFixed(2) + "px");
   }
 

@@ -23,8 +23,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=softclub2">
-  <script defer src="js/site.js?v=softclub2"></script>
+  <link rel="stylesheet" href="css/styles.css?v=authored1">
+  <script defer src="js/site.js?v=authored1"></script>
 </head>
 <body>
   <div data-site-header></div>
@@ -52,22 +52,26 @@
         </div>
 
         <div class="hero-visual" data-aperture-root>
-          <div class="aperture-construct" aria-hidden="true">
-            <i class="construct-ring construct-ring-a"></i>
-            <i class="construct-ring construct-ring-b"></i>
-            <i class="construct-ring construct-ring-c"></i>
-            <i class="construct-core"></i>
-            <i class="construct-signal"></i>
-            <span class="construct-node node-a"></span><span class="construct-node node-b"></span><span class="construct-node node-c"></span><span class="construct-node node-d"></span>
+          <div class="orb-scene" aria-hidden="true">
+            <div class="kinetic-orb">
+              <i class="orb-shell orb-shell-outer"></i>
+              <i class="orb-shell orb-shell-mid"></i>
+              <i class="orb-shell orb-shell-inner"></i>
+              <i class="orb-plane orb-plane-a"></i>
+              <i class="orb-plane orb-plane-b"></i>
+              <i class="orb-vector"></i>
+              <i class="orb-core"></i>
+              <span class="orb-node orb-node-detect" data-label="DETECT"></span>
+              <span class="orb-node orb-node-integrate" data-label="INTEGRATE"></span>
+              <span class="orb-node orb-node-exit" data-label="EXIT"></span>
+            </div>
           </div>
-          <div class="aperture-interface" data-aperture tabindex="0" role="group" aria-label="Interactive three-dimensional intelligence aperture. Drag to rotate 360 degrees. Use arrow keys for precise rotation.">
-            <i class="orbit orbit-one" aria-hidden="true"></i>
-            <i class="orbit orbit-two" aria-hidden="true"></i>
-            <i class="orbit orbit-three" aria-hidden="true"></i>
+          <div class="orb-hitarea" data-aperture tabindex="0" role="group" aria-label="Interactive three-dimensional temporal intelligence instrument. Drag horizontally for a full 360 degree rotation. Use arrow keys for precise control."></div>
+          <div class="orb-readout" aria-hidden="true">
+            <span><small>Orientation</small><b data-aperture-status>Orbit / 000°</b></span>
+            <span><small>Compute protocol</small><b>Signal gated</b></span>
           </div>
-          <span class="glass-chip glass-chip-one" aria-hidden="true"><small>System mode</small><b>Event driven</b></span>
-          <span class="glass-chip glass-chip-two" aria-hidden="true"><small>Compute state</small><b>Signal gated</b></span>
-          <p class="hero-visual-label"><span data-aperture-status>Orbit 0 degrees</span> / drag to inspect</p>
+          <p class="hero-visual-label">Drag / rotate / inspect</p>
         </div>
       </div>
     </section>

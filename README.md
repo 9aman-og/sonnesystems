@@ -25,7 +25,7 @@ A **zero-build static site** plus a **scaffolded API backend**:
 ├── papers.html         Password gate for encrypted paper PDFs
 ├── 404.html            Not-found page (GitHub Pages serves this automatically)
 ├── css/styles.css      Ground-up Origin 01 design system and responsive components
-├── js/site.js          Shared chrome, 360 aperture, scroll film, motion, and optional sounds
+├── js/site.js          Shared chrome, 360 orbital instrument, scroll film, motion, and optional sounds
 ├── js/app.js           Transparent browser-side temporal signal demo
 ├── js/papers.js        Local Web Crypto paper decryption
 ├── assets/             Social card and Lyfe identity
