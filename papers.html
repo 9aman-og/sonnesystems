@@ -1,123 +1,41 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Research Paper Access | Sonne Systems</title>
-<meta name="description" content="Secure browser-based access to encrypted Sonne Systems research papers.">
-<meta name="robots" content="noindex,nofollow,noarchive">
-<meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#060706">
-<link rel="canonical" href="https://sonnesystems.com/papers.html">
-<link rel="icon" type="image/png" href="assets/SonneSystemsCompanyLogo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap">
-<link rel="stylesheet" href="css/styles.css?v=12">
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paper Access | Sonne Systems</title>
+  <meta name="description" content="Password-protected access to Sonne Systems research papers.">
+  <meta name="robots" content="noindex, nofollow"><meta name="theme-color" content="#030303">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css?v=1"><script defer src="js/site.js?v=1"></script><script defer src="js/papers.js?v=1"></script>
 </head>
-<body class="site-dark" data-page="research">
-<div class="page-atmosphere" aria-hidden="true"><i></i><i></i><span></span></div>
-<header id="site-header"></header>
-
-<main class="page premium-page" id="main-content" tabindex="-1">
-  <section class="gate-wrap premium-gate-wrap">
-    <div class="vault-visual" aria-hidden="true">
-      <div class="vault-ring ring-one"></div><div class="vault-ring ring-two"></div><div class="vault-ring ring-three"></div>
-      <div class="vault-core original-sun-crop"><img src="assets/SonneSystemsCompanyLogo.png" alt=""></div>
-      <span class="vault-node node-a"></span><span class="vault-node node-b"></span><span class="vault-node node-c"></span>
-    </div>
-    <div class="gate-column">
-      <article class="card gate reveal" id="gate">
-        <p class="page-kicker" id="gateKind"><span>PDF</span> Paper</p>
-        <h1 class="display gate-title" id="gateTitle">Loading...</h1>
-        <p class="gate-sub" id="gateSub"></p>
-        <form class="gate-form" id="gateForm" autocomplete="off">
-          <label class="gate-label" for="pw">Encrypted research record</label>
-          <div class="gate-row"><input class="gate-input" type="password" id="pw" placeholder="Enter the access password" spellcheck="false" autocapitalize="off"><button class="btn btn-solid" type="submit" id="unlockBtn">Unlock paper</button></div>
-          <p class="gate-msg" id="gateMsg" role="status">Request access from the author: <a href="mailto:9aman.aa@gmail.com?subject=Paper%20access">9aman.aa@gmail.com</a></p>
-        </form>
-        <div class="gate-done" id="gateDone" hidden>
-          <p class="gate-ok">Decryption complete. The paper opened in a new tab.</p>
-          <a class="btn btn-solid" id="openLink" target="_blank" rel="noopener">Open the paper again</a>
-          <a class="btn btn-ghost" id="dlLink">Download the PDF</a>
+<body>
+  <div data-site-header></div>
+  <main id="main-content">
+    <header class="page-hero">
+      <div class="shell page-hero-inner">
+        <p class="eyebrow" data-reveal>Restricted research record</p>
+        <h1 class="display page-title" data-reveal>Paper access.</h1>
+        <p class="page-summary" data-reveal="soft">Files are encrypted before they reach the server. Your passphrase is used only in this browser and is never transmitted.</p>
+      </div>
+    </header>
+    <section class="section">
+      <div class="shell">
+        <div class="vault" data-reveal="soft">
+          <div class="vault-head"><h2>Encrypted archive</h2><p>Enter the access passphrase, then choose a paper. Successful decryption produces a temporary local PDF.</p></div>
+          <div class="vault-form">
+            <label class="field-label" for="paperPassword">Access passphrase</label>
+            <div class="password-row"><input id="paperPassword" type="password" autocomplete="current-password" placeholder="Enter passphrase"><button class="button" type="button" data-toggle-password>Show</button></div>
+            <div class="paper-list">
+              <article class="paper-row"><div><h3>When Do Spiking-Convolutional Hybrids Help?</h3><p>Encrypted PDF / CALIF study</p></div><button class="button button-primary" type="button" data-paper="papers/calif.pdf.enc" data-filename="sonne-calif.pdf">Decrypt paper</button></article>
+              <article class="paper-row"><div><h3>Neuromorphic Neural Networks</h3><p>Encrypted PDF / NNN study</p></div><button class="button button-primary" type="button" data-paper="papers/nnn.pdf.enc" data-filename="sonne-nnn.pdf">Decrypt paper</button></article>
+            </div>
+            <p class="vault-message" data-vault-message role="status" aria-live="polite"></p>
+          </div>
         </div>
-      </article>
-      <p class="gate-fine">AES-256-GCM encryption &middot; the password and decrypted file never leave your browser</p>
-    </div>
-  </section>
-</main>
-
-<footer id="site-footer"></footer>
-<script src="js/site.js?v=11"></script>
-<script>
-(function () {
-  "use strict";
-  var PAPERS = {
-    calif: {
-      kind: "Paper / 2026",
-      title: "When Do Spiking-Convolutional Hybrids Help?",
-      sub: "Content-adaptive spiking neurons and a controlled study of the energy-accuracy frontier. Aman Agarwal, Sonne Systems.",
-      file: "papers/calif.pdf.enc",
-      filename: "Agarwal_SpikingConvHybrids_2026.pdf"
-    },
-    nnn: {
-      kind: "Paper / 2026",
-      title: "Illumination-Invariant Certified Robustness",
-      sub: "A construction and a fundamental limit. Aman Agarwal, Sonne Systems.",
-      file: "papers/nnn.pdf.enc",
-      filename: "Agarwal_IlluminationInvariantRobustness_2026.pdf"
-    }
-  };
-  var id = new URLSearchParams(location.search).get("p") || "calif";
-  var paper = PAPERS[id] || PAPERS.calif;
-  document.getElementById("gateKind").innerHTML = '<span>PDF</span> ' + paper.kind;
-  document.getElementById("gateTitle").textContent = paper.title;
-  document.getElementById("gateSub").textContent = paper.sub;
-  document.title = paper.title + " | Sonne Systems";
-  var form = document.getElementById("gateForm");
-  var msg = document.getElementById("gateMsg");
-  var msgHome = msg.innerHTML;
-  var btn = document.getElementById("unlockBtn");
-  var gate = document.getElementById("gate");
-  async function decrypt(password) {
-    var res = await fetch(paper.file);
-    if (!res.ok) throw new Error("missing");
-    var raw = new Uint8Array(await res.arrayBuffer());
-    if (raw.length < 33 || String.fromCharCode(raw[0], raw[1], raw[2], raw[3]) !== "SSE1") throw new Error("format");
-    var salt = raw.slice(4, 20), iv = raw.slice(20, 32), data = raw.slice(32);
-    var enc = new TextEncoder();
-    var keyMat = await crypto.subtle.importKey("raw", enc.encode(password), "PBKDF2", false, ["deriveKey"]);
-    var key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: 310000, hash: "SHA-256" }, keyMat, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
-    var plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, data);
-    return new Blob([plain], { type: "application/pdf" });
-  }
-  form.addEventListener("submit", async function (e) {
-    e.preventDefault();
-    var pw = document.getElementById("pw").value;
-    if (!pw) return;
-    btn.disabled = true; btn.textContent = "Unlocking...";
-    msg.textContent = "Deriving encryption key...";
-    try {
-      var blob = await decrypt(pw);
-      var url = URL.createObjectURL(blob);
-      form.hidden = true;
-      var done = document.getElementById("gateDone");
-      done.hidden = false;
-      var open = document.getElementById("openLink");
-      var dl = document.getElementById("dlLink");
-      open.href = url;
-      dl.href = url; dl.download = paper.filename;
-      window.open(url, "_blank");
-    } catch (err) {
-      btn.disabled = false; btn.textContent = "Unlock paper";
-      if (err && err.message === "missing") msg.textContent = "This paper is still being prepared for release. Check back soon.";
-      else {
-        msg.innerHTML = "That password is not right. " + msgHome;
-        gate.classList.remove("shake"); void gate.offsetWidth; gate.classList.add("shake");
-      }
-    }
-  });
-})();
-</script>
+      </div>
+    </section>
+  </main>
+  <div data-site-footer></div>
 </body>
 </html>

@@ -1,305 +1,227 @@
-/* ============================================================
-   Sonne Systems - Spiking Mammal demo (demo.html).
-   The demo is honest: it reads real pixel statistics from the
-   uploaded image, scores them against a handful of breed
-   templates, and animates the adaptive-compute evidence
-   accumulation. No trained weights ship here - it is an
-   illustration of the ca-lif pipeline, driven by real features.
-   Shared page chrome (header, footer, sun marks, sounds) lives
-   in site.js. Plain JavaScript, no dependencies.
-   ============================================================ */
 (function () {
   "use strict";
 
-  /* bail out cleanly on pages without the demo */
-  if (!document.getElementById("dropzone")) return;
+  /*
+    TEMPORAL SIGNAL DEMO
+    Transparent browser-side measurements, intentionally not presented as a model.
+  */
 
-  /* ============================================================
-     Demo state + elements
-     ============================================================ */
-  var fileInput  = document.getElementById("file");
-  var dropzone   = document.getElementById("dropzone");
-  var dzEmpty    = document.getElementById("dzEmpty");
-  var dzPreview  = document.getElementById("dzPreview");
-  var previewImg = document.getElementById("previewImg");
-  var fileName   = document.getElementById("fileName");
-  var fileSize   = document.getElementById("fileSize");
-  var runBtn     = document.getElementById("runBtn");
-  var clearBtn   = document.getElementById("clearBtn");
+  var canvas = document.getElementById("demoCanvas");
+  if (!canvas) return;
 
-  var resultEmpty = document.getElementById("resultEmpty");
-  var resultBody  = document.getElementById("resultBody");
-  var breedName   = document.getElementById("breedName");
-  var confVal     = document.getElementById("confVal");
-  var ranksEl     = document.getElementById("ranks");
-  var whyText     = document.getElementById("whyText");
+  var context = canvas.getContext("2d", { willReadFrequently: true });
+  var input = document.getElementById("imageInput");
+  var dropzone = document.querySelector("[data-dropzone]");
+  var demoView = document.querySelector("[data-demo-view]");
+  var status = document.querySelector("[data-demo-status]");
+  var runButton = document.querySelector("[data-run]");
+  var sampleButton = document.querySelector("[data-sample]");
+  var resetButton = document.querySelector("[data-reset]");
+  var result = document.querySelector("[data-result]");
+  var resultLabel = document.querySelector("[data-result-label]");
+  var imageReady = false;
+  var running = false;
+  var timelineTimer = null;
+  var targetEvidence = { structure: 0, texture: 0, contrast: 0 };
 
-  var statSpikes = document.getElementById("statSpikes");
-  var statSaved  = document.getElementById("statSaved");
-  var raster     = document.getElementById("raster");
-  var evidenceNote = document.getElementById("evidenceNote");
-
-  var currentImage = null;   // the loaded HTMLImageElement
-  var rasterTimer = null;
-  var T = 24;                // total timestep budget
-
-  /* build an empty raster once */
-  for (var c = 0; c < T; c++) {
-    var cell = document.createElement("div");
-    cell.className = "cell";
-    raster.appendChild(cell);
-  }
-  var cells = Array.prototype.slice.call(raster.children);
-
-  /* ============================================================
-     Breed templates - [warmth, brightness, saturation, texture,
-     contrast, twoTone]. All axes normalised 0..1.
-     ============================================================ */
-  var BREEDS = [
-    { name: "Orange Tabby",  t: [.85,.60,.80,.50,.45,.10], why: "a warm ginger coat" },
-    { name: "Siamese",       t: [.60,.78,.40,.30,.70,.35], why: "a pale coat with dark points" },
-    { name: "Russian Blue",  t: [.28,.50,.22,.40,.30,.08], why: "an even, cool grey-blue coat" },
-    { name: "Bengal",        t: [.80,.55,.85,.80,.80,.20], why: "a high-contrast spotted pattern" },
-    { name: "Maine Coon",    t: [.62,.52,.55,.90,.50,.15], why: "long, dense fur" },
-    { name: "Persian",       t: [.60,.72,.45,.78,.35,.15], why: "a soft, fluffy long coat" },
-    { name: "Tuxedo",        t: [.40,.50,.20,.45,.85,.90], why: "a black-and-white two-tone" },
-    { name: "Sphynx",        t: [.75,.68,.35,.12,.35,.10], why: "smooth, near-hairless skin" },
-    { name: "Brown Tabby",   t: [.55,.50,.55,.65,.60,.15], why: "classic tabby striping" },
-    { name: "Calico",        t: [.72,.62,.70,.55,.70,.70], why: "tri-colour patches" }
-  ];
-  var WEIGHTS = [1.1, .8, 1.0, 1.2, 1.0, 1.4];
-
-  /* ============================================================
-     Feature extraction - draw small, walk the pixels once.
-     ============================================================ */
-  function extractFeatures(img) {
-    var S = 72;
-    var cv = document.createElement("canvas");
-    cv.width = cv.height = S;
-    var ctx = cv.getContext("2d", { willReadFrequently: true });
-    ctx.drawImage(img, 0, 0, S, S);
-    var data = ctx.getImageData(0, 0, S, S).data;
-
-    var lum = new Float32Array(S * S);
-    var sumR = 0, sumG = 0, sumB = 0, sumSat = 0, dark = 0, light = 0, n = S * S;
-
-    for (var i = 0, p = 0; i < data.length; i += 4, p++) {
-      var r = data[i] / 255, g = data[i + 1] / 255, b = data[i + 2] / 255;
-      sumR += r; sumG += g; sumB += b;
-      var mx = Math.max(r, g, b), mn = Math.min(r, g, b);
-      sumSat += mx === 0 ? 0 : (mx - mn) / mx;
-      var L = 0.299 * r + 0.587 * g + 0.114 * b;
-      lum[p] = L;
-      if (L < 0.28) dark++;
-      if (L > 0.74) light++;
-    }
-
-    /* gradient magnitude → texture / edge density; luminance stddev → contrast */
-    var grad = 0, gN = 0, mean = 0;
-    for (var q = 0; q < n; q++) mean += lum[q];
-    mean /= n;
-    var varSum = 0;
-    for (var y = 0; y < S; y++) {
-      for (var x = 0; x < S; x++) {
-        var idx = y * S + x;
-        varSum += (lum[idx] - mean) * (lum[idx] - mean);
-        if (x + 1 < S) { grad += Math.abs(lum[idx] - lum[idx + 1]); gN++; }
-        if (y + 1 < S) { grad += Math.abs(lum[idx] - lum[idx + S]); gN++; }
-      }
-    }
-
-    var r_ = sumR / n, g_ = sumG / n, b_ = sumB / n;
-    var warmth   = clamp(0.5 + (r_ - b_) * 0.9, 0, 1);
-    var bright   = clamp(mean, 0, 1);
-    var sat      = clamp(sumSat / n * 1.4, 0, 1);
-    var texture  = clamp((grad / gN) * 6.5, 0, 1);
-    var contrast = clamp(Math.sqrt(varSum / n) * 3.0, 0, 1);
-    var twoTone  = clamp(Math.min(dark, light) / n * 5.0, 0, 1);
-
-    return {
-      vec: [warmth, bright, sat, texture, contrast, twoTone],
-      warmth: warmth, bright: bright, sat: sat, texture: texture, contrast: contrast, twoTone: twoTone
-    };
+  function setStatus(text, live) {
+    status.textContent = text;
+    status.classList.toggle("is-live", Boolean(live));
   }
 
-  function clamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
-
-  /* seeded PRNG so a given photo always gives the same answer */
-  function mulberry(seed) {
-    return function () {
-      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
-      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
+  function setEvidence(name, value) {
+    var safe = Math.max(0, Math.min(100, Math.round(value)));
+    var fill = document.querySelector('[data-evidence="' + name + '"]');
+    var output = document.querySelector('[data-output="' + name + '"]');
+    if (fill) fill.style.setProperty("--value", safe + "%");
+    if (output) output.textContent = safe + "%";
   }
 
-  /* ============================================================
-     Score → softmax confidences
-     ============================================================ */
-  function classify(f) {
-    var seed = Math.floor((f.warmth * 733 + f.texture * 977 + f.contrast * 613 + f.sat * 421) * 1000);
-    var rnd = mulberry(seed);
+  function clearEvidence() {
+    ["structure", "texture", "contrast"].forEach(function (name) { setEvidence(name, 0); });
+  }
 
-    var scored = BREEDS.map(function (br) {
-      var d = 0;
-      for (var k = 0; k < 6; k++) {
-        var diff = f.vec[k] - br.t[k];
-        d += WEIGHTS[k] * diff * diff;
-      }
-      var dist = Math.sqrt(d) + (rnd() - 0.5) * 0.04;  // tiny deterministic jitter
-      return { name: br.name, why: br.why, dist: dist };
-    });
+  function drawContained(image) {
+    var width = canvas.width;
+    var height = canvas.height;
+    context.clearRect(0, 0, width, height);
+    context.fillStyle = "#050505";
+    context.fillRect(0, 0, width, height);
+    var scale = Math.min(width / image.width, height / image.height);
+    var drawWidth = image.width * scale;
+    var drawHeight = image.height * scale;
+    context.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+    analysePixels();
+  }
 
-    /* temperature softmax over -distance → a decisive top-1 */
-    var tau = 0.13, mx = -Infinity;
-    scored.forEach(function (s) { s.logit = -s.dist / tau; if (s.logit > mx) mx = s.logit; });
+  function analysePixels() {
+    var sampleCanvas = document.createElement("canvas");
+    sampleCanvas.width = 96;
+    sampleCanvas.height = 72;
+    var sampleContext = sampleCanvas.getContext("2d", { willReadFrequently: true });
+    sampleContext.drawImage(canvas, 0, 0, 96, 72);
+    var pixels = sampleContext.getImageData(0, 0, 96, 72).data;
+    var values = [];
+    var min = 255;
+    var max = 0;
     var sum = 0;
-    scored.forEach(function (s) { s.e = Math.exp(s.logit - mx); sum += s.e; });
-    scored.forEach(function (s) { s.p = s.e / sum; });
-    scored.sort(function (a, b) { return b.p - a.p; });
-    return scored;
-  }
 
-  /* ============================================================
-     Render a result + kick off the evidence animation
-     ============================================================ */
-  function run() {
-    if (!currentImage) return;
-    var f = extractFeatures(currentImage);
-    var ranked = classify(f);
-    var top = ranked[0];
-    var conf = Math.round(top.p * 100);
+    for (var i = 0; i < pixels.length; i += 4) {
+      var luminance = pixels[i] * 0.2126 + pixels[i + 1] * 0.7152 + pixels[i + 2] * 0.0722;
+      values.push(luminance);
+      min = Math.min(min, luminance);
+      max = Math.max(max, luminance);
+      sum += luminance;
+    }
 
-    resultEmpty.hidden = true;
-    resultBody.hidden = false;
-
-    breedName.textContent = top.name;
-    countUp(confVal, conf);
-
-    /* top-3 rank bars */
-    ranksEl.innerHTML = "";
-    ranked.slice(0, 3).forEach(function (r) {
-      var li = document.createElement("li");
-      li.innerHTML =
-        '<span class="rk-name">' + r.name + '</span>' +
-        '<span class="rk-bar"><span class="rk-fill"></span></span>' +
-        '<span class="rk-pct">' + Math.round(r.p * 100) + '%</span>';
-      ranksEl.appendChild(li);
-      var fill = li.querySelector(".rk-fill");
-      fill.style.width = "0%";
-      requestAnimationFrame(function () { fill.style.width = Math.round(r.p * 100) + "%"; });
-    });
-
-    /* the "why" line */
-    var textureWord = f.texture > 0.6 ? "dense fur texture" : f.texture < 0.3 ? "a smooth, low-texture surface" : "moderate fur detail";
-    whyText.innerHTML = "Read as <b>" + top.name + "</b> - the head weighed " + top.why +
-      " and " + textureWord + " most heavily.";
-
-    /* telemetry, derived from the same features */
-    var spikeAct = Math.round(clamp(45 + f.texture * 34 + f.contrast * 12, 40, 93));
-    var stopStep = Math.round(mapRange(top.p, 0.45, 0.9, 18, 6));
-    stopStep = Math.max(5, Math.min(T - 2, stopStep));
-    var saved = Math.round((T - stopStep) / T * 45);
-
-    statSpikes.textContent = spikeAct + "%";
-    statSpikes.classList.add("hot");
-    statSaved.textContent = saved + "%";
-    statSaved.classList.add("hot");
-
-    animateEvidence(stopStep, top.p, saved);
-  }
-
-  function animateEvidence(stopStep, conf, saved) {
-    if (rasterTimer) clearInterval(rasterTimer);
-    cells.forEach(function (c) { c.className = "cell"; });
-    evidenceNote.textContent = "accumulating…";
-
-    var rnd = mulberry(Math.floor(conf * 99991));
-    var t = 0;
-    rasterTimer = setInterval(function () {
-      if (t < stopStep) {
-        /* a spike fires most steps once evidence is flowing; gaps early on */
-        var pFire = 0.35 + (t / stopStep) * 0.55;
-        if (rnd() < pFire) cells[t].classList.add("fire");
-        evidenceNote.textContent = "t = " + (t + 1) + " / " + T;
-        t++;
-      } else {
-        cells[stopStep].classList.add("stop");
-        for (var k = stopStep + 1; k < T; k++) cells[k].classList.add("dim");
-        evidenceNote.textContent = "decided at t = " + stopStep + " · " + saved + "% saved";
-        clearInterval(rasterTimer);
-        rasterTimer = null;
+    var mean = sum / values.length;
+    var variance = 0;
+    var edges = 0;
+    for (var y = 1; y < 71; y += 1) {
+      for (var x = 1; x < 95; x += 1) {
+        var index = y * 96 + x;
+        variance += Math.pow(values[index] - mean, 2);
+        edges += Math.abs(values[index] - values[index - 1]) + Math.abs(values[index] - values[index - 96]);
       }
-    }, 55);
+    }
+
+    variance /= values.length;
+    edges /= (94 * 70 * 2);
+    targetEvidence.structure = Math.min(96, 20 + edges * 2.25);
+    targetEvidence.texture = Math.min(94, 16 + Math.sqrt(variance) * 2.05);
+    targetEvidence.contrast = Math.min(98, 12 + (max - min) * 0.34);
   }
 
-  function countUp(el, target) {
-    var dur = 520, t0 = performance.now();
-    (function step(now) {
-      var k = Math.max(0, Math.min(1, (now - t0) / dur));
-      el.textContent = Math.round(target * (1 - Math.pow(1 - k, 3)));
-      if (k < 1) requestAnimationFrame(step);
-    })(t0);
-    setTimeout(function () { el.textContent = target; }, dur + 80); // guarantee final value even if rAF is throttled
+  function acceptImage(image) {
+    drawContained(image);
+    imageReady = true;
+    running = false;
+    dropzone.classList.add("has-image");
+    runButton.disabled = false;
+    resetButton.hidden = false;
+    sampleButton.hidden = true;
+    resultLabel.textContent = "System state";
+    result.textContent = "Signal ready";
+    setStatus("Signal loaded", false);
+    clearEvidence();
   }
 
-  function mapRange(v, inMin, inMax, outMin, outMax) {
-    var k = (clamp(v, inMin, inMax) - inMin) / (inMax - inMin);
-    return outMin + k * (outMax - outMin);
-  }
-
-  /* ============================================================
-     File handling
-     ============================================================ */
   function loadFile(file) {
-    if (!file || !/^image\//.test(file.type)) return;
-    var url = URL.createObjectURL(file);
-    var img = new Image();
-    img.onload = function () {
-      currentImage = img;
-      previewImg.src = url;
-      fileName.textContent = file.name.length > 28 ? file.name.slice(0, 25) + "…" : file.name;
-      fileSize.textContent = (file.size / 1024).toFixed(0) + " KB";
-      dzEmpty.hidden = true;
-      dzPreview.hidden = false;
-      runBtn.disabled = false;
-      clearBtn.disabled = false;
+    if (!file || !file.type.match(/^image\/(png|jpeg|webp)$/)) {
+      setStatus("Choose PNG, JPEG or WebP", false);
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      var image = new Image();
+      image.onload = function () { acceptImage(image); };
+      image.onerror = function () { setStatus("Image could not be read", false); };
+      image.src = reader.result;
     };
-    img.src = url;
+    reader.readAsDataURL(file);
+  }
+
+  function makeSample() {
+    var sample = document.createElement("canvas");
+    sample.width = 800;
+    sample.height = 600;
+    var sampleContext = sample.getContext("2d");
+    var gradient = sampleContext.createRadialGradient(520, 250, 20, 400, 300, 520);
+    gradient.addColorStop(0, "#ffb39f");
+    gradient.addColorStop(0.28, "#7b3429");
+    gradient.addColorStop(1, "#050505");
+    sampleContext.fillStyle = gradient;
+    sampleContext.fillRect(0, 0, 800, 600);
+    sampleContext.strokeStyle = "rgba(255, 238, 230, 0.72)";
+    sampleContext.lineWidth = 2;
+    for (var i = 0; i < 18; i += 1) {
+      sampleContext.beginPath();
+      sampleContext.arc(470, 300, 32 + i * 14, i * 0.27, Math.PI * (1.1 + i * 0.04));
+      sampleContext.stroke();
+    }
+    for (var j = 0; j < 90; j += 1) {
+      var angle = j * 2.399;
+      var radius = 18 + j * 2.5;
+      var x = 470 + Math.cos(angle) * radius;
+      var y = 300 + Math.sin(angle) * radius * 0.62;
+      sampleContext.fillStyle = j % 4 === 0 ? "#fff2ec" : "#ff8266";
+      sampleContext.fillRect(x, y, j % 4 === 0 ? 3 : 1.5, j % 4 === 0 ? 3 : 1.5);
+    }
+    var image = new Image();
+    image.onload = function () { acceptImage(image); };
+    image.src = sample.toDataURL("image/png");
+  }
+
+  function runTimeline() {
+    if (!imageReady || running) return;
+    running = true;
+    runButton.disabled = true;
+    demoView.classList.add("is-running");
+    setStatus("Integrating events", true);
+    resultLabel.textContent = "Current step";
+    result.textContent = "Detecting change";
+    clearEvidence();
+
+    var step = 0;
+    var steps = 12;
+    timelineTimer = window.setInterval(function () {
+      step += 1;
+      var progress = step / steps;
+      var eased = 1 - Math.pow(1 - progress, 2.4);
+      setEvidence("structure", targetEvidence.structure * eased);
+      setEvidence("texture", targetEvidence.texture * Math.max(0, (progress - 0.08) / 0.92));
+      setEvidence("contrast", targetEvidence.contrast * Math.max(0, (progress - 0.16) / 0.84));
+
+      if (step === 4) result.textContent = "Encoding events";
+      if (step === 8) result.textContent = "Testing stability";
+      if (step < steps) return;
+
+      window.clearInterval(timelineTimer);
+      running = false;
+      demoView.classList.remove("is-running");
+      setStatus("Stable at step " + steps, false);
+      resultLabel.textContent = "Exit condition";
+      result.textContent = "Evidence stabilised";
+      runButton.disabled = false;
+      runButton.querySelector("span").textContent = "Run again";
+    }, 130);
   }
 
   function reset() {
-    if (rasterTimer) { clearInterval(rasterTimer); rasterTimer = null; }
-    currentImage = null;
-    fileInput.value = "";
-    dzEmpty.hidden = false;
-    dzPreview.hidden = true;
-    runBtn.disabled = true;
-    clearBtn.disabled = true;
-    resultBody.hidden = true;
-    resultEmpty.hidden = false;
-    statSpikes.textContent = "-"; statSpikes.classList.remove("hot");
-    statSaved.textContent = "-"; statSaved.classList.remove("hot");
-    cells.forEach(function (c) { c.className = "cell"; });
-    evidenceNote.textContent = "idle";
+    window.clearInterval(timelineTimer);
+    imageReady = false;
+    running = false;
+    context.fillStyle = "#050505";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    dropzone.classList.remove("has-image", "is-dragging");
+    demoView.classList.remove("is-running");
+    runButton.disabled = true;
+    runButton.querySelector("span").textContent = "Run timeline";
+    resetButton.hidden = true;
+    sampleButton.hidden = false;
+    input.value = "";
+    clearEvidence();
+    setStatus("Awaiting signal", false);
+    resultLabel.textContent = "System state";
+    result.textContent = "Load a signal";
   }
 
-  /* wire it up */
-  fileInput.addEventListener("change", function (e) { loadFile(e.target.files[0]); });
-  runBtn.addEventListener("click", run);
-  clearBtn.addEventListener("click", reset);
-
-  dropzone.addEventListener("keydown", function (e) {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); }
+  input.addEventListener("change", function (event) { loadFile(event.target.files[0]); });
+  runButton.addEventListener("click", runTimeline);
+  sampleButton.addEventListener("click", makeSample);
+  resetButton.addEventListener("click", reset);
+  dropzone.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      input.click();
+    }
   });
-  ["dragenter", "dragover"].forEach(function (ev) {
-    dropzone.addEventListener(ev, function (e) { e.preventDefault(); dropzone.classList.add("drag"); });
+  ["dragenter", "dragover"].forEach(function (name) {
+    dropzone.addEventListener(name, function (event) { event.preventDefault(); dropzone.classList.add("is-dragging"); });
   });
-  ["dragleave", "drop"].forEach(function (ev) {
-    dropzone.addEventListener(ev, function (e) { e.preventDefault(); dropzone.classList.remove("drag"); });
+  ["dragleave", "drop"].forEach(function (name) {
+    dropzone.addEventListener(name, function (event) { event.preventDefault(); dropzone.classList.remove("is-dragging"); });
   });
-  dropzone.addEventListener("drop", function (e) {
-    if (e.dataTransfer && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
-  });
+  dropzone.addEventListener("drop", function (event) { loadFile(event.dataTransfer.files[0]); });
+  reset();
 })();

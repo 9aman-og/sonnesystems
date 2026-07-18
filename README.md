@@ -17,17 +17,18 @@ A **zero-build static site** plus a **scaffolded API backend**:
 ## Repository map
 
 ```
-├── index.html          Landing page (interactive 360-degree system model)
+├── index.html          Landing page (interactive aperture and scroll film)
 ├── demo.html           Spiking Mammal live demo
 ├── research.html       Projects & papers
 ├── tools.html          Premium utility-app showcase (Lyfe)
 ├── about.html          Studio, principles, contact
 ├── papers.html         Password gate for encrypted paper PDFs
 ├── 404.html            Not-found page (GitHub Pages serves this automatically)
-├── css/styles.css      Labeled design system, 3D objects, page components, responsive rules
-├── js/site.js          Shared chrome, accessible nav, 360 model, reveal motion, generated click sounds
-├── js/app.js           Demo logic only (demo.html)
-├── assets/             Versioned brand mark, social card, and Lyfe identity
+├── css/styles.css      Ground-up Origin 01 design system and responsive components
+├── js/site.js          Shared chrome, 360 aperture, scroll film, motion, and optional sounds
+├── js/app.js           Transparent browser-side temporal signal demo
+├── js/papers.js        Local Web Crypto paper decryption
+├── assets/             Hero artwork, social card, and Lyfe identity
 ├── robots.txt          Crawler policy (private paper vault excluded)
 ├── sitemap.xml         Canonical public URLs for search engines
 ├── papers/*.pdf.enc    AES-256-GCM encrypted papers (safe to host publicly)
