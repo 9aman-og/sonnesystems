@@ -44,6 +44,7 @@
         (PAGE === "home" ? "" : sunMark("brand-mark")) +
         '<span class="brand-word"><b>Sonne</b><span>Systems</span></span>' +
       "</a>" +
+      '<span class="nav-discipline" aria-hidden="true"><i></i> Neuromorphic R&amp;D</span>' +
       '<button class="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="primary-nav"><span></span><span></span><span></span></button>' +
       '<nav class="topnav" id="primary-nav" aria-label="Primary">' + links +
         '<a class="btn btn-ghost topcta" href="' + MAIL + '">Get in touch</a>' +
@@ -57,21 +58,24 @@
     if (!el) return;
     el.className = "footer";
     el.innerHTML =
+      '<div class="footer-signal"><span><i></i> System online</span><span>Independent neuromorphic research</span></div>' +
       '<div class="footer-inner">' +
-        '<a class="brand' + (PAGE === "home" ? ' brand-word-only' : '') + '" href="/" aria-label="Sonne Systems home">' +
-          (PAGE === "home" ? "" : sunMark("brand-mark")) +
-          '<span class="brand-word"><b>Sonne</b><span>Systems</span></span>' +
-        "</a>" +
-        '<p class="footer-line">Sparse intelligence. Built with evidence.</p>' +
+        '<div class="footer-identity"><a class="brand' + (PAGE === "home" ? ' brand-word-only' : '') + '" href="/" aria-label="Sonne Systems home">' +
+            (PAGE === "home" ? "" : sunMark("brand-mark")) +
+            '<span class="brand-word"><b>Sonne</b><span>Systems</span></span>' +
+          "</a>" +
+          '<p class="footer-line">Sparse intelligence.<br>Built with evidence.</p></div>' +
+        '<a class="footer-contact" href="' + MAIL + '"><span>Have a difficult signal?</span><strong>Start a conversation <b aria-hidden="true">&#8599;</b></strong></a>' +
+      '</div>' +
+      '<div class="footer-bottom">' +
         '<nav class="footer-nav" aria-label="Footer">' +
           '<a href="/demo.html">Demo</a><a href="/research.html">Research</a>' +
           '<a href="/tools.html">Tools</a><a href="/about.html">About</a>' +
           '<a href="' + LINKEDIN + '" target="_blank" rel="noopener">LinkedIn</a>' +
           '<a href="' + GITHUB + '" target="_blank" rel="noopener">GitHub</a>' +
-          '<a href="' + MAIL + '">Contact</a>' +
         "</nav>" +
-      "</div>" +
-      '<p class="footer-fine">© <span class="year"></span> Sonne Systems · sonnesystems.com</p>';
+        '<p class="footer-fine">&copy; <span class="year"></span> Sonne Systems &middot; sonnesystems.com</p>' +
+      "</div>";
   }
 
   /* ---- fill every sun mark with evenly spaced spokes ---- */
@@ -135,7 +139,10 @@
      ============================================================ */
   function revealAll() {
     try {
-      document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("revealed"); });
+      document.querySelectorAll(".reveal").forEach(function (el) {
+        el.classList.remove("will-reveal");
+        el.classList.add("revealed");
+      });
     } catch (e) { /* nothing more we can do */ }
   }
 
@@ -207,6 +214,7 @@
     var show = function (el) {
       var d = el.getAttribute("data-delay");
       if (d) el.style.transitionDelay = d + "ms";
+      el.classList.remove("will-reveal");
       el.classList.add("revealed");
     };
 
@@ -217,7 +225,7 @@
       var later = [];
       reveals.forEach(function (el) {
         if (el.getBoundingClientRect().top < vh * 0.96) show(el);
-        else later.push(el);
+        else { el.classList.add("will-reveal"); later.push(el); }
       });
       if (later.length) {
         var io = new IntersectionObserver(function (entries) {
@@ -231,6 +239,97 @@
       setTimeout(revealAll, 2600);
     }
   } catch (e) { revealAll(); }
+
+  /* ============================================================
+     Experience layer: global progress, responsive depth, magnetic
+     actions and a subtle pointer field. All effects are additive;
+     content remains complete when motion APIs are unavailable.
+     ============================================================ */
+  try {
+    var motionReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var finePointer = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
+    var scrollProgress = document.querySelector("[data-scroll-progress]");
+    if (!scrollProgress) {
+      scrollProgress = document.createElement("div");
+      scrollProgress.className = "site-scroll-progress";
+      scrollProgress.setAttribute("data-scroll-progress", "");
+      scrollProgress.setAttribute("aria-hidden", "true");
+      document.body.appendChild(scrollProgress);
+    }
+
+    var topbar = document.querySelector(".topbar");
+    var globalQueued = false;
+    function paintGlobalMotion() {
+      globalQueued = false;
+      var total = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      var progress = Math.max(0, Math.min(1, window.scrollY / total));
+      scrollProgress.style.transform = "scaleX(" + progress.toFixed(4) + ")";
+      if (topbar) topbar.classList.toggle("is-condensed", window.scrollY > 28);
+      document.documentElement.style.setProperty("--page-progress", progress.toFixed(4));
+    }
+    function queueGlobalMotion() {
+      if (globalQueued) return;
+      globalQueued = true;
+      requestAnimationFrame(paintGlobalMotion);
+    }
+    window.addEventListener("scroll", queueGlobalMotion, { passive: true });
+    window.addEventListener("resize", queueGlobalMotion);
+    paintGlobalMotion();
+
+    if (!motionReduce && finePointer) {
+      var aura = document.createElement("div");
+      aura.className = "pointer-aura";
+      aura.setAttribute("aria-hidden", "true");
+      document.body.appendChild(aura);
+      document.addEventListener("pointermove", function (e) {
+        document.documentElement.style.setProperty("--pointer-x", e.clientX + "px");
+        document.documentElement.style.setProperty("--pointer-y", e.clientY + "px");
+        document.body.classList.add("has-pointer");
+      }, { passive: true });
+
+      document.querySelectorAll(".page-object,.hero-signal-panel,.focus-timeline,.lyfe-premium-card,.research-entry,.card,.contact-panel").forEach(function (surface) {
+        surface.classList.add("motion-surface");
+        surface.addEventListener("pointermove", function (e) {
+          var rect = surface.getBoundingClientRect();
+          var x = (e.clientX - rect.left) / Math.max(1, rect.width);
+          var y = (e.clientY - rect.top) / Math.max(1, rect.height);
+          surface.style.setProperty("--surface-x", ((x - .5) * 10).toFixed(2) + "px");
+          surface.style.setProperty("--surface-y", ((y - .5) * 10).toFixed(2) + "px");
+          surface.style.setProperty("--surface-hot-x", (x * 100).toFixed(1) + "%");
+          surface.style.setProperty("--surface-hot-y", (y * 100).toFixed(1) + "%");
+        }, { passive: true });
+        surface.addEventListener("pointerleave", function () {
+          surface.style.setProperty("--surface-x", "0px");
+          surface.style.setProperty("--surface-y", "0px");
+        });
+      });
+
+      document.querySelectorAll(".btn").forEach(function (button) {
+        button.classList.add("magnetic-action");
+        button.addEventListener("pointermove", function (e) {
+          var rect = button.getBoundingClientRect();
+          button.style.setProperty("--magnet-x", (((e.clientX - rect.left) / rect.width - .5) * 8).toFixed(2) + "px");
+          button.style.setProperty("--magnet-y", (((e.clientY - rect.top) / rect.height - .5) * 6).toFixed(2) + "px");
+        }, { passive: true });
+        button.addEventListener("pointerleave", function () {
+          button.style.setProperty("--magnet-x", "0px");
+          button.style.setProperty("--magnet-y", "0px");
+        });
+      });
+    }
+
+    var heroSignalPanel = document.querySelector(".hero-signal-panel");
+    if (heroSignalPanel && !motionReduce) {
+      var heroSignalStep = 0;
+      heroSignalPanel.setAttribute("data-state", "0");
+      setInterval(function () {
+        heroSignalStep = (heroSignalStep + 1) % 3;
+        heroSignalPanel.setAttribute("data-state", String(heroSignalStep));
+      }, 2400);
+    }
+
+    requestAnimationFrame(function () { document.body.classList.add("is-ready"); });
+  } catch (e) { document.body.classList.add("is-ready"); }
 
   /* Cinematic company story. The page scroll behaves like a video timeline:
      it rotates a layered signal volume and advances one explanation at a time. */
