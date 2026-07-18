@@ -12,6 +12,25 @@
   var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var precisePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
+  /* ---------- Fast, legible page transitions ---------- */
+  var transitionLayer = document.createElement("i");
+  transitionLayer.className = "page-transition";
+  transitionLayer.setAttribute("aria-hidden", "true");
+  body.appendChild(transitionLayer);
+  window.addEventListener("pageshow", function () { body.classList.remove("is-leaving"); });
+  document.addEventListener("click", function (event) {
+    if (reducedMotion || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    var link = event.target.closest("a[href]");
+    if (!link || link.target || link.hasAttribute("download")) return;
+    var rawHref = link.getAttribute("href");
+    if (!rawHref || rawHref.charAt(0) === "#" || /^(mailto:|tel:)/i.test(rawHref)) return;
+    var destination = new URL(link.href, window.location.href);
+    if (destination.origin !== window.location.origin) return;
+    event.preventDefault();
+    body.classList.add("is-leaving");
+    window.setTimeout(function () { window.location.href = destination.href; }, 430);
+  });
+
   /* ---------- Shared header and footer ---------- */
   var routes = [
     { label: "Home", href: "/" },
@@ -235,6 +254,9 @@
   var dragging = false;
   var dragX = 0;
   var dragY = 0;
+  var apertureVelocityX = 0;
+  var apertureVelocityY = 0;
+  var apertureInertiaFrame = 0;
 
   function drawAperture() {
     if (!apertureRoot) return;
@@ -244,17 +266,40 @@
     if (apertureStatus) apertureStatus.textContent = "Orbit " + Math.round(((apertureYaw % 360) + 360) % 360) + " degrees";
   }
 
+  function stopApertureInertia() {
+    if (apertureInertiaFrame) cancelAnimationFrame(apertureInertiaFrame);
+    apertureInertiaFrame = 0;
+  }
+
+  function coastAperture() {
+    if (reducedMotion || dragging) return;
+    apertureYaw += apertureVelocityX;
+    aperturePitch = Math.max(-90, Math.min(90, aperturePitch + apertureVelocityY));
+    apertureVelocityX *= .925;
+    apertureVelocityY *= .925;
+    drawAperture();
+    if (Math.abs(apertureVelocityX) + Math.abs(apertureVelocityY) > .08) apertureInertiaFrame = requestAnimationFrame(coastAperture);
+    else apertureInertiaFrame = 0;
+  }
+
   if (aperture) {
     aperture.addEventListener("pointerdown", function (event) {
+      stopApertureInertia();
       dragging = true;
       dragX = event.clientX;
       dragY = event.clientY;
+      apertureVelocityX = 0;
+      apertureVelocityY = 0;
+      if (apertureRoot) apertureRoot.classList.add("is-engaged");
       aperture.setPointerCapture(event.pointerId);
+      playSignal("rotate");
     });
     aperture.addEventListener("pointermove", function (event) {
       if (!dragging) return;
-      apertureYaw += (event.clientX - dragX) * 0.65;
-      aperturePitch = Math.max(-90, Math.min(90, aperturePitch - (event.clientY - dragY) * 0.45));
+      apertureVelocityX = (event.clientX - dragX) * .65;
+      apertureVelocityY = (event.clientY - dragY) * -.45;
+      apertureYaw += apertureVelocityX;
+      aperturePitch = Math.max(-90, Math.min(90, aperturePitch + apertureVelocityY));
       dragX = event.clientX;
       dragY = event.clientY;
       drawAperture();
@@ -262,7 +307,9 @@
     ["pointerup", "pointercancel"].forEach(function (name) {
       aperture.addEventListener(name, function (event) {
         dragging = false;
+        if (apertureRoot) apertureRoot.classList.remove("is-engaged");
         try { aperture.releasePointerCapture(event.pointerId); } catch (error) {}
+        coastAperture();
       });
     });
     aperture.addEventListener("keydown", function (event) {
@@ -276,6 +323,29 @@
       playSignal("rotate");
     });
     drawAperture();
+  }
+
+  if (apertureRoot && precisePointer && !reducedMotion) {
+    apertureRoot.addEventListener("pointermove", function (event) {
+      var rect = apertureRoot.getBoundingClientRect();
+      var x = (event.clientX - rect.left) / rect.width;
+      var y = (event.clientY - rect.top) / rect.height;
+      apertureRoot.style.setProperty("--hero-light-x", (x * 100).toFixed(1) + "%");
+      apertureRoot.style.setProperty("--hero-light-y", (y * 100).toFixed(1) + "%");
+      apertureRoot.style.setProperty("--aperture-parallax-x", ((x - .5) * 18).toFixed(1) + "px");
+      apertureRoot.style.setProperty("--aperture-parallax-y", ((y - .5) * 14).toFixed(1) + "px");
+      apertureRoot.style.setProperty("--chip-one-x", ((x - .5) * -18).toFixed(1) + "px");
+      apertureRoot.style.setProperty("--chip-one-y", ((y - .5) * -14).toFixed(1) + "px");
+      apertureRoot.style.setProperty("--chip-two-x", ((x - .5) * 13).toFixed(1) + "px");
+      apertureRoot.style.setProperty("--chip-two-y", ((y - .5) * 11).toFixed(1) + "px");
+    });
+    apertureRoot.addEventListener("pointerleave", function () {
+      ["--aperture-parallax-x", "--aperture-parallax-y", "--chip-one-x", "--chip-one-y", "--chip-two-x", "--chip-two-y"].forEach(function (property) {
+        apertureRoot.style.setProperty(property, "0px");
+      });
+      apertureRoot.style.setProperty("--hero-light-x", "57%");
+      apertureRoot.style.setProperty("--hero-light-y", "42%");
+    });
   }
 
   function renderApertureScroll() {
@@ -311,6 +381,9 @@
     var nextIndex = Math.min(chapters.length - 1, Math.floor(progress * chapters.length));
     filmSticky.style.setProperty("--film-progress", progress.toFixed(4));
     filmSticky.style.setProperty("--film-bar", (progress * 100).toFixed(2) + "%");
+    filmSticky.style.setProperty("--film-shift", (progress * -1.8).toFixed(2) + "%");
+    filmSticky.style.setProperty("--film-scale", (1.08 + progress * .07).toFixed(3));
+    filmSticky.style.setProperty("--film-rotation", ((progress - .5) * 4.5).toFixed(2) + "deg");
     if (nextIndex === filmIndex) return;
     filmIndex = nextIndex;
     var chapter = chapters[filmIndex];
@@ -323,6 +396,9 @@
       void filmCopy.offsetWidth;
       filmCopy.classList.add("is-changing");
     }
+    filmSticky.classList.remove("is-chapter-changing");
+    void filmSticky.offsetWidth;
+    filmSticky.classList.add("is-chapter-changing");
     playSignal("chapter");
   }
 
@@ -338,15 +414,19 @@
   var routeLink = routeDeck ? routeDeck.querySelector("[data-route-link]") : null;
   var routeIndex = 0;
   var routeData = [
-    { number: "01", label: "Live system / Observe", title: "See evidence form in time.", body: "Bring an image and inspect how visible change becomes a short event sequence, entirely in your browser.", link: "demo.html", action: "Open the demo" },
-    { number: "02", label: "Research record / Test", title: "Challenge the claim.", body: "Inspect active questions, matched controls, methods, known boundaries, and the evidence behind each direction.", link: "research.html", action: "Read the ledger" },
-    { number: "03", label: "Useful software / Use", title: "Protect your attention.", body: "Open local-first tools that remain useful without engagement loops, mandatory accounts, or a permanent network connection.", link: "tools.html", action: "Explore the tools" },
-    { number: "04", label: "Independent studio / About", title: "Meet the work behind the system.", body: "Learn why Sonne Systems stays compact, how it chooses questions, and what a serious collaboration looks like.", link: "about.html", action: "Enter the studio" }
+    { number: "01", label: "Live system / Observe", title: "See evidence form in time.", body: "Bring an image and inspect how visible change becomes a short event sequence, entirely in your browser.", link: "demo.html", action: "Open the demo", accent: "#ff8266", rgb: "255,130,102" },
+    { number: "02", label: "Research record / Test", title: "Challenge the claim.", body: "Inspect active questions, matched controls, methods, known boundaries, and the evidence behind each direction.", link: "research.html", action: "Read the ledger", accent: "#72eaff", rgb: "114,234,255" },
+    { number: "03", label: "Useful software / Use", title: "Protect your attention.", body: "Open local-first tools that remain useful without engagement loops, mandatory accounts, or a permanent network connection.", link: "tools.html", action: "Explore the tools", accent: "#a18cff", rgb: "161,140,255" },
+    { number: "04", label: "Independent studio / About", title: "Meet the work behind the system.", body: "Learn why Sonne Systems stays compact, how it chooses questions, and what a serious collaboration looks like.", link: "about.html", action: "Enter the studio", accent: "#dce8f3", rgb: "220,232,243" }
   ];
 
   function activateRoute(index, moveFocus) {
     routeIndex = (index + routeData.length) % routeData.length;
     var item = routeData[routeIndex];
+    if (routeDeck) {
+      routeDeck.style.setProperty("--route-accent", item.accent);
+      routeDeck.style.setProperty("--route-accent-rgb", item.rgb);
+    }
     routeTabs.forEach(function (tab, tabIndex) {
       var active = tabIndex === routeIndex;
       tab.setAttribute("aria-selected", String(active));
@@ -388,10 +468,18 @@
       var y = (event.clientY - rect.top) / rect.height - 0.5;
       routeConsole.style.setProperty("--deck-yaw", (x * 3.5).toFixed(2) + "deg");
       routeConsole.style.setProperty("--deck-pitch", (y * -2.4).toFixed(2) + "deg");
+      if (routeScreen) {
+        routeScreen.style.setProperty("--route-x", ((x + .5) * 100).toFixed(1) + "%");
+        routeScreen.style.setProperty("--route-y", ((y + .5) * 100).toFixed(1) + "%");
+      }
     });
     routeConsole.addEventListener("pointerleave", function () {
       routeConsole.style.setProperty("--deck-yaw", "0deg");
       routeConsole.style.setProperty("--deck-pitch", "0deg");
+      if (routeScreen) {
+        routeScreen.style.setProperty("--route-x", "72%");
+        routeScreen.style.setProperty("--route-y", "44%");
+      }
     });
   }
 
@@ -415,10 +503,24 @@
     cursor.className = "signal-cursor";
     cursor.setAttribute("aria-hidden", "true");
     body.appendChild(cursor);
+    var pointerFrame = 0;
+    var pointerX = window.innerWidth * .72;
+    var pointerY = window.innerHeight * .22;
     window.addEventListener("pointermove", function (event) {
-      cursor.style.left = event.clientX + "px";
-      cursor.style.top = event.clientY + "px";
+      pointerX = event.clientX;
+      pointerY = event.clientY;
+      if (pointerFrame) return;
+      pointerFrame = requestAnimationFrame(function () {
+        pointerFrame = 0;
+        cursor.style.left = pointerX + "px";
+        cursor.style.top = pointerY + "px";
+        root.style.setProperty("--pointer-x", pointerX + "px");
+        root.style.setProperty("--pointer-y", pointerY + "px");
+      });
     }, { passive: true });
+    document.addEventListener("pointerover", function (event) {
+      cursor.classList.toggle("is-hot", Boolean(event.target.closest("a, button, input, [tabindex]")));
+    });
   }
 
   renderScrollState();
