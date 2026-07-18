@@ -28,8 +28,9 @@ would only add cost, attack surface, and things to break. What we adopt from tho
 Browser ──▶ GitHub Pages (static)
              ├── index/demo/research/tools/about/papers/404 .html
              ├── css/styles.css     one stylesheet, design tokens on top
-             ├── js/site.js        shared chrome (header, footer, reveal, sounds)
-             ├── js/app.js         demo logic (demo.html only)
+             ├── js/site.js        shared chrome, aperture, scroll film, reveal, sounds
+             ├── js/app.js         signal demo logic (demo.html only)
+             ├── js/papers.js      browser-only encrypted paper access
              ├── papers/*.pdf.enc  AES-256-GCM blobs, decrypted in-browser (Web Crypto)
              └── lyfe/             Local-first Lyfe PWA (optional Supabase sync)
 ```

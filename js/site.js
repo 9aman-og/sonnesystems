@@ -1,473 +1,380 @@
-/* ============================================================
-   Sonne Systems - shared site chrome for every page.
-   Injects the header + footer, wires nav, scroll-reveal
-   animations, the mobile menu, and satisfying click sounds.
-   Plain JS, no dependencies.
-   ============================================================ */
 (function () {
   "use strict";
 
-  var PAGE = document.body.getAttribute("data-page") || "home";
-  var MAIL = "mailto:9aman.aa@gmail.com";
-  var LINKEDIN = "https://www.linkedin.com/in/aman-agarwal-628880317/";
-  var GITHUB = "https://github.com/9aman-og";
-  var SCRIPT_SRC = document.currentScript && document.currentScript.src;
-  var ASSET_ROOT = new URL("../assets/", SCRIPT_SRC || location.href).href;
+  /*
+    SONNE SYSTEMS / SHARED EXPERIENCE LAYER
+    Navigation, restrained audio, reveal motion, scroll film and aperture input.
+    No framework, no hidden dependencies.
+  */
 
-  /* ---- reusable Sonne mark ---- */
-  function sunMark(cls) {
-    return '<span class="' + cls + '" aria-hidden="true">' +
-      '<img src="' + ASSET_ROOT + 'SonneSystemsCompanyLogo.png" alt="" width="48" height="48">' +
-      '</span>';
-  }
+  var root = document.documentElement;
+  var body = document.body;
+  var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var precisePointer = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 
-  var NAV = [
-    { id: "home", label: "Home", href: "/" },
-    { id: "demo", label: "Demo", href: "/demo.html" },
-    { id: "research", label: "Research", href: "/research.html" },
-    { id: "tools", label: "Tools", href: "/tools.html" },
-    { id: "about", label: "About", href: "/about.html" }
+  /* ---------- Shared header and footer ---------- */
+  var routes = [
+    { label: "Home", href: "/" },
+    { label: "Research", href: "/research.html" },
+    { label: "Demo", href: "/demo.html" },
+    { label: "Tools", href: "/tools.html" },
+    { label: "About", href: "/about.html" }
   ];
 
-  /* ---- header ---- */
-  function buildHeader() {
-    var links = NAV.map(function (n) {
-      return '<a href="' + n.href + '"' + (n.id === PAGE ? ' class="active" aria-current="page"' : "") + '>' + n.label + "</a>";
-    }).join("");
-
-    var el = document.getElementById("site-header");
-    if (!el) return;
-    el.className = "topbar";
-    el.innerHTML =
-      '<a class="skip-link" href="#main-content">Skip to content</a>' +
-      '<a class="brand' + (PAGE === "home" ? ' brand-word-only' : '') + '" href="/" aria-label="Sonne Systems home">' +
-        (PAGE === "home" ? "" : sunMark("brand-mark")) +
-        '<span class="brand-word"><b>Sonne</b><span>Systems</span></span>' +
-      "</a>" +
-      '<span class="nav-discipline" aria-hidden="true"><i></i> Neuromorphic R&amp;D</span>' +
-      '<button class="nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="primary-nav"><span></span><span></span><span></span></button>' +
-      '<nav class="topnav" id="primary-nav" aria-label="Primary">' + links +
-        '<a class="btn btn-ghost topcta" href="' + MAIL + '">Get in touch</a>' +
-      "</nav>" +
-      '<button class="sound-toggle" aria-label="Toggle sound" title="Sound"></button>';
+  function currentRoute(href) {
+    var path = window.location.pathname;
+    if (href === "/") return path === "/" || path.endsWith("/index.html");
+    return path.endsWith(href);
   }
 
-  /* ---- footer ---- */
-  function buildFooter() {
-    var el = document.getElementById("site-footer");
-    if (!el) return;
-    el.className = "footer";
-    el.innerHTML =
-      '<div class="footer-signal"><span><i></i> System online</span><span>Independent neuromorphic research</span></div>' +
-      '<div class="footer-inner">' +
-        '<div class="footer-identity"><a class="brand' + (PAGE === "home" ? ' brand-word-only' : '') + '" href="/" aria-label="Sonne Systems home">' +
-            (PAGE === "home" ? "" : sunMark("brand-mark")) +
-            '<span class="brand-word"><b>Sonne</b><span>Systems</span></span>' +
-          "</a>" +
-          '<p class="footer-line">Sparse intelligence.<br>Built with evidence.</p></div>' +
-        '<a class="footer-contact" href="' + MAIL + '"><span>Have a difficult signal?</span><strong>Start a conversation <b aria-hidden="true">&#8599;</b></strong></a>' +
-      '</div>' +
-      '<div class="footer-bottom">' +
-        '<nav class="footer-nav" aria-label="Footer">' +
-          '<a href="/demo.html">Demo</a><a href="/research.html">Research</a>' +
-          '<a href="/tools.html">Tools</a><a href="/about.html">About</a>' +
-          '<a href="' + LINKEDIN + '" target="_blank" rel="noopener">LinkedIn</a>' +
-          '<a href="' + GITHUB + '" target="_blank" rel="noopener">GitHub</a>' +
-        "</nav>" +
-        '<p class="footer-fine">&copy; <span class="year"></span> Sonne Systems &middot; sonnesystems.com</p>' +
-      "</div>";
+  var headerTarget = document.querySelector("[data-site-header]");
+  if (headerTarget) {
+    headerTarget.outerHTML = [
+      '<header class="site-header" data-header>',
+      '  <a class="skip-link" href="#main-content">Skip to content</a>',
+      '  <div class="header-inner">',
+      '    <a class="brand" href="/" aria-label="Sonne Systems home" data-sound>',
+      '      <span class="brand-mark" aria-hidden="true"></span>',
+      '      <span>Sonne Systems</span>',
+      '    </a>',
+      '    <nav class="site-nav" aria-label="Primary">',
+      routes.map(function (item) {
+        return '<a href="' + item.href + '"' + (currentRoute(item.href) ? ' aria-current="page"' : "") + ' data-sound>' + item.label + "</a>";
+      }).join(""),
+      '    </nav>',
+      '    <div class="header-actions">',
+      '      <button class="sound-toggle" type="button" aria-pressed="false" aria-label="Turn interface sound on" data-sound-toggle>',
+      '        <span class="sound-glyph" aria-hidden="true"><i></i><i></i><i></i></span>',
+      '      </button>',
+      '      <button class="menu-toggle" type="button" aria-expanded="false" aria-label="Open menu" data-menu-toggle><span></span></button>',
+      '    </div>',
+      '  </div>',
+      '  <i class="scroll-progress" aria-hidden="true"></i>',
+      '</header>'
+    ].join("");
   }
 
-  /* ---- fill every sun mark with evenly spaced spokes ---- */
-  function spokes(group, cx, cy, r0, r1, count) {
-    var ns = "http://www.w3.org/2000/svg";
-    for (var i = 0; i < count; i++) {
-      var a = (i / count) * Math.PI * 2 - Math.PI / 2;
-      var ln = document.createElementNS(ns, "line");
-      ln.setAttribute("x1", (cx + Math.cos(a) * r0).toFixed(1));
-      ln.setAttribute("y1", (cy + Math.sin(a) * r0).toFixed(1));
-      ln.setAttribute("x2", (cx + Math.cos(a) * r1).toFixed(1));
-      ln.setAttribute("y2", (cy + Math.sin(a) * r1).toFixed(1));
-      group.appendChild(ln);
-    }
+  var footerTarget = document.querySelector("[data-site-footer]");
+  if (footerTarget) {
+    footerTarget.outerHTML = [
+      '<footer class="site-footer">',
+      '  <div class="footer-inner">',
+      '    <div class="footer-top">',
+      '      <p class="footer-statement">Build intelligence that earns every operation.</p>',
+      '      <div class="footer-contact">',
+      '        <small>Independent neuromorphic R&amp;D</small>',
+      '        <a href="mailto:9aman.aa@gmail.com" data-sound>Start a conversation</a>',
+      '      </div>',
+      '    </div>',
+      '    <div class="footer-bottom">',
+      '      <span>Copyright ' + new Date().getFullYear() + ' Sonne Systems</span>',
+      '      <nav class="footer-nav" aria-label="Footer">',
+      '        <a href="/research.html">Research</a><a href="/demo.html">Demo</a><a href="/tools.html">Tools</a><a href="/about.html">About</a>',
+      '      </nav>',
+      '      <span>Signal over spectacle</span>',
+      '    </div>',
+      '  </div>',
+      '</footer>'
+    ].join("");
   }
 
-  /* ============================================================
-     Satisfying click sounds (Web Audio, generated - no files)
-     ============================================================ */
-  var actx = null, soundOn = true;
-  try { soundOn = localStorage.getItem("sonne.sound") !== "off"; } catch (e) {}
+  var header = document.querySelector("[data-header]");
+  var menuToggle = document.querySelector("[data-menu-toggle]");
 
-  function ping(freq, dur, vol, type, when) {
-    if (!soundOn) return;
-    try {
-      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-      if (actx.state === "suspended") actx.resume();
-      var t = actx.currentTime + (when || 0);
-      var o = actx.createOscillator(), g = actx.createGain();
-      o.type = type || "sine"; o.frequency.value = freq;
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(vol, t + 0.006);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g).connect(actx.destination);
-      o.start(t); o.stop(t + dur + 0.02);
-    } catch (e) {}
-  }
-  /* A quiet, warm interface signature tuned to the site palette. */
-  function clickSound() {
-    ping(146.83, 0.12, 0.022, "sine");
-    ping(220, 0.09, 0.035, "triangle", .008);
-    ping(440, 0.06, 0.012, "sine", .018);
-  }
-  function softTick() { ping(293.66, 0.055, 0.014, "sine"); ping(440, 0.035, 0.006, "triangle", .008); }
-
-  function updateSoundBtn() {
-    var b = document.querySelector(".sound-toggle");
-    if (!b) return;
-    b.classList.toggle("muted", !soundOn);
-    b.setAttribute("aria-label", soundOn ? "Turn sound off" : "Turn sound on");
-    b.setAttribute("title", soundOn ? "Turn sound off" : "Turn sound on");
-    b.innerHTML = soundOn
-      ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>'
-      : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg>';
+  function setMenu(open) {
+    body.classList.toggle("menu-open", open);
+    if (!menuToggle) return;
+    menuToggle.setAttribute("aria-expanded", String(open));
+    menuToggle.setAttribute("aria-label", open ? "Close menu" : "Open menu");
   }
 
-  /* ============================================================
-     Boot - every step is isolated so one failing piece (a bad push,
-     a missing element, an unsupported API) can never blank the page.
-     The reveal content is force-shown no matter what.
-     ============================================================ */
-  function revealAll() {
-    try {
-      document.querySelectorAll(".reveal").forEach(function (el) {
-        el.classList.remove("will-reveal");
-        el.classList.add("revealed");
-      });
-    } catch (e) { /* nothing more we can do */ }
-  }
-
-  try { buildHeader(); } catch (e) { /* header optional; page still reads */ }
-  try { buildFooter(); } catch (e) { /* footer optional */ }
-
-  try {
-    document.querySelectorAll(".m-rays").forEach(function (g) { spokes(g, 24, 24, 11.5, 17.5, 12); });
-    document.querySelectorAll(".sun-rays").forEach(function (g) { spokes(g, 70, 70, 52, 108, 20); });
-    document.querySelectorAll(".year").forEach(function (y) { y.textContent = new Date().getFullYear(); });
-  } catch (e) { /* decorative */ }
-
-  try {
-    /* mobile menu */
-    var toggle = document.querySelector(".nav-toggle");
-    var nav = document.querySelector(".topnav");
-    if (toggle && nav) {
-      toggle.addEventListener("click", function () {
-        var open = document.body.classList.toggle("nav-open");
-        toggle.setAttribute("aria-expanded", open ? "true" : "false");
-        toggle.setAttribute("aria-label", open ? "Close menu" : "Menu");
-      });
-      nav.addEventListener("click", function (e) {
-        if (e.target.tagName === "A") {
-          document.body.classList.remove("nav-open");
-          toggle.setAttribute("aria-expanded", "false");
-          toggle.setAttribute("aria-label", "Menu");
-        }
-      });
-      document.addEventListener("keydown", function (e) {
-        if (e.key === "Escape" && document.body.classList.contains("nav-open")) {
-          document.body.classList.remove("nav-open");
-          toggle.setAttribute("aria-expanded", "false");
-          toggle.setAttribute("aria-label", "Menu");
-          toggle.focus();
-        }
-      });
-    }
-  } catch (e) { /* menu optional */ }
-
-  try {
-    /* sound toggle */
-    updateSoundBtn();
-    var sbtn = document.querySelector(".sound-toggle");
-    if (sbtn) sbtn.addEventListener("click", function () {
-      soundOn = !soundOn;
-      try { localStorage.setItem("sonne.sound", soundOn ? "on" : "off"); } catch (e) {}
-      updateSoundBtn();
-      if (soundOn) clickSound();
+  if (menuToggle) {
+    menuToggle.addEventListener("click", function () {
+      setMenu(!body.classList.contains("menu-open"));
     });
+  }
+  document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") setMenu(false);
+  });
+  document.querySelectorAll(".site-nav a").forEach(function (link) {
+    link.addEventListener("click", function () { setMenu(false); });
+  });
 
-    /* click sounds, delegated */
-    document.addEventListener("pointerdown", function (e) {
-      var t = e.target.closest("a, button, .sounds");
-      if (!t || t.classList.contains("sound-toggle")) return;
-      if (t.classList.contains("btn") || t.tagName === "BUTTON") clickSound();
-      else softTick();
-    }, true);
-  } catch (e) { /* sound is a bonus */ }
+  /* ---------- Optional interface sound ---------- */
+  var soundEnabled = false;
+  var audioContext = null;
+  var soundToggle = document.querySelector("[data-sound-toggle]");
+  try { soundEnabled = localStorage.getItem("sonne.sound.origin") === "1"; } catch (error) {}
 
-  /* scroll-reveal (respects reduced motion).
-     Above-fold content must NEVER depend on an observer firing, so anything
-     already in the first viewport is revealed immediately; the observer only
-     handles elements the visitor scrolls to later. */
-  try {
-    var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var reveals = Array.prototype.slice.call(document.querySelectorAll(".reveal"));
+  function updateSoundButton() {
+    if (!soundToggle) return;
+    soundToggle.setAttribute("aria-pressed", String(soundEnabled));
+    soundToggle.setAttribute("aria-label", soundEnabled ? "Turn interface sound off" : "Turn interface sound on");
+  }
 
-    var show = function (el) {
-      var d = el.getAttribute("data-delay");
-      if (d) el.style.transitionDelay = d + "ms";
-      el.classList.remove("will-reveal");
-      el.classList.add("revealed");
-    };
+  function getAudioContext() {
+    if (!audioContext) {
+      var AudioCtor = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtor) audioContext = new AudioCtor();
+    }
+    return audioContext;
+  }
 
-    if (reduce || !("IntersectionObserver" in window)) {
-      reveals.forEach(show);
-    } else {
-      var vh = window.innerHeight || document.documentElement.clientHeight;
-      var later = [];
-      reveals.forEach(function (el) {
-        if (el.getBoundingClientRect().top < vh * 0.96) show(el);
-        else { el.classList.add("will-reveal"); later.push(el); }
+  function playSignal(tone) {
+    if (!soundEnabled) return;
+    var context = getAudioContext();
+    if (!context) return;
+    if (context.state === "suspended") context.resume();
+
+    var oscillator = context.createOscillator();
+    var gain = context.createGain();
+    var now = context.currentTime;
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(tone || 440, now);
+    oscillator.frequency.exponentialRampToValueAtTime((tone || 440) * 0.72, now + 0.07);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.018, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(now);
+    oscillator.stop(now + 0.09);
+  }
+
+  if (soundToggle) {
+    updateSoundButton();
+    soundToggle.addEventListener("click", function () {
+      soundEnabled = !soundEnabled;
+      try { localStorage.setItem("sonne.sound.origin", soundEnabled ? "1" : "0"); } catch (error) {}
+      updateSoundButton();
+      if (soundEnabled) {
+        getAudioContext();
+        playSignal(520);
+      }
+    });
+  }
+  document.addEventListener("pointerdown", function (event) {
+    if (event.target.closest("a, button, [role='button']")) playSignal(410);
+  });
+
+  /* ---------- Reveal system ---------- */
+  var revealItems = Array.from(document.querySelectorAll("[data-reveal]"));
+  if (reducedMotion || !("IntersectionObserver" in window)) {
+    revealItems.forEach(function (item) { item.classList.add("is-visible"); });
+  } else {
+    var revealObserver = new IntersectionObserver(function (entries, observer) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        observer.unobserve(entry.target);
       });
-      if (later.length) {
-        var io = new IntersectionObserver(function (entries) {
-          entries.forEach(function (en) {
-            if (en.isIntersecting) { show(en.target); io.unobserve(en.target); }
-          });
-        }, { threshold: 0.12, rootMargin: "0px 0px -8% 0px" });
-        later.forEach(function (el) { io.observe(el); });
-      }
-      /* safety net: nothing stays invisible forever */
-      setTimeout(revealAll, 2600);
-    }
-  } catch (e) { revealAll(); }
+    }, { threshold: 0.12, rootMargin: "0px 0px -7%" });
+    revealItems.forEach(function (item, index) {
+      item.style.transitionDelay = Math.min(index % 4, 3) * 60 + "ms";
+      revealObserver.observe(item);
+    });
+  }
 
-  /* ============================================================
-     Experience layer: global progress and the Sonne Signal field.
-     Surfaces react with light, never positional wobble. This keeps
-     the interface calm while still making input feel immediate.
-     ============================================================ */
-  try {
-    var motionReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    var finePointer = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
-    var scrollProgress = document.querySelector("[data-scroll-progress]");
-    if (!scrollProgress) {
-      scrollProgress = document.createElement("div");
-      scrollProgress.className = "site-scroll-progress";
-      scrollProgress.setAttribute("data-scroll-progress", "");
-      scrollProgress.setAttribute("aria-hidden", "true");
-      document.body.appendChild(scrollProgress);
-    }
+  /* ---------- Scroll progress and header state ---------- */
+  var scrollScheduled = false;
+  function renderScrollState() {
+    scrollScheduled = false;
+    var max = Math.max(1, root.scrollHeight - window.innerHeight);
+    var progress = Math.min(1, Math.max(0, window.scrollY / max));
+    root.style.setProperty("--scroll-progress", (progress * 100).toFixed(2) + "%");
+    if (header) header.classList.toggle("is-condensed", window.scrollY > 36);
+    renderFilm();
+    renderApertureScroll();
+  }
+  function scheduleScroll() {
+    if (scrollScheduled) return;
+    scrollScheduled = true;
+    requestAnimationFrame(renderScrollState);
+  }
+  window.addEventListener("scroll", scheduleScroll, { passive: true });
+  window.addEventListener("resize", scheduleScroll, { passive: true });
 
-    var topbar = document.querySelector(".topbar");
-    var globalQueued = false;
-    function paintGlobalMotion() {
-      globalQueued = false;
-      var total = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-      var progress = Math.max(0, Math.min(1, window.scrollY / total));
-      scrollProgress.style.transform = "scaleX(" + progress.toFixed(4) + ")";
-      if (topbar) topbar.classList.toggle("is-condensed", window.scrollY > 28);
-      document.documentElement.style.setProperty("--page-progress", progress.toFixed(4));
-    }
-    function queueGlobalMotion() {
-      if (globalQueued) return;
-      globalQueued = true;
-      requestAnimationFrame(paintGlobalMotion);
-    }
-    window.addEventListener("scroll", queueGlobalMotion, { passive: true });
-    window.addEventListener("resize", queueGlobalMotion);
-    paintGlobalMotion();
+  /* ---------- Interactive aperture ---------- */
+  var aperture = document.querySelector("[data-aperture]");
+  var apertureRoot = document.querySelector("[data-aperture-root]");
+  var apertureStatus = document.querySelector("[data-aperture-status]");
+  var apertureYaw = 0;
+  var aperturePitch = 0;
+  var dragging = false;
+  var dragX = 0;
+  var dragY = 0;
 
-    if (!motionReduce && finePointer) {
-      document.addEventListener("pointermove", function (e) {
-        document.documentElement.style.setProperty("--pointer-x", e.clientX + "px");
-        document.documentElement.style.setProperty("--pointer-y", e.clientY + "px");
-        document.body.classList.add("has-pointer");
-      }, { passive: true });
+  function drawAperture() {
+    if (!apertureRoot) return;
+    apertureRoot.style.setProperty("--aperture-yaw", (apertureYaw * 0.08).toFixed(2) + "deg");
+    apertureRoot.style.setProperty("--aperture-pitch", (aperturePitch * 0.08).toFixed(2) + "deg");
+    apertureRoot.style.setProperty("--aperture-orbit", apertureYaw.toFixed(2) + "deg");
+    if (apertureStatus) apertureStatus.textContent = "Orbit " + Math.round(((apertureYaw % 360) + 360) % 360) + " degrees";
+  }
 
-      document.querySelectorAll(".page-object,.hero-signal-panel,.focus-timeline,.lyfe-premium-card,.research-entry,.card,.contact-panel").forEach(function (surface) {
-        surface.classList.add("signal-surface");
-        surface.addEventListener("pointermove", function (e) {
-          var rect = surface.getBoundingClientRect();
-          var x = (e.clientX - rect.left) / Math.max(1, rect.width);
-          var y = (e.clientY - rect.top) / Math.max(1, rect.height);
-          surface.style.setProperty("--signal-x", (x * 100).toFixed(1) + "%");
-          surface.style.setProperty("--signal-y", (y * 100).toFixed(1) + "%");
-          surface.classList.add("is-sensing");
-        }, { passive: true });
-        surface.addEventListener("pointerleave", function () {
-          surface.classList.remove("is-sensing");
-        });
+  if (aperture) {
+    aperture.addEventListener("pointerdown", function (event) {
+      dragging = true;
+      dragX = event.clientX;
+      dragY = event.clientY;
+      aperture.setPointerCapture(event.pointerId);
+    });
+    aperture.addEventListener("pointermove", function (event) {
+      if (!dragging) return;
+      apertureYaw += (event.clientX - dragX) * 0.65;
+      aperturePitch = Math.max(-90, Math.min(90, aperturePitch - (event.clientY - dragY) * 0.45));
+      dragX = event.clientX;
+      dragY = event.clientY;
+      drawAperture();
+    });
+    ["pointerup", "pointercancel"].forEach(function (name) {
+      aperture.addEventListener(name, function (event) {
+        dragging = false;
+        try { aperture.releasePointerCapture(event.pointerId); } catch (error) {}
       });
+    });
+    aperture.addEventListener("keydown", function (event) {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+      event.preventDefault();
+      if (event.key === "ArrowLeft") apertureYaw -= 12;
+      if (event.key === "ArrowRight") apertureYaw += 12;
+      if (event.key === "ArrowUp") aperturePitch = Math.min(90, aperturePitch + 8);
+      if (event.key === "ArrowDown") aperturePitch = Math.max(-90, aperturePitch - 8);
+      drawAperture();
+      playSignal(570);
+    });
+    drawAperture();
+  }
 
-      document.querySelectorAll(".btn").forEach(function (button) {
-        button.classList.add("signal-action");
-      });
+  function renderApertureScroll() {
+    if (!apertureRoot || reducedMotion || dragging) return;
+    var rect = apertureRoot.getBoundingClientRect();
+    var visibleProgress = (window.innerHeight - rect.top) / (window.innerHeight + rect.height);
+    var scrollOrbit = Math.max(0, Math.min(1, visibleProgress)) * 110;
+    apertureRoot.style.setProperty("--aperture-orbit", (apertureYaw + scrollOrbit).toFixed(2) + "deg");
+    apertureRoot.style.setProperty("--aperture-shift", (scrollOrbit * -0.07).toFixed(2) + "px");
+  }
+
+  /* ---------- One-idea-at-a-time scroll film ---------- */
+  var film = document.querySelector("[data-film]");
+  var filmSticky = film ? film.querySelector("[data-film-sticky]") : null;
+  var filmCopy = film ? film.querySelector("[data-film-copy]") : null;
+  var filmCount = film ? film.querySelector("[data-film-count]") : null;
+  var filmTitle = film ? film.querySelector("[data-film-title]") : null;
+  var filmBody = film ? film.querySelector("[data-film-body]") : null;
+  var filmChapterNodes = film ? Array.from(film.querySelectorAll("[data-film-chapter]")) : [];
+  var filmIndex = -1;
+  var chapters = [
+    { count: "01 / Detect", title: "Change arrives.", body: "The system stays quiet until the signal departs from its baseline. Silence creates no work." },
+    { count: "02 / Encode", title: "Time becomes data.", body: "Meaningful changes become sparse events, preserving order without carrying the empty space between them." },
+    { count: "03 / Integrate", title: "Evidence accumulates.", body: "Events build a confidence-bearing state over time. More work is earned only when uncertainty remains." },
+    { count: "04 / Exit", title: "Certainty stops compute.", body: "Once further processing no longer improves the answer, the system exits. Efficiency becomes a behavior, not a slogan." }
+  ];
+
+  function renderFilm() {
+    if (!film || !filmSticky) return;
+    var start = film.offsetTop;
+    var distance = Math.max(1, film.offsetHeight - window.innerHeight);
+    var progress = Math.max(0, Math.min(0.999, (window.scrollY - start) / distance));
+    var nextIndex = Math.min(chapters.length - 1, Math.floor(progress * chapters.length));
+    filmSticky.style.setProperty("--film-progress", progress.toFixed(4));
+    filmSticky.style.setProperty("--film-bar", (progress * 100).toFixed(2) + "%");
+    if (nextIndex === filmIndex) return;
+    filmIndex = nextIndex;
+    var chapter = chapters[filmIndex];
+    if (filmCount) filmCount.textContent = chapter.count;
+    if (filmTitle) filmTitle.textContent = chapter.title;
+    if (filmBody) filmBody.textContent = chapter.body;
+    filmChapterNodes.forEach(function (node, index) { node.classList.toggle("is-active", index === filmIndex); });
+    if (filmCopy) {
+      filmCopy.classList.remove("is-changing");
+      void filmCopy.offsetWidth;
+      filmCopy.classList.add("is-changing");
     }
+    playSignal(470 + filmIndex * 45);
+  }
 
-    var heroSignalPanel = document.querySelector(".hero-signal-panel");
-    if (heroSignalPanel && !motionReduce) {
-      var heroSignalStep = 0;
-      heroSignalPanel.setAttribute("data-state", "0");
-      setInterval(function () {
-        heroSignalStep = (heroSignalStep + 1) % 3;
-        heroSignalPanel.setAttribute("data-state", String(heroSignalStep));
-      }, 3000);
+  /* ---------- Game-like route selector ---------- */
+  var routeDeck = document.querySelector("[data-route-deck]");
+  var routeConsole = document.querySelector("[data-route-console]");
+  var routeTabs = routeDeck ? Array.from(routeDeck.querySelectorAll("[data-route-tab]")) : [];
+  var routeScreen = routeDeck ? routeDeck.querySelector("[data-route-screen]") : null;
+  var routeNumber = routeDeck ? routeDeck.querySelector("[data-route-number]") : null;
+  var routeLabel = routeDeck ? routeDeck.querySelector("[data-route-label]") : null;
+  var routeTitle = routeDeck ? routeDeck.querySelector("[data-route-title]") : null;
+  var routeBody = routeDeck ? routeDeck.querySelector("[data-route-body]") : null;
+  var routeLink = routeDeck ? routeDeck.querySelector("[data-route-link]") : null;
+  var routeIndex = 0;
+  var routeData = [
+    { number: "01", label: "Live system / Observe", title: "See evidence form in time.", body: "Bring an image and inspect how visible change becomes a short event sequence, entirely in your browser.", link: "demo.html", action: "Open the demo" },
+    { number: "02", label: "Research record / Test", title: "Challenge the claim.", body: "Inspect active questions, matched controls, methods, known boundaries, and the evidence behind each direction.", link: "research.html", action: "Read the ledger" },
+    { number: "03", label: "Useful software / Use", title: "Protect your attention.", body: "Open local-first tools that remain useful without engagement loops, mandatory accounts, or a permanent network connection.", link: "tools.html", action: "Explore the tools" },
+    { number: "04", label: "Independent studio / About", title: "Meet the work behind the system.", body: "Learn why Sonne Systems stays compact, how it chooses questions, and what a serious collaboration looks like.", link: "about.html", action: "Enter the studio" }
+  ];
+
+  function activateRoute(index, moveFocus) {
+    routeIndex = (index + routeData.length) % routeData.length;
+    var item = routeData[routeIndex];
+    routeTabs.forEach(function (tab, tabIndex) {
+      var active = tabIndex === routeIndex;
+      tab.setAttribute("aria-selected", String(active));
+      tab.tabIndex = active ? 0 : -1;
+    });
+    if (routeNumber) routeNumber.textContent = item.number;
+    if (routeLabel) routeLabel.textContent = item.label;
+    if (routeTitle) routeTitle.textContent = item.title;
+    if (routeBody) routeBody.textContent = item.body;
+    if (routeLink) {
+      routeLink.href = item.link;
+      var labelNode = routeLink.querySelector("span");
+      if (labelNode) labelNode.textContent = item.action;
     }
-
-    requestAnimationFrame(function () { document.body.classList.add("is-ready"); });
-  } catch (e) { document.body.classList.add("is-ready"); }
-
-  /* Cinematic company story. The page scroll behaves like a video timeline:
-     it rotates a layered signal volume and advances one explanation at a time. */
-  try {
-    var cinemaStory = document.querySelector("[data-cinema-story]");
-    var cinemaFrame = document.querySelector("[data-cinema-frame]");
-    if (cinemaStory && cinemaFrame) {
-      var cinemaLabel = cinemaFrame.querySelector("[data-cinema-label]");
-      var cinemaTitle = cinemaFrame.querySelector("[data-cinema-title]");
-      var cinemaCopy = cinemaFrame.querySelector("[data-cinema-copy]");
-      var cinemaChapter = cinemaFrame.querySelector("[data-cinema-chapter]");
-      var cinemaTime = cinemaFrame.querySelector("[data-cinema-time]");
-      var cinemaProgress = cinemaFrame.querySelector("[data-cinema-progress]");
-      var cinemaCopyGroup = cinemaFrame.querySelector(".cinema-copy");
-      var pageProgress = document.querySelector("[data-scroll-progress]");
-      var cinemaViews = [
-        { label: "01 / Observe", chapter: "Observe", title: "Change wakes the system.", copy: "Input becomes computation only when something meaningful changes." },
-        { label: "02 / Encode", chapter: "Encode", title: "Change becomes an event.", copy: "Silence disappears. Only useful temporal information moves forward." },
-        { label: "03 / Integrate", chapter: "Integrate", title: "Evidence builds over time.", copy: "Sparse events accumulate into a compact, confidence-bearing state." },
-        { label: "04 / Decide", chapter: "Decide", title: "Certainty ends the work.", copy: "The system exits as soon as more computation stops adding value." }
-      ];
-      var cinemaStep = -1, cinemaQueued = false;
-      var cinemaManualYaw = 0, cinemaDragging = false, cinemaLastX = 0;
-
-      function cinemaClamp(value, minimum, maximum) { return Math.max(minimum, Math.min(maximum, value)); }
-      function setCinemaStep(index) {
-        index = cinemaClamp(index, 0, cinemaViews.length - 1);
-        if (index === cinemaStep) return;
-        cinemaStep = index;
-        var view = cinemaViews[index];
-        cinemaFrame.setAttribute("data-step", String(index));
-        if (cinemaLabel) cinemaLabel.textContent = view.label;
-        if (cinemaTitle) cinemaTitle.textContent = view.title;
-        if (cinemaCopy) cinemaCopy.textContent = view.copy;
-        if (cinemaChapter) cinemaChapter.textContent = view.chapter;
-        if (cinemaCopyGroup) {
-          cinemaCopyGroup.classList.remove("is-changing");
-          void cinemaCopyGroup.offsetWidth;
-          cinemaCopyGroup.classList.add("is-changing");
-        }
-      }
-      function paintCinema() {
-        cinemaQueued = false;
-        var rect = cinemaStory.getBoundingClientRect();
-        var total = Math.max(1, cinemaStory.offsetHeight - window.innerHeight);
-        var progress = cinemaClamp(-rect.top / total, 0, 1);
-        var cameraProgress = progress * progress * (3 - 2 * progress);
-        var step = Math.min(cinemaViews.length - 1, Math.floor(progress * cinemaViews.length));
-        var seconds = Math.round(progress * 18);
-        var depth = -80 + Math.sin(progress * Math.PI) * 105;
-        var bloom = .86 + Math.sin(progress * Math.PI) * .24;
-        var coreScale = .88 + progress * .18;
-        setCinemaStep(step);
-        cinemaFrame.style.setProperty("--cinema-progress", progress.toFixed(4));
-        cinemaFrame.style.setProperty("--cinema-yaw", (-28 + cameraProgress * 312 + cinemaManualYaw).toFixed(2) + "deg");
-        cinemaFrame.style.setProperty("--cinema-pitch", (12 - cameraProgress * 18).toFixed(2) + "deg");
-        cinemaFrame.style.setProperty("--cinema-depth", depth.toFixed(2) + "px");
-        cinemaFrame.style.setProperty("--reactor-bloom", bloom.toFixed(3));
-        cinemaFrame.style.setProperty("--reactor-twist", (cameraProgress * 168).toFixed(2) + "deg");
-        cinemaFrame.style.setProperty("--reactor-core-scale", coreScale.toFixed(3));
-        cinemaFrame.style.setProperty("--reactor-glow", (progress * 42).toFixed(2) + "px");
-        if (cinemaProgress) cinemaProgress.style.transform = "scaleX(" + progress.toFixed(4) + ")";
-        if (cinemaTime) cinemaTime.textContent = "00:" + (seconds < 10 ? "0" : "") + seconds;
-        if (pageProgress) {
-          var pageTotal = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
-          pageProgress.style.transform = "scaleX(" + cinemaClamp(window.scrollY / pageTotal, 0, 1).toFixed(4) + ")";
-        }
-      }
-      function queueCinema() {
-        if (cinemaQueued) return;
-        cinemaQueued = true;
-        requestAnimationFrame(paintCinema);
-      }
-      function stopCinemaDrag(e) {
-        if (!cinemaDragging) return;
-        cinemaDragging = false;
-        cinemaFrame.classList.remove("is-dragging");
-        try { cinemaFrame.releasePointerCapture(e.pointerId); } catch (err) {}
-      }
-
-      cinemaFrame.addEventListener("pointerdown", function (e) {
-        cinemaDragging = true;
-        cinemaLastX = e.clientX;
-        cinemaFrame.classList.add("is-dragging");
-        try { cinemaFrame.setPointerCapture(e.pointerId); } catch (err) {}
-      });
-      cinemaFrame.addEventListener("pointermove", function (e) {
-        if (!cinemaDragging) return;
-        cinemaManualYaw += (e.clientX - cinemaLastX) * .34;
-        cinemaLastX = e.clientX;
-        paintCinema();
-      });
-      cinemaFrame.addEventListener("pointerup", stopCinemaDrag);
-      cinemaFrame.addEventListener("pointercancel", stopCinemaDrag);
-      cinemaFrame.addEventListener("keydown", function (e) {
-        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-        e.preventDefault();
-        cinemaManualYaw += e.key === "ArrowLeft" ? -12 : 12;
-        paintCinema();
-      });
-
-      window.addEventListener("scroll", queueCinema, { passive: true });
-      window.addEventListener("resize", queueCinema);
-      setCinemaStep(0);
-      paintCinema();
+    if (routeScreen) {
+      routeScreen.classList.remove("is-switching");
+      void routeScreen.offsetWidth;
+      routeScreen.classList.add("is-switching");
     }
-  } catch (e) { /* the film remains a readable static explanation */ }
+    if (moveFocus) routeTabs[routeIndex].focus();
+    playSignal(440 + routeIndex * 42);
+  }
 
-  /* The live-model section is a second, quieter scroll instrument. Its
-     evidence trace fills as the section enters instead of playing on a loop. */
-  try {
-    var liveFocus = document.querySelector("[data-live-focus]");
-    if (liveFocus) {
-      var liveBars = Array.prototype.slice.call(liveFocus.querySelectorAll(".timeline-signal i"));
-      var liveQueued = false;
-      var liveReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      function liveClamp(value, minimum, maximum) { return Math.max(minimum, Math.min(maximum, value)); }
-      function paintLiveFocus() {
-        liveQueued = false;
-        var rect = liveFocus.getBoundingClientRect();
-        var viewport = window.innerHeight || document.documentElement.clientHeight;
-        var reveal = liveReduce ? 1 : liveClamp((viewport * .94 - rect.top) / (viewport * .74), 0, 1);
-        var journey = liveReduce ? 1 : liveClamp((viewport * .72 - rect.top) / Math.max(viewport * .8, rect.height), 0, 1);
-        var eased = journey * journey * (3 - 2 * journey);
-        liveFocus.style.setProperty("--live-reveal", reveal.toFixed(4));
-        liveFocus.style.setProperty("--live-progress", eased.toFixed(4));
-        liveFocus.style.setProperty("--live-rotation", (eased * 118).toFixed(2) + "deg");
-        liveFocus.style.setProperty("--live-copy-opacity", (.38 + reveal * .62).toFixed(4));
-        liveFocus.style.setProperty("--live-copy-shift", ((1 - reveal) * 58).toFixed(2) + "px");
-        liveFocus.style.setProperty("--live-panel-opacity", (.42 + reveal * .58).toFixed(4));
-        liveFocus.style.setProperty("--live-panel-shift", ((1 - reveal) * 56).toFixed(2) + "px");
-        liveFocus.style.setProperty("--live-panel-scale", (.94 + reveal * .06).toFixed(4));
-        liveFocus.style.setProperty("--live-glow-x", (34 + eased * 30).toFixed(2) + "%");
-        liveFocus.style.setProperty("--threshold-scale", (.18 + eased * .82).toFixed(4));
-        liveFocus.style.setProperty("--signal-label-opacity", (.35 + eased * .65).toFixed(4));
-        liveBars.forEach(function (bar, index) {
-          var fill = liveClamp(eased * (liveBars.length + 2) - index, 0, 1);
-          bar.style.setProperty("--bar-fill", fill.toFixed(3));
-          bar.style.setProperty("--bar-opacity", (.34 + fill * .66).toFixed(3));
-        });
-      }
-      function queueLiveFocus() {
-        if (liveQueued) return;
-        liveQueued = true;
-        requestAnimationFrame(paintLiveFocus);
-      }
-      window.addEventListener("scroll", queueLiveFocus, { passive: true });
-      window.addEventListener("resize", queueLiveFocus);
-      paintLiveFocus();
-    }
-  } catch (e) { /* content and evidence remain fully readable */ }
+  routeTabs.forEach(function (tab, index) {
+    tab.addEventListener("click", function () { activateRoute(index, false); });
+    tab.addEventListener("keydown", function (event) {
+      if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      if (event.key === "Home") activateRoute(0, true);
+      else if (event.key === "End") activateRoute(routeData.length - 1, true);
+      else activateRoute(routeIndex + (["ArrowRight", "ArrowDown"].includes(event.key) ? 1 : -1), true);
+    });
+  });
 
-  /* last-resort failsafe, independent of everything above: even if the whole
-     boot threw before the reveal step, content becomes visible after 3s. */
-  setTimeout(revealAll, 3000);
+  if (routeConsole && precisePointer && !reducedMotion) {
+    routeConsole.addEventListener("pointermove", function (event) {
+      var rect = routeConsole.getBoundingClientRect();
+      var x = (event.clientX - rect.left) / rect.width - 0.5;
+      var y = (event.clientY - rect.top) / rect.height - 0.5;
+      routeConsole.style.setProperty("--deck-yaw", (x * 3.5).toFixed(2) + "deg");
+      routeConsole.style.setProperty("--deck-pitch", (y * -2.4).toFixed(2) + "deg");
+    });
+    routeConsole.addEventListener("pointerleave", function () {
+      routeConsole.style.setProperty("--deck-yaw", "0deg");
+      routeConsole.style.setProperty("--deck-pitch", "0deg");
+    });
+  }
+
+  /* ---------- Precision cursor, never used as a required affordance ---------- */
+  if (precisePointer && !reducedMotion) {
+    body.classList.add("has-precise-pointer");
+    var cursor = document.createElement("i");
+    cursor.className = "signal-cursor";
+    cursor.setAttribute("aria-hidden", "true");
+    body.appendChild(cursor);
+    window.addEventListener("pointermove", function (event) {
+      cursor.style.left = event.clientX + "px";
+      cursor.style.top = event.clientY + "px";
+    }, { passive: true });
+  }
+
+  renderScrollState();
 })();
