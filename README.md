@@ -28,7 +28,7 @@ A **zero-build static site** plus a **scaffolded API backend**:
 ├── js/site.js          Shared chrome, 360 aperture, scroll film, motion, and optional sounds
 ├── js/app.js           Transparent browser-side temporal signal demo
 ├── js/papers.js        Local Web Crypto paper decryption
-├── assets/             Hero artwork, social card, and Lyfe identity
+├── assets/             Social card and Lyfe identity
 ├── robots.txt          Crawler policy (private paper vault excluded)
 ├── sitemap.xml         Canonical public URLs for search engines
 ├── papers/*.pdf.enc    AES-256-GCM encrypted papers (safe to host publicly)

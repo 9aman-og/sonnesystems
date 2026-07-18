@@ -120,25 +120,55 @@
     return audioContext;
   }
 
-  function playSignal(tone) {
+  function playVoice(context, voice, start) {
+    var oscillator = context.createOscillator();
+    var gain = context.createGain();
+    oscillator.type = voice.type || "sine";
+    oscillator.frequency.setValueAtTime(voice.from, start);
+    oscillator.frequency.exponentialRampToValueAtTime(voice.to || voice.from, start + voice.duration);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(voice.level, start + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + voice.duration);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(start);
+    oscillator.stop(start + voice.duration + 0.01);
+  }
+
+  function playSignal(kind) {
     if (!soundEnabled) return;
     var context = getAudioContext();
     if (!context) return;
     if (context.state === "suspended") context.resume();
-
-    var oscillator = context.createOscillator();
-    var gain = context.createGain();
     var now = context.currentTime;
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(tone || 440, now);
-    oscillator.frequency.exponentialRampToValueAtTime((tone || 440) * 0.72, now + 0.07);
-    gain.gain.setValueAtTime(0.0001, now);
-    gain.gain.exponentialRampToValueAtTime(0.018, now + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.085);
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start(now);
-    oscillator.stop(now + 0.09);
+    var sounds = {
+      tap: [
+        { from: 430, to: 310, duration: .065, level: .012, type: "triangle" },
+        { from: 980, to: 760, duration: .038, level: .005, type: "sine", delay: .008 }
+      ],
+      select: [
+        { from: 510, to: 570, duration: .09, level: .012, type: "sine" },
+        { from: 760, to: 830, duration: .105, level: .008, type: "triangle", delay: .022 }
+      ],
+      activate: [
+        { from: 280, to: 540, duration: .13, level: .014, type: "triangle" },
+        { from: 820, to: 940, duration: .1, level: .007, type: "sine", delay: .038 }
+      ],
+      rotate: [
+        { from: 690, to: 610, duration: .052, level: .007, type: "sine" },
+        { from: 1040, to: 920, duration: .032, level: .003, type: "triangle" }
+      ],
+      chapter: [
+        { from: 330, to: 370, duration: .14, level: .009, type: "sine" },
+        { from: 495, to: 555, duration: .16, level: .006, type: "triangle", delay: .018 }
+      ],
+      boot: [
+        { from: 360, to: 420, duration: .13, level: .01, type: "sine" },
+        { from: 540, to: 620, duration: .14, level: .009, type: "sine", delay: .055 },
+        { from: 720, to: 860, duration: .16, level: .007, type: "triangle", delay: .11 }
+      ]
+    };
+    (sounds[kind] || sounds.tap).forEach(function (voice) { playVoice(context, voice, now + (voice.delay || 0)); });
   }
 
   if (soundToggle) {
@@ -149,12 +179,14 @@
       updateSoundButton();
       if (soundEnabled) {
         getAudioContext();
-        playSignal(520);
+        playSignal("boot");
       }
     });
   }
   document.addEventListener("pointerdown", function (event) {
-    if (event.target.closest("a, button, [role='button']")) playSignal(410);
+    var target = event.target.closest("a, button, [role='button']");
+    if (!target || target.matches("[data-route-tab], [data-sound-toggle]") || target.closest("[data-aperture]")) return;
+    playSignal(target.classList.contains("button-primary") ? "activate" : "tap");
   });
 
   /* ---------- Reveal system ---------- */
@@ -241,7 +273,7 @@
       if (event.key === "ArrowUp") aperturePitch = Math.min(90, aperturePitch + 8);
       if (event.key === "ArrowDown") aperturePitch = Math.max(-90, aperturePitch - 8);
       drawAperture();
-      playSignal(570);
+      playSignal("rotate");
     });
     drawAperture();
   }
@@ -291,7 +323,7 @@
       void filmCopy.offsetWidth;
       filmCopy.classList.add("is-changing");
     }
-    playSignal(470 + filmIndex * 45);
+    playSignal("chapter");
   }
 
   /* ---------- Game-like route selector ---------- */
@@ -335,7 +367,7 @@
       routeScreen.classList.add("is-switching");
     }
     if (moveFocus) routeTabs[routeIndex].focus();
-    playSignal(440 + routeIndex * 42);
+    playSignal("select");
   }
 
   routeTabs.forEach(function (tab, index) {
@@ -360,6 +392,19 @@
     routeConsole.addEventListener("pointerleave", function () {
       routeConsole.style.setProperty("--deck-yaw", "0deg");
       routeConsole.style.setProperty("--deck-pitch", "0deg");
+    });
+  }
+
+  /* ---------- Soft-club reactive surfaces ---------- */
+  if (precisePointer && !reducedMotion) {
+    document.querySelectorAll(".proof-card, .value-card, .method-card, .product-stage").forEach(function (surface) {
+      surface.addEventListener("pointermove", function (event) {
+        var rect = surface.getBoundingClientRect();
+        surface.style.setProperty("--surface-x", (((event.clientX - rect.left) / rect.width) * 100).toFixed(1) + "%");
+        surface.style.setProperty("--surface-y", (((event.clientY - rect.top) / rect.height) * 100).toFixed(1) + "%");
+        surface.classList.add("is-sensing");
+      });
+      surface.addEventListener("pointerleave", function () { surface.classList.remove("is-sensing"); });
     });
   }
 
