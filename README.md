@@ -1,80 +1,67 @@
 # sonnesystems.com
 
-The public site of **Sonne Systems**, a neuromorphic engineering and BCI research studio.
+Public website for **Sonne Systems**, an independent AI research and engineering company.
 
-- **Live:** https://sonnesystems.com (GitHub Pages; temporary URL https://9aman-og.github.io/sonnesystems/)
-- **Owner:** Aman Agarwal · 9aman.aa@gmail.com · [@9aman-og](https://github.com/9aman-og)
+- Live: https://sonnesystems.com
+- Owner: Aman Agarwal, 9aman.aa@gmail.com, [@9aman-og](https://github.com/9aman-og)
 
-## What this is
+## System shape
 
-A **zero-build static site** plus a **scaffolded API backend**:
+The public website is intentionally static: plain HTML, one CSS design system, and small readable JavaScript modules. It has no build step or runtime dependency. GitHub Pages serves it directly.
 
-- The public site is plain HTML/CSS/JS. No framework, no bundler, no npm. Open `index.html` and it works.
-  This is a deliberate choice: nothing to compile means nothing to rot, and GitHub Pages hosts it for free.
-- `backend/` is a FastAPI + SQLite service (auth, contact, newsletter) with tests. It is **not deployed yet**;
-  the site does not depend on it. See `backend/README.md` and `docs/ARCHITECTURE.md` for when and how to wire it in.
+The separate `backend/` directory contains a tested FastAPI service for future server-backed features. The public website does not need that service to load, navigate, or decrypt the paper archive.
 
-## Repository map
+## Public routes
 
-```
-├── index.html          Landing page (interactive aperture and scroll film)
-├── demo.html           Spiking Mammal live demo
-├── research.html       Projects & papers
-├── tools.html          Premium utility-app showcase (Lyfe)
-├── about.html          Studio, principles, contact
-├── papers.html         Password gate for encrypted paper PDFs
-├── 404.html            Not-found page (GitHub Pages serves this automatically)
-├── css/styles.css      Ground-up Origin 01 design system and responsive components
-├── js/site.js          Shared chrome, 360 orbital instrument, scroll film, motion, and optional sounds
-├── js/app.js           Transparent browser-side temporal signal demo
-├── js/papers.js        Local Web Crypto paper decryption
-├── assets/             Social card and Lyfe identity
-├── robots.txt          Crawler policy (private paper vault excluded)
-├── sitemap.xml         Canonical public URLs for search engines
-├── papers/*.pdf.enc    AES-256-GCM encrypted papers (safe to host publicly)
-├── lyfe/               The Lyfe app, copied from G:\CLAUDE\lyfe (see "Lyfe sync" below)
-├── backend/            FastAPI + SQLite API scaffold with tests (not yet deployed)
-├── scripts/            Repo tooling: CI checks, paper encryption
-├── docs/               Architecture and deployment docs
-└── .github/workflows/  CI: site checks + backend tests on every push/PR
+```text
+index.html       Company home and scroll-led research story
+research.html    Verified research record and known limits
+ventures.html    Lyfe Alt and Lyfe Store development pages
+about.html       Studio, contracts, founder, and contact
+papers.html      Password-protected encrypted paper archive
+404.html         Site-wide not-found page
 ```
 
-## Run it locally
+`demo.html` and `tools.html` are noindex redirects retained only so old external links do not break.
+
+## Important files
+
+```text
+css/styles.css                 Design tokens, layouts, motion, and responsive rules
+js/site.js                     Shared navigation, footer, sound, reveal, transition, scroll sequence
+js/papers.js                   Browser-only Web Crypto paper decryption
+papers/*.pdf.enc               AES-256-GCM encrypted research PDFs
+assets/SonneSystemsCompanyLogo.svg  Scalable single-colour sun mark
+assets/SonneSystemsCompanyLogo.png  1024 px transparent PNG export
+assets/og.png                  1200 x 630 social preview
+scripts/checks.py              Link, style, and encrypted-file checks
+scripts/encrypt_paper.py       Paper encryption and round-trip verification
+backend/                       FastAPI and SQLite service scaffold with tests
+```
+
+## Run locally
 
 ```powershell
-# the site (any static server works)
 python -m http.server 4180
-# then open http://localhost:4180
-
-# the backend (optional; separate service)
-cd backend
-pip install -r requirements.txt
-uvicorn app.main:app --reload   # http://127.0.0.1:8000/docs
+# open http://localhost:4180
 ```
 
-## Deploy
-
-Push to `main`. GitHub Pages redeploys automatically (~1 minute). Details: `docs/DEPLOYMENT.md`.
-
-## House rules (enforced by CI)
-
-1. **No em dashes** anywhere in copy or code. Use commas, colons, or hyphens.
-   (The only exception: Lyfe's own regexes that strip em dashes from Sol's output.)
-2. **No frameworks, no build step** on the public site. If a page needs JS, it is a small, readable file.
-3. **Binary files** (`.png`, `.enc`, `.pdf`) are declared in `.gitattributes` so git never mangles them.
-4. Every local link must resolve: CI checks `href`/`src` targets exist.
-5. Papers are never committed unencrypted. Use `python scripts/encrypt_paper.py <in.pdf> <out.enc> <password>`.
-
-## Lyfe sync
-
-`lyfe/` is a copy of the Lyfe app so the site is self-contained. The source of truth lives at
-`G:\CLAUDE\lyfe` (its own git repo). After editing Lyfe, re-sync:
+Run verification:
 
 ```powershell
-robocopy G:\CLAUDE\lyfe .\lyfe /E /XD .git
+python scripts/checks.py
+cd backend
+python -m pytest -q
 ```
 
-## For new contributors
+## Publish
 
-Read `CONTRIBUTING.md` first, then `docs/ARCHITECTURE.md`. The short version: small PRs,
-CI must pass, match the existing style, and never commit secrets or unencrypted papers.
+Push `main`. GitHub Pages deploys the static site automatically. See `docs/DEPLOYMENT.md` for the domain and workflow details.
+
+## Engineering rules
+
+1. Keep the public site build-free and progressively enhanced.
+2. Respect `prefers-reduced-motion` and preserve keyboard access.
+3. Do not commit plaintext papers, passwords, or private credentials.
+4. Keep research claims tied to an artifact and state the known boundary.
+5. Run both the site checks and backend tests before publishing.
