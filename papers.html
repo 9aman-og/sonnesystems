@@ -1,40 +1,36 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Paper Access | Sonne Systems</title>
-  <meta name="description" content="Password-protected access to Sonne Systems research papers.">
-  <meta name="robots" content="noindex, nofollow"><meta name="theme-color" content="#030303">
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&amp;family=IBM+Plex+Mono:wght@400;500&amp;family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=authored1"><script defer src="js/site.js?v=authored1"></script><script defer src="js/papers.js?v=authored1"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Private paper archive | Sonne Systems</title>
+  <meta name="description" content="Password-protected research paper archive for Sonne Systems collaborators.">
+  <meta name="theme-color" content="#08090d">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css?v=clear1"><script defer src="js/site.js?v=clear1"></script><script defer src="js/papers.js?v=clear1"></script>
 </head>
-<body class="inner-page page-papers">
+<body class="vault-page">
   <div data-site-header></div>
   <main id="main-content">
-    <header class="page-hero">
-      <div class="shell page-hero-inner">
-        <span class="page-code" aria-hidden="true">SS / ARCHIVE / P-04</span>
-        <p class="eyebrow" data-reveal>Restricted research record</p>
-        <h1 class="display page-title" data-reveal>Paper access.</h1>
-        <p class="page-summary" data-reveal="soft">Files are encrypted before they reach the server. Your passphrase is used only in this browser and is never transmitted.</p>
-      </div>
-    </header>
-    <section class="section">
-      <div class="shell">
-        <div class="vault" data-reveal="soft">
-          <div class="vault-head"><h2>Encrypted archive</h2><p>Enter the access passphrase, then choose a paper. Successful decryption produces a temporary local PDF.</p></div>
-          <div class="vault-form">
-            <label class="field-label" for="paperPassword">Access passphrase</label>
-            <div class="password-row"><input id="paperPassword" type="password" autocomplete="current-password" placeholder="Enter passphrase"><button class="button" type="button" data-toggle-password>Show</button></div>
-            <div class="paper-list">
-              <article class="paper-row"><div><h3>When Do Spiking-Convolutional Hybrids Help?</h3><p>Encrypted PDF / CALIF study</p></div><button class="button button-primary" type="button" data-paper="papers/calif.pdf.enc" data-filename="sonne-calif.pdf">Decrypt paper</button></article>
-              <article class="paper-row"><div><h3>Neuromorphic Neural Networks</h3><p>Encrypted PDF / NNN study</p></div><button class="button button-primary" type="button" data-paper="papers/nnn.pdf.enc" data-filename="sonne-nnn.pdf">Decrypt paper</button></article>
-            </div>
-            <p class="vault-message" data-vault-message role="status" aria-live="polite"></p>
-          </div>
+    <header class="vault-hero">
+      <div class="shell vault-hero-grid">
+        <div><p class="signal-label" data-reveal>Private archive</p><h1 data-reveal>Research papers.</h1></div>
+        <div class="vault-unlock" data-reveal="soft">
+          <label for="paperPassword">Shared passphrase</label>
+          <div class="password-field"><input id="paperPassword" type="password" autocomplete="current-password" spellcheck="false" placeholder="Enter passphrase"><button type="button" data-toggle-password>Show</button></div>
+          <p data-vault-message aria-live="polite">Files are decrypted only in your browser.</p>
         </div>
       </div>
+    </header>
+
+    <section class="vault-list shell" aria-label="Available papers">
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Research paper</span><h2>When Do Spiking-Convolutional Hybrids Help?</h2><p>Content-adaptive spiking neurons and a controlled study of the energy-accuracy frontier.</p></div><button class="button button-light" type="button" data-paper="papers/calif.pdf.enc" data-filename="Sonne-CA-LIF.pdf">Decrypt paper</button></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Research paper</span><h2>Illumination-Invariant Certified Robustness</h2><p>A construction for exact monotonic illumination invariance and a proof of its fundamental limit.</p></div><button class="button button-light" type="button" data-paper="papers/nnn.pdf.enc" data-filename="Sonne-Illumination-Robustness.pdf">Decrypt paper</button></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Preprint</span><h2>Project SOL: Evidence-Gated Structural Self-Modification</h2><p>A complete record of controlled structural adaptation experiments for continual learned agents.</p></div><button class="button button-light" type="button" data-paper="papers/project-sol.pdf.enc" data-filename="Sonne-Project-SOL.pdf">Decrypt paper</button></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Working paper</span><h2>Confirmation-Gated Structural Growth</h2><p>Predictive-state refinement, local repair, and controlled mechanism growth in SOL-IPS.</p></div><button class="button button-light" type="button" data-paper="papers/sol-ips.pdf.enc" data-filename="Sonne-SOL-IPS.pdf">Decrypt paper</button></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Submission draft</span><h2>Counterexamples, Not Certificates</h2><p>An evidence interface for one-sided counterexample discovery in learned structural decisions.</p></div><button class="button button-light" type="button" data-paper="papers/counterexamples.pdf.enc" data-filename="Sonne-Counterexamples-Not-Certificates.pdf">Decrypt paper</button></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Technical report</span><h2>SpikingMammal: Method and Findings</h2><p>A hybrid CNN and spiking classifier with open-set rejection and adaptive early exit.</p></div><button class="button button-light" type="button" data-paper="papers/spikingmammal.pdf.enc" data-filename="Sonne-SpikingMammal.pdf">Decrypt paper</button></article>
     </section>
   </main>
   <div data-site-footer></div>

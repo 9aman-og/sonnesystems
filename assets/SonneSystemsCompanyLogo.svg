@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">Sonne Systems sun mark</title>
+  <desc id="desc">A single-colour sun with eight even rays.</desc>
+  <g fill="none" stroke="#08090d" stroke-width="54" stroke-linecap="round">
+    <circle cx="512" cy="512" r="188"/>
+    <path d="M512 90v118M512 816v118M90 512h118M816 512h118M214 214l84 84M726 726l84 84M810 214l-84 84M298 726l-84 84"/>
+  </g>
+</svg>

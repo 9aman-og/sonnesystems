@@ -1,6 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /papers.html
-Disallow: /assets/papers/
+Disallow: /papers/
 
 Sitemap: https://sonnesystems.com/sitemap.xml
