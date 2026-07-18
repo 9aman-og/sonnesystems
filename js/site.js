@@ -241,9 +241,9 @@
   } catch (e) { revealAll(); }
 
   /* ============================================================
-     Experience layer: global progress, responsive depth, magnetic
-     actions and a subtle pointer field. All effects are additive;
-     content remains complete when motion APIs are unavailable.
+     Experience layer: global progress and the Sonne Signal field.
+     Surfaces react with light, never positional wobble. This keeps
+     the interface calm while still making input feel immediate.
      ============================================================ */
   try {
     var motionReduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -277,10 +277,6 @@
     paintGlobalMotion();
 
     if (!motionReduce && finePointer) {
-      var aura = document.createElement("div");
-      aura.className = "pointer-aura";
-      aura.setAttribute("aria-hidden", "true");
-      document.body.appendChild(aura);
       document.addEventListener("pointermove", function (e) {
         document.documentElement.style.setProperty("--pointer-x", e.clientX + "px");
         document.documentElement.style.setProperty("--pointer-y", e.clientY + "px");
@@ -288,33 +284,22 @@
       }, { passive: true });
 
       document.querySelectorAll(".page-object,.hero-signal-panel,.focus-timeline,.lyfe-premium-card,.research-entry,.card,.contact-panel").forEach(function (surface) {
-        surface.classList.add("motion-surface");
+        surface.classList.add("signal-surface");
         surface.addEventListener("pointermove", function (e) {
           var rect = surface.getBoundingClientRect();
           var x = (e.clientX - rect.left) / Math.max(1, rect.width);
           var y = (e.clientY - rect.top) / Math.max(1, rect.height);
-          surface.style.setProperty("--surface-x", ((x - .5) * 10).toFixed(2) + "px");
-          surface.style.setProperty("--surface-y", ((y - .5) * 10).toFixed(2) + "px");
-          surface.style.setProperty("--surface-hot-x", (x * 100).toFixed(1) + "%");
-          surface.style.setProperty("--surface-hot-y", (y * 100).toFixed(1) + "%");
+          surface.style.setProperty("--signal-x", (x * 100).toFixed(1) + "%");
+          surface.style.setProperty("--signal-y", (y * 100).toFixed(1) + "%");
+          surface.classList.add("is-sensing");
         }, { passive: true });
         surface.addEventListener("pointerleave", function () {
-          surface.style.setProperty("--surface-x", "0px");
-          surface.style.setProperty("--surface-y", "0px");
+          surface.classList.remove("is-sensing");
         });
       });
 
       document.querySelectorAll(".btn").forEach(function (button) {
-        button.classList.add("magnetic-action");
-        button.addEventListener("pointermove", function (e) {
-          var rect = button.getBoundingClientRect();
-          button.style.setProperty("--magnet-x", (((e.clientX - rect.left) / rect.width - .5) * 8).toFixed(2) + "px");
-          button.style.setProperty("--magnet-y", (((e.clientY - rect.top) / rect.height - .5) * 6).toFixed(2) + "px");
-        }, { passive: true });
-        button.addEventListener("pointerleave", function () {
-          button.style.setProperty("--magnet-x", "0px");
-          button.style.setProperty("--magnet-y", "0px");
-        });
+        button.classList.add("signal-action");
       });
     }
 
@@ -325,7 +310,7 @@
       setInterval(function () {
         heroSignalStep = (heroSignalStep + 1) % 3;
         heroSignalPanel.setAttribute("data-state", String(heroSignalStep));
-      }, 2400);
+      }, 3000);
     }
 
     requestAnimationFrame(function () { document.body.classList.add("is-ready"); });
