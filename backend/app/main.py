@@ -5,12 +5,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
 from . import config
 from .db import init_db
-from .middleware import (
-    BodyLimitMiddleware,
-    JsonContentTypeMiddleware,
-    RateLimitMiddleware,
-    SecurityHeadersMiddleware,
-)
+from .middleware import BodyLimitMiddleware, RateLimitMiddleware, SecurityHeadersMiddleware
 from .routers import auth, contact, health
 
 
@@ -32,7 +27,6 @@ def create_app() -> FastAPI:
         allow_headers=["Authorization", "Content-Type"],
     )
     app.add_middleware(BodyLimitMiddleware, max_bytes=config.MAX_BODY_BYTES)
-    app.add_middleware(JsonContentTypeMiddleware)
     app.add_middleware(RateLimitMiddleware)
     # Added last so these headers wrap success, validation errors and edge rejects.
     app.add_middleware(SecurityHeadersMiddleware)

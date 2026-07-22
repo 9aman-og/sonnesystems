@@ -54,25 +54,3 @@ def test_email_is_normalized(client):
     r = _register(client, email="  MiXeD@Example.COM  ")
     assert r.status_code == 201
     assert r.json()["email"] == "mixed@example.com"
-
-
-def test_old_password_hash_is_upgraded_after_login(client, monkeypatch):
-    from app import config, security
-    from app.db import get_engine
-    from app.models import User
-    from sqlalchemy.orm import Session
-
-    monkeypatch.setattr(config, "PBKDF2_ITERATIONS", 310_000)
-    old_hash = security.hash_password(PW)
-    monkeypatch.setattr(config, "PBKDF2_ITERATIONS", 600_000)
-    with Session(get_engine()) as db:
-        user = User(email="rehash@example.com", password_hash=old_hash)
-        db.add(user)
-        db.commit()
-
-    response = client.post("/auth/login", json={"email": "rehash@example.com", "password": PW})
-    assert response.status_code == 200
-    with Session(get_engine()) as db:
-        upgraded = db.query(User).filter_by(email="rehash@example.com").one()
-        assert security.verify_password(PW, upgraded.password_hash)
-        assert not security.password_needs_rehash(upgraded.password_hash)

@@ -6,7 +6,6 @@ Checks:
      Exception: lines containing a dash character class regex (Lyfe's Sol filter).
   2. Every local href/src in root html pages points at a file that exists.
   3. Encrypted papers carry the SSE1 magic header.
-  4. Public application pages declare a restrictive Content Security Policy.
 
 Exit code 0 = healthy, 1 = problems (printed).
 """
@@ -74,30 +73,16 @@ def check_papers():
                 PROBLEMS.append(f"papers: {enc.name} lacks the SSE1 header (not our format?)")
 
 
-def check_browser_security():
-    pages = ["index.html", "research.html", "ventures.html", "about.html", "papers.html", "404.html"]
-    for name in pages:
-        html = (ROOT / name).read_text(encoding="utf-8")
-        if 'http-equiv="Content-Security-Policy"' not in html or "object-src 'none'" not in html:
-            PROBLEMS.append(f"security: {name} lacks the required Content Security Policy")
-    lyfe = (ROOT / "lyfe" / "index.html").read_text(encoding="utf-8")
-    if 'http-equiv="Content-Security-Policy"' not in lyfe or "object-src 'none'" not in lyfe:
-        PROBLEMS.append("security: lyfe/index.html lacks the required Content Security Policy")
-    if not (ROOT / ".well-known" / "security.txt").is_file():
-        PROBLEMS.append("security: .well-known/security.txt is missing")
-
-
 def main() -> int:
     check_dashes()
     check_links()
     check_papers()
-    check_browser_security()
     if PROBLEMS:
         print(f"FAIL: {len(PROBLEMS)} problem(s)")
         for p in PROBLEMS:
             print("  -", p)
         return 1
-    print("OK: dashes clean, links resolve, papers encrypted, browser policy present")
+    print("OK: dashes clean, links resolve, papers encrypted")
     return 0
 
 

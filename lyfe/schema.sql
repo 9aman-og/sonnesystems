@@ -24,7 +24,6 @@ create table if not exists public.lyfe_states (
 -- Turn ON row-level security. Without this line, the public anon key
 -- could read every row. With it, the policies below are the only way in.
 alter table public.lyfe_states enable row level security;
-alter table public.lyfe_states force row level security;
 
 -- SQL-created tables are not exposed to the Data API automatically on every
 -- Supabase project. Grant only the operations the signed-in client needs, and
@@ -59,17 +58,11 @@ create policy "lyfe update own"
 
 -- Keep updated_at honest on every write.
 create or replace function public.lyfe_touch_updated_at()
-returns trigger
-language plpgsql
-security invoker
-set search_path = pg_catalog
-as $$
+returns trigger language plpgsql as $$
 begin
   new.updated_at = now();
   return new;
 end $$;
-
-revoke all on function public.lyfe_touch_updated_at() from public, anon, authenticated;
 
 drop trigger if exists lyfe_touch on public.lyfe_states;
 create trigger lyfe_touch before update on public.lyfe_states

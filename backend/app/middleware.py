@@ -25,7 +25,6 @@ from . import config
 
 _SAFE_REQUEST_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 _WRITE_METHODS = {"POST", "PUT", "PATCH"}
-_JSON_ENDPOINTS = {"/auth/login", "/auth/register", "/contact", "/newsletter"}
 
 
 class BodyLimitMiddleware:
@@ -85,28 +84,6 @@ class BodyLimitMiddleware:
         await JSONResponse({"detail": detail}, status_code=413)(scope, receive, send)
 
 
-class JsonContentTypeMiddleware:
-    """Keep JSON write routes out of browser form and content-sniffing paths."""
-
-    def __init__(self, app: ASGIApp) -> None:
-        self.app = app
-
-    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
-        if (
-            scope["type"] == "http"
-            and scope.get("method") == "POST"
-            and scope.get("path") in _JSON_ENDPOINTS
-        ):
-            raw = dict(scope.get("headers", [])).get(b"content-type", b"")
-            media_type = raw.decode("latin-1").split(";", 1)[0].strip().lower()
-            if media_type != "application/json" and not media_type.endswith("+json"):
-                await JSONResponse(
-                    {"detail": "Content-Type must be application/json"}, status_code=415
-                )(scope, receive, send)
-                return
-        await self.app(scope, receive, send)
-
-
 class SecurityHeadersMiddleware:
     """Add safe defaults and a request ID to every HTTP response."""
 
@@ -132,13 +109,6 @@ class SecurityHeadersMiddleware:
                 headers["Referrer-Policy"] = "no-referrer"
                 headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
                 headers["Cross-Origin-Resource-Policy"] = "same-site"
-                headers["Cross-Origin-Opener-Policy"] = "same-origin"
-                headers["Content-Security-Policy"] = (
-                    "default-src 'none'; frame-ancestors 'none'; base-uri 'none'; "
-                    "form-action 'none'"
-                )
-                headers["X-Permitted-Cross-Domain-Policies"] = "none"
-                headers["X-DNS-Prefetch-Control"] = "off"
                 headers["Cache-Control"] = "no-store"
                 if config.production() or scope.get("scheme") == "https":
                     headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
@@ -162,7 +132,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self._buckets: dict[tuple[str, str], deque[float]] = defaultdict(deque)
         self._lock = threading.Lock()
-        self._last_prune = time.monotonic()
 
     async def dispatch(
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
@@ -176,12 +145,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         key = (request.url.path, client)
         now = time.monotonic()
         with self._lock:
-            if now - self._last_prune >= 300:
-                stale_before = now - max(window for _, window in self.RULES.values())
-                stale = [key for key, values in self._buckets.items() if not values or values[-1] <= stale_before]
-                for stale_key in stale:
-                    del self._buckets[stale_key]
-                self._last_prune = now
             bucket = self._buckets[key]
             while bucket and bucket[0] <= now - window:
                 bucket.popleft()
