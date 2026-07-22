@@ -16,7 +16,8 @@ The separate `backend/` directory contains a tested FastAPI service for future s
 ```text
 index.html       Company home and scroll-led research story
 research.html    Verified research record and known limits
-ventures.html    Lyfe Alt and Lyfe Store development pages
+ventures.html    Lyfe product page plus Lyfe Alt and Lyfe Store previews
+lyfe/            Installable Lyfe personal workspace application
 about.html       Studio, contracts, founder, and contact
 papers.html      Password-protected encrypted paper archive
 404.html         Site-wide not-found page
