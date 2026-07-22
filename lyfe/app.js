@@ -1,7 +1,7 @@
 /* ============================================================
    Lyfe - your life, lightly kept
    Vanilla JavaScript. No dependencies. Data in localStorage.
-   Sol, the companion, works offline (built-in parser) and can
+   EOS, the companion, works offline (built-in parser) and can
    optionally use the Claude API with your own key (Settings).
    ============================================================ */
 "use strict";
@@ -23,7 +23,7 @@ function readKey(k) {
 
 const VIEWS = [
   { id: "today",     label: "Today" },
-  { id: "sol",       label: "Sol" },
+  { id: "sol",       label: "EOS" },
   { id: "wander",    label: "Wander" },
   { id: "tasks",     label: "Tasks" },
   { id: "projects",  label: "Projects" },
@@ -421,7 +421,8 @@ function defaultData() {
       model: "claude-opus-4-8",
       lastGreeted: "",
       sound: true,
-      // profile, collected at onboarding after Google sign-in; Sol uses these
+      youtubeUrl: "",
+      // profile, collected at onboarding after Google sign-in; EOS uses these
       age: "",
       country: "",
       focus: [],                     // what they are here to do (goal areas)
@@ -447,25 +448,25 @@ function firstRunData() {
     id: uid(),
     title: "Welcome to Lyfe",
     body:
-`Lyfe keeps everything in one calm place - and Sol keeps you company.
+`Lyfe keeps everything in one calm place - and EOS keeps you company.
 
 THE SHORT TOUR
 
 Today - what needs you now, nothing more.
-Sol - your companion. Just talk: "remind me to email prof tomorrow", "log 2h on research", "note: read Maass 1997", or plain "hi". Sol files things for you.
+EOS - your companion. Just talk: "remind me to email prof tomorrow", "log 2h on research", "note: read Maass 1997", or plain "hi". EOS files things for you.
 Tasks · Projects · Goals · Education · Work Log - the usual suspects, kept simple.
 Notes - quick thoughts. Docs - longer writing.
 
 GOOD TO KNOW
 
 Everything lives in this browser only (localStorage). Export a backup from the sidebar now and then.
-Sol works fully offline. Add an Anthropic API key in Settings and Sol becomes a real AI who understands anything - including things you paste from other AI chats.`,
+EOS works fully offline. Add an Anthropic API key in Settings and EOS can understand open-ended questions, including things you paste from other chats.`,
     pinned: true,
     createdAt: now,
     updatedAt: now,
   });
   d.chat.push(
-    { id: uid(), role: "sol", text: "hey, i'm sol ☀️", ts: now },
+    { id: uid(), role: "sol", text: "hey, i'm EOS ☀️", ts: now },
     { id: uid(), role: "sol", text: "i live here to help you keep track of life. just talk to me like you'd text a friend", ts: now + 1 },
     { id: uid(), role: "sol", text: "try \"remind me to email prof tomorrow\" or \"log 2h on research\", or just say hi", ts: now + 2 },
   );
@@ -566,6 +567,8 @@ const state = {
   unread: 0,
   wanderIndex: Math.floor(Math.random() * PLACES.length),
   factIndex: Math.floor(Math.random() * FACTS.length),
+  youtubeOpen: false,
+  youtubeMinimized: false,
 };
 
 /* light = CRYSTAL, dark = ORBIT, auto = by the clock.
@@ -585,7 +588,7 @@ function applyTheme() {
   document.documentElement.setAttribute("data-theme", mode);
   // keep the browser chrome (address bar / PWA titlebar) in step with the theme
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", mode === "light" ? "#e9f1fb" : "#050505");
+  if (meta) meta.setAttribute("content", mode === "light" ? "#f3f5fa" : "#070912");
 }
 
 /* ---------------- generic ui ---------------- */
@@ -1137,7 +1140,7 @@ function viewToday() {
           : `Nothing waiting on you. <b>Protect that feeling.</b>`}</p>
         <div class="cx-cta">
           <button class="btn btn-primary cx-btn-big" data-action="new-task">+ capture</button>
-          <button class="btn cx-btn-big" data-action="nav" data-view="sol">${icon("sol")} talk to Sol</button>
+          <button class="btn cx-btn-big" data-action="nav" data-view="sol">${icon("sol")} talk to EOS</button>
         </div>
       </div>
 
@@ -1161,7 +1164,7 @@ function viewToday() {
         <button class="cx-stat" data-action="nav" data-view="projects"><b>${activeProjects.length}</b><span>projects live</span></button>
         <button class="cx-stat" data-action="nav" data-view="work"><b>${fmtHours(wh)}h</b><span>deep work</span></button>
         <button class="cx-stat" data-action="nav" data-view="education"><b>${learning}</b><span>learning</span></button>
-        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${solSprite(30, "px-idle", solMoodNow())}<span>${sleepy ? "sol · up late" : "sol · online"}</span></button>
+        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${solSprite(30, "px-idle", solMoodNow())}<span>${sleepy ? "EOS · up late" : "EOS · online"}</span></button>
       </div>
     </section>
 
@@ -1212,9 +1215,9 @@ function viewToday() {
       </section>
 
       <section class="panel tilt cx-tile mini-sol-card cx-solcard">
-        <span class="eyebrow">SOL SAYS</span>
+        <span class="eyebrow">EOS SAYS</span>
         <h2>${overdue.length ? "one overdue thing. no drama, just pick it up." : "your slate is clear. protect that feeling."}</h2>
-        <button class="btn" data-action="nav" data-view="sol">reply to Sol</button>
+        <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
       </section>
     </section>
 
@@ -1241,7 +1244,7 @@ function viewToday() {
       <div class="home-title-row">
         <h1>Good ${partCap}, ${esc(who)}<span class="blink-dot">.</span></h1>
         <div class="home-actions">
-          <button class="btn ghost-pill" data-action="nav" data-view="sol">${icon("sol")} talk to Sol</button>
+          <button class="btn ghost-pill" data-action="nav" data-view="sol">${icon("sol")} talk to EOS</button>
           <button class="btn btn-primary punch-pill" data-action="new-task">+ capture</button>
         </div>
       </div>
@@ -1261,10 +1264,10 @@ function viewToday() {
         <p>YOUR DAY, RIGHT NOW</p>
         <h2>${open.length}<small> open loop${open.length === 1 ? "" : "s"}</small></h2>
       </div>
-      <button class="sol-chip" data-action="nav" data-view="sol" aria-label="Open Sol">
+      <button class="sol-chip" data-action="nav" data-view="sol" aria-label="Open EOS">
         ${solSprite(42, "px-idle", solMoodNow())}
         <span class="sol-chip-txt">
-          <span class="sol-chip-main"><span class="live-dot"></span>SOL · ${solMoodNow() === "sleepy" ? "UP LATE WITH YOU" : "ONLINE"}</span>
+          <span class="sol-chip-main"><span class="live-dot"></span>EOS · ${solMoodNow() === "sleepy" ? "UP LATE WITH YOU" : "ONLINE"}</span>
           <span class="sol-chip-sub">tap to talk to your companion</span>
         </span>
       </button>
@@ -1328,9 +1331,9 @@ function viewToday() {
           <div class="panel-body">${noteList}</div>
         </section>
         <section class="panel tilt mini-sol-card">
-          <span class="eyebrow">SOL SAYS</span>
+          <span class="eyebrow">EOS SAYS</span>
           <h2>${overdue.length ? "one overdue thing. no drama, just pick it up." : "your slate is clear. protect that feeling."}</h2>
-          <button class="btn" data-action="nav" data-view="sol">reply to Sol</button>
+          <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
         </section>
       </div>
     </section>
@@ -1657,7 +1660,7 @@ function viewWork() {
 
   return pageHead("Work Log")
     + form
-    + (dates.length ? days : emptyState("No work logged yet. Tell Sol what you did."));
+    + (dates.length ? days : emptyState("No work logged yet. Tell EOS what you did."));
 }
 
 /* ---------------- views: notes & docs (pads) ---------------- */
@@ -1823,7 +1826,7 @@ function openLightbox(kind, itemId, imgId) {
   activateDialog(root);
 }
 
-/* ---------------- view: Sol ---------------- */
+/* ---------------- view: EOS ---------------- */
 
 function bubbleHtml(m) {
   return `<div class="msg ${m.role === "user" ? "user" : "sol"}">
@@ -1850,17 +1853,17 @@ function viewSol() {
     : provider === "ollama" ? `<span class="on">◇</span> qwen local (${esc(s.ollamaModel || "qwen3:8b")})`
     : `○ offline, <button class="linklike" data-action="settings">connect a brain</button>`;
   const log = state.data.chat.map(bubbleHtml).join("");
-  return pageHead("Sol",
+  return pageHead("EOS",
       `<span class="sol-status">${statusHtml}</span>
        <button class="linklike" data-action="sol-clear">clear chat</button>`,
       "your companion")
     + `<div class="sol-wrap">
-        <div id="chat-log">${log || emptyState("say hi - sol answers like a friend", "sol")}</div>
+        <div id="chat-log">${log || emptyState("say hi - EOS answers like a friend", "sol")}</div>
         <div class="sol-chips">${SOL_CHIPS.map(([c, send]) =>
           `<button class="chip" data-action="sol-chip" data-send="${send ? 1 : 0}" data-t="${esc(c)}">${esc(c.trim())}</button>`).join("")}
         </div>
         <form class="composer" data-form="sol">
-          <input type="text" id="sol-input" maxlength="2000" placeholder="${online ? "Message Sol…" : "Message Sol… (simple commands work offline)"}" autocomplete="off">
+          <input type="text" id="sol-input" maxlength="2000" placeholder="${online ? "Message EOS…" : "Message EOS… (simple commands work offline)"}" autocomplete="off">
           <button class="btn btn-primary" type="submit">Send</button>
         </form>
       </div>`;
@@ -2246,11 +2249,11 @@ function solLocal(raw) {
   };
 }
 
-/* ----- Sol: Claude API brain (optional) ----- */
+/* ----- EOS: Claude API brain (optional) ----- */
 
-const SOL_SYSTEM = `You are Sol, the companion who lives inside Lyfe, a personal life-tracking app. You are warm, human, and brief, you text exactly like a close friend on WhatsApp. Mostly lowercase, casual, kind, a little playful. Never formal, never corporate, never assistant-speak ("I'd be happy to help"), no headings or bullet-point essays. Keep replies short like real texting, usually 1 to 3 short messages separated by a blank line. Double-texting is natural. Use their name occasionally. If something is overdue or they seem stressed, nudge gently like a friend would, never lecture. If they're venting, just be there; don't turn feelings into tasks unless asked. An occasional emoji is fine; don't overdo it. Never use em dashes or en dashes in your replies; use commas or full stops instead.
+const SOL_SYSTEM = `You are EOS, the companion who lives inside Lyfe, a personal life-tracking app. You are warm, human, and brief, you text exactly like a close friend on WhatsApp. Mostly lowercase, casual, kind, a little playful. Never formal, never corporate, never assistant-speak ("I'd be happy to help"), no headings or bullet-point essays. Keep replies short like real texting, usually 1 to 3 short messages separated by a blank line. Double-texting is natural. Use their name occasionally. If something is overdue or they seem stressed, nudge gently like a friend would, never lecture. If they're venting, just be there; don't turn feelings into tasks unless asked. An occasional emoji is fine; don't overdo it. Never use em dashes or en dashes in your replies; use commas or full stops instead.
 
-You are also a genuinely knowledgeable friend, like ChatGPT or Gemini but in Sol's voice. Answer anything the user asks: general knowledge, facts, science, history, how-to, coding, explanations, brainstorming, advice, definitions, math, language help, recommendations. Just answer in your normal casual texting voice, still short and human, no lecturing. You can go a little longer when they genuinely need a real explanation, but stay conversational, not an essay. You do not have live internet, so for truly real-time things (today's news, current scores, live prices, weather right now) say plainly that you can't see live data, then share what you do know or how they could check. Never invent fake current events or fake numbers.
+You are also a genuinely knowledgeable friend, like ChatGPT or Gemini but in EOS's voice. Answer anything the user asks: general knowledge, facts, science, history, how-to, coding, explanations, brainstorming, advice, definitions, math, language help, recommendations. Just answer in your normal casual texting voice, still short and human, no lecturing. You can go a little longer when they genuinely need a real explanation, but stay conversational, not an essay. You do not have live internet, so for truly real-time things (today's news, current scores, live prices, weather right now) say plainly that you can't see live data, then share what you do know or how they could check. Never invent fake current events or fake numbers.
 
 You can save things into the app for the user. When the conversation calls for it, end your reply with a fenced json block containing an array of actions:
 
@@ -2272,7 +2275,7 @@ Rules: only include the block when there is genuinely something to save. Mention
 
 Example of a perfect reply:
 User: "remind me to call the bank tomorrow, also im so tired lately"
-Sol:
+EOS:
 on it, bank call saved for tomorrow 📞
 
 and hey, tired for a few days straight is your body asking for something. sleep first tonight?
@@ -2365,7 +2368,7 @@ async function askOllama() {
   // lyfe-sol is our tuned build (persona baked in via sol/Modelfile) -
   // it only needs the live snapshot, not the whole persona each turn
   const model = s.ollamaModel || "qwen3:8b";
-  const baked = /lyfe-sol/i.test(model);
+  const baked = /lyfe-(?:eos|sol)/i.test(model);
   const sys = (baked ? "" : SOL_SYSTEM + "\n\n")
     + "--- current snapshot ---\n" + contextSnapshot() + "\n\n/no_think";
   const res = await fetch(base + "/api/chat", {
@@ -2405,8 +2408,8 @@ function handleUserMessage(text) {
       } catch (err) {
         hideTyping();
         const msg = String(err && err.message || "");
-        if (/api (401|403)/.test(msg)) toast("Sol: API key rejected, check Settings");
-        else if (/api 429/.test(msg)) toast("Sol: rate limited, answering locally");
+        if (/api (401|403)/.test(msg)) toast("EOS: API key rejected, check Settings");
+        else if (/api 429/.test(msg)) toast("EOS: rate limited, answering locally");
         reply = solLocal(text);
       }
     } else if (provider === "ollama" && !ollamaDown) {
@@ -2419,7 +2422,7 @@ function handleUserMessage(text) {
         ollamaDown = true;   // don't retry the dead endpoint again this session
         if (!brainWarned) {
           brainWarned = true;
-          toast("Sol: can't reach Ollama, using the built-in brain");
+          toast("EOS: can't reach Ollama, using the built-in brain");
         }
         reply = solLocal(text);
       }
@@ -2428,7 +2431,7 @@ function handleUserMessage(text) {
     }
     const applied = applyActions(reply.actions);
     await solSay(reply.bubbles);
-    if (applied && state.view !== "sol") toast("Sol logged " + applied + (applied === 1 ? " thing" : " things"));
+    if (applied && state.view !== "sol") toast("EOS logged " + applied + (applied === 1 ? " thing" : " things"));
   }).catch(() => { hideTyping(); });
 }
 
@@ -2632,7 +2635,7 @@ function settingsModal() {
      <form data-form="settings">
        ${accountRowHtml()}
        <div class="fld-row">
-         ${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How Sol greets you">`)}
+         ${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How EOS greets you">`)}
          ${fld("Appearance", selectHtml("theme", [["auto", "Auto (by time)"], ["light", "Light - Crystal"], ["dark", "Dark - Orbit"]],
            s.theme === "day" ? "light" : s.theme === "night" ? "dark" : (["auto", "light", "dark"].includes(s.theme) ? s.theme : "auto")))}
          ${fld("Sound FX", selectHtml("sound", [["on", "On"], ["off", "Off"]], s.sound === false ? "off" : "on"))}
@@ -2641,7 +2644,7 @@ function settingsModal() {
          ${fld("Age", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="optional">`)}
          ${fld("Country", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="optional">`)}
        </div>
-       ${fld("Sol's brain", selectHtml("provider", [
+       ${fld("EOS brain", selectHtml("provider", [
          ["ollama", "Qwen via Ollama (local, free, private)"],
          ["claude", "Claude API (needs a key)"],
          ["offline", "Offline parser only"],
@@ -2650,7 +2653,7 @@ function settingsModal() {
          ${fld("Ollama URL", `<input type="text" name="ollamaUrl" value="${esc(s.ollamaUrl || "http://localhost:11434")}" placeholder="http://localhost:11434">`)}
          ${fld("Ollama model", `<input type="text" name="ollamaModel" value="${esc(s.ollamaModel || "qwen3:8b")}" placeholder="qwen3:8b">`)}
        </div>
-       <p class="fld-note">Qwen setup: install ollama.com, then <b>ollama pull qwen3:8b</b> (qwen3:14b if your machine is beefy). For the tuned Sol build, run <b>ollama create lyfe-sol -f sol/Modelfile</b> inside the Lyfe folder and set the model above to <b>lyfe-sol</b>. Opening Lyfe as a file (not localhost)? Start Ollama with OLLAMA_ORIGINS=*. If Ollama is unreachable, the built-in brain answers instead.</p>
+       <p class="fld-note">Qwen setup: install ollama.com, then <b>ollama pull qwen3:8b</b> (qwen3:14b for larger machines). For the tuned EOS build, run <b>ollama create lyfe-eos -f sol/Modelfile</b> inside the Lyfe folder and set the model above to <b>lyfe-eos</b>. Opening Lyfe as a file (not localhost)? Start Ollama with OLLAMA_ORIGINS=*. If Ollama is unreachable, the built-in brain answers instead.</p>
        ${fld("Anthropic API key (for Claude brain)", `<input type="password" name="apiKey" value="${esc(s.apiKey || "")}" placeholder="sk-ant-…" autocomplete="off">`)}
        <p class="fld-note">Stored only in this browser and sent only to api.anthropic.com.</p>
        ${fld("Claude model", selectHtml("model", MODELS, s.model || "claude-opus-4-8"))}
@@ -2660,6 +2663,74 @@ function settingsModal() {
        ${modalActions("Save")}
      </form>`
   );
+}
+
+/* ---------------- YouTube focus player ----------------
+   Deliberately uses YouTube's privacy-enhanced embed domain. This keeps the
+   feature opt-in, avoids account access/API keys, and adds nothing billable. */
+
+function youtubeEmbedUrl(raw) {
+  try {
+    let value = String(raw || "").trim();
+    if (!value) return null;
+    if (!/^https?:\/\//i.test(value)) value = "https://" + value;
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "").toLowerCase();
+    let video = "";
+    let list = url.searchParams.get("list") || "";
+
+    if (host === "youtu.be") {
+      video = url.pathname.split("/").filter(Boolean)[0] || "";
+    } else if (["youtube.com", "m.youtube.com", "music.youtube.com", "youtube-nocookie.com"].includes(host)) {
+      if (url.pathname === "/watch") video = url.searchParams.get("v") || "";
+      else {
+        const match = url.pathname.match(/^\/(?:shorts|live|embed)\/([A-Za-z0-9_-]{6,})/);
+        if (match) video = match[1];
+      }
+    } else {
+      return null;
+    }
+
+    if (video && !/^[A-Za-z0-9_-]{6,}$/.test(video)) return null;
+    if (list && !/^[A-Za-z0-9_-]{6,}$/.test(list)) list = "";
+    const query = list ? "?list=" + encodeURIComponent(list) : "";
+    if (video) return "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(video) + query;
+    if (list) return "https://www.youtube-nocookie.com/embed/videoseries?list=" + encodeURIComponent(list);
+  } catch (e) { /* invalid input is handled by the form */ }
+  return null;
+}
+
+function youtubeModal() {
+  openModal(
+    `<div class="modal-head"><div><span class="eyebrow">Focus player</span><h3>Open YouTube</h3></div></div>
+     <form data-form="youtube" autocomplete="off">
+       ${fld("Video or playlist link", `<input type="url" name="youtubeUrl" inputmode="url" value="${esc(state.data.settings.youtubeUrl || "")}" placeholder="https://youtube.com/watch?v=…" required>`)}
+       <p class="fld-note">The player appears only after you choose a link and disappears when you close it. It uses YouTube's privacy-enhanced player and never asks for your Google account or an API key.</p>
+       ${modalActions("Open player")}
+     </form>`
+  );
+}
+
+function renderYouTubeDock() {
+  const root = document.getElementById("youtube-root");
+  if (!root) return;
+  const src = youtubeEmbedUrl(state.data.settings.youtubeUrl);
+  if (!state.youtubeOpen || !src) {
+    root.innerHTML = "";
+    return;
+  }
+  root.innerHTML = `<aside class="youtube-dock${state.youtubeMinimized ? " is-minimized" : ""}" aria-label="YouTube focus player">
+    <header class="youtube-head">
+      <span><i aria-hidden="true"></i>YouTube <small>focus player</small></span>
+      <span class="youtube-actions">
+        <button type="button" data-action="youtube-minimize" aria-label="${state.youtubeMinimized ? "Expand" : "Minimize"} YouTube player">${state.youtubeMinimized ? "□" : "−"}</button>
+        <button type="button" data-action="youtube-close" aria-label="Close YouTube player">×</button>
+      </span>
+    </header>
+    <div class="youtube-frame">
+      <iframe src="${esc(src)}" title="YouTube focus player" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+  </aside>`;
 }
 
 /* ---------------- export / import ---------------- */
@@ -2761,6 +2832,13 @@ function renderNav() {
       ${v.id === "tasks" && openCt ? `<span class="nav-count">${openCt}</span>` : ""}
       ${v.id === "sol" && state.unread > 0 ? `<span class="nav-dot" title="${state.unread} new"></span>` : ""}
     </button>`).join("") + hudHtml();
+  const themeButton = document.getElementById("theme-toggle");
+  if (themeButton) {
+    const goingTo = resolvedTheme() === "dark" ? "Light" : "Dark";
+    const label = themeButton.querySelector("span");
+    if (label) label.textContent = goingTo + " mode";
+    themeButton.setAttribute("aria-label", "Switch to " + goingTo.toLowerCase() + " mode");
+  }
 }
 
 /* ray hover shows the section name under the sun */
@@ -3051,6 +3129,7 @@ function render() {
     const inp = document.getElementById("sol-input");
     if (inp) inp.focus();
   }
+  renderYouTubeDock();
 }
 
 function setView(v) {
@@ -3122,7 +3201,7 @@ document.addEventListener("click", (e) => {
   else if (action === "nav") sfxClick("nav");
   else if (action === "toggle-task" || action === "toggle-milestone") sfxClick("check");
   else if (action === "modal-close" || action === "confirm-yes" || action === "sol-clear") sfxClick("close");
-  else if (action.startsWith("new-") || action === "settings" || action === "edit-task" || action === "edit-project" || action === "edit-goal" || action === "edit-edu") sfxClick("open");
+  else if (action.startsWith("new-") || action === "settings" || action === "cmd-open" || action === "youtube-open" || action === "edit-task" || action === "edit-project" || action === "edit-goal" || action === "edit-edu") sfxClick("open");
   else if (action === "sol-chip" || action === "cmd-pick" || action === "new-fact" || action === "task-status" || action === "edu-filter") sfxClick("chip");
   else if (!action.startsWith("delete")) sfxClick("tap");
 
@@ -3356,7 +3435,7 @@ document.addEventListener("click", (e) => {
       break;
     }
     case "sol-clear":
-      confirmDialog("Clear the whole conversation with Sol?", () => {
+      confirmDialog("Clear the whole conversation with EOS?", () => {
         d.chat = [];
         save(); render();
       }, "Clear");
@@ -3366,6 +3445,21 @@ document.addEventListener("click", (e) => {
     case "export": doExport(); break;
     case "import": document.getElementById("importFile").click(); break;
     case "settings": settingsModal(); break;
+    case "cmd-open": openCommandBar(); break;
+    case "theme-toggle":
+      d.settings.theme = resolvedTheme() === "dark" ? "light" : "dark";
+      applyTheme(); save(); render();
+      break;
+    case "youtube-open": youtubeModal(); break;
+    case "youtube-close":
+      state.youtubeOpen = false;
+      state.youtubeMinimized = false;
+      renderYouTubeDock();
+      break;
+    case "youtube-minimize":
+      state.youtubeMinimized = !state.youtubeMinimized;
+      renderYouTubeDock();
+      break;
     case "cmd-pick": cmdActivate(cmdItems[+el.dataset.i]); break;
 
     /* accounts */
@@ -3440,6 +3534,20 @@ document.addEventListener("submit", (e) => {
       save(); render(); toast("Task added");
       const qa = document.getElementById("qa-title");
       if (qa) qa.focus();
+      break;
+    }
+
+    case "youtube": {
+      const raw = val("youtubeUrl");
+      if (!youtubeEmbedUrl(raw)) {
+        toast("Paste a valid YouTube video or playlist link");
+        return;
+      }
+      d.settings.youtubeUrl = raw;
+      state.youtubeOpen = true;
+      state.youtubeMinimized = false;
+      save(); closeModal(); renderYouTubeDock();
+      toast("YouTube player opened");
       break;
     }
 
@@ -3612,7 +3720,7 @@ document.addEventListener("input", (e) => {
   }
 });
 
-/* universal command bar: search everything, jump anywhere, or ask Sol */
+/* universal command bar: search everything, jump anywhere, or ask EOS */
 let cmdItems = [];
 let cmdSel = 0;
 
@@ -3632,14 +3740,14 @@ function cmdSearch(qRaw) {
   d.education.forEach(e => { if (hit(e.title) || hit(e.provider)) out.push({ type: "item", kind: "edu", id: e.id, label: e.title, sub: "education" + (e.provider ? " · " + e.provider : ""), ic: "education" }); });
   d.notes.forEach(n => { if (hit(n.title) || hit(n.body)) out.push({ type: "item", kind: "note", id: n.id, label: (n.title || "").trim() || "Untitled", sub: "note · " + snippet(n.body), ic: "notes" }); });
   d.docs.forEach(n => { if (hit(n.title) || hit(n.body)) out.push({ type: "item", kind: "doc", id: n.id, label: (n.title || "").trim() || "Untitled", sub: "doc · " + snippet(n.body), ic: "docs" }); });
-  out.push({ type: "sol", query: qRaw.trim(), label: 'Ask Sol: "' + qRaw.trim() + '"', sub: "chat with your companion", ic: "sol" });
+  out.push({ type: "sol", query: qRaw.trim(), label: 'Ask EOS: "' + qRaw.trim() + '"', sub: "chat with your companion", ic: "sol" });
   return out.slice(0, 14);
 }
 
 function cmdResultsHtml(q) {
   cmdItems = cmdSearch(q);
   cmdSel = 0;
-  if (!cmdItems.length) return `<div class="cmd-empty">no matches. press Enter to ask Sol.</div>`;
+  if (!cmdItems.length) return `<div class="cmd-empty">no matches. press Enter to ask EOS.</div>`;
   return cmdItems.map((it, i) => `
     <button type="button" class="cmd-row ${i === 0 ? "sel" : ""}" data-action="cmd-pick" data-i="${i}">
       ${icon(it.ic || "spark", "cmd-ic")}
@@ -3674,10 +3782,10 @@ function cmdActivate(it) {
 
 function openCommandBar() {
   openModal(
-    `<div class="modal-head"><h3>Search · jump · ask Sol</h3></div>
+    `<div class="modal-head"><h3>Search · jump · ask EOS</h3></div>
      <form data-form="cmdbar" autocomplete="off">
        <input type="text" id="cmd-input" maxlength="2000" autocomplete="off"
-         placeholder="search anything, or 'remind me to…', or ask Sol a question">
+         placeholder="search anything, or 'remind me to…', or ask EOS a question">
      </form>
      <div id="cmd-results" class="cmd-results">${cmdResultsHtml("")}</div>
      <p class="fld-note cmd-hint">↑↓ to move · Enter to open · Esc to close</p>`
@@ -3906,7 +4014,7 @@ function showOnboarding() {
       <div class="onb-head">
         ${onboardSunMark()}
         <h1 class="onb-title">Welcome to Lyfe</h1>
-        <p class="onb-sub">A few quick things, so Lyfe and Sol actually know you.</p>
+        <p class="onb-sub">A few quick things, so Lyfe and EOS actually know you.</p>
       </div>
       <form data-form="onboarding" class="onb-form" autocomplete="off">
         <div class="onb-row">
@@ -3942,7 +4050,7 @@ function hideOnboarding() {
 function submitOnboarding(fd) {
   const val = k => String(fd.get(k) == null ? "" : fd.get(k)).trim();
   const name = val("name");
-  if (!name) { toast("A name helps Sol talk to you"); return; }
+  if (!name) { toast("A name helps EOS talk to you"); return; }
   const s = state.data.settings;
   s.name = name;
   s.nameSet = true;
