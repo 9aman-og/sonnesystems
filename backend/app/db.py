@@ -44,6 +44,9 @@ def init_db() -> None:
     from . import models  # noqa: F401  (register tables)
 
     Base.metadata.create_all(get_engine())
+    path = config.db_path()
+    if os.name != "nt" and os.path.exists(path):
+        os.chmod(path, 0o600)
 
 
 def get_db() -> Generator[Session, None, None]:

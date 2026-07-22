@@ -31,6 +31,15 @@ def verify_password(password: str, stored: str) -> bool:
         return False
 
 
+def password_needs_rehash(stored: str) -> bool:
+    """Move older valid hashes to the current work factor on the next login."""
+    try:
+        scheme, algo, iters, _salt, _digest = stored.split("$")
+        return scheme != _SCHEME or algo != _HASH or int(iters) < config.PBKDF2_ITERATIONS
+    except (ValueError, TypeError):
+        return True
+
+
 def new_token() -> tuple[str, str]:
     """Returns (raw_token_for_client, sha256_hash_for_storage)."""
     raw = secrets.token_urlsafe(32)

@@ -68,6 +68,8 @@ def login(body: LoginIn, db: Session = Depends(get_db)) -> TokenOut:
     password_ok = security.verify_password(body.password, stored_hash)
     if user is None or not password_ok:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid email or password")
+    if security.password_needs_rehash(user.password_hash):
+        user.password_hash = security.hash_password(body.password)
     # Opportunistically clear this user's expired sessions before issuing one.
     db.execute(delete(AuthToken).where(AuthToken.user_id == user.id, AuthToken.expires_at < utcnow()))
     raw, token_hash = security.new_token()

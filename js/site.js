@@ -32,7 +32,7 @@
       '  <a class="skip-link" href="#main-content">Skip to content</a>',
       '  <div class="header-inner">',
       '    <a class="brand" href="/" aria-label="Sonne Systems home">',
-      '      <span class="brand-mark" aria-hidden="true"><i></i></span>',
+      '      <span class="brand-mark" aria-hidden="true"></span>',
       '      <span>Sonne Systems</span>',
       '    </a>',
       '    <nav class="site-nav" aria-label="Primary">',
@@ -63,7 +63,7 @@
       '    </div>',
       '    <div class="footer-bottom">',
       '      <span>Copyright ' + new Date().getFullYear() + ' Sonne Systems</span>',
-      '      <nav class="footer-nav" aria-label="Footer"><a href="/research.html">Research</a><a href="/ventures.html">Ventures</a><a href="/about.html">Studio</a><a href="/papers.html">Paper archive</a></nav>',
+      '      <nav class="footer-nav" aria-label="Footer"><a href="/research.html">Research</a><a href="/lyfe/">Lyfe</a><a href="/ventures.html">Ventures</a><a href="/about.html">Studio</a><a href="/papers.html">Paper archive</a></nav>',
       '      <span>Independent AI research</span>',
       '    </div>',
       '  </div>',
@@ -208,6 +208,9 @@
   var focusBody = focusSequence ? focusSequence.querySelector("[data-focus-body]") : null;
   var focusCopy = focusSequence ? focusSequence.querySelector(".focus-copy") : null;
   var focusIndex = -1;
+  var focusTarget = 0;
+  var focusCurrent = 0;
+  var focusMotionFrame = 0;
   var focusIdeas = [
     { title: "Change arrives.", body: "A useful system should notice meaningful change without spending the same effort on every moment." },
     { title: "Time becomes data.", body: "Sparse events can preserve timing and structure without carrying all of the empty space between them." },
@@ -215,13 +218,26 @@
     { title: "The answer gets clear.", body: "Once more processing can no longer improve the decision, the system should stop." }
   ];
 
+  function animateFocus() {
+    focusCurrent += (focusTarget - focusCurrent) * .11;
+    if (Math.abs(focusTarget - focusCurrent) < .0004) focusCurrent = focusTarget;
+    focusSequence.style.setProperty("--focus-progress", focusCurrent.toFixed(4));
+    focusSequence.style.setProperty("--wheel-spin", (focusCurrent * 148).toFixed(2) + "deg");
+    if (focusCurrent !== focusTarget) {
+      focusMotionFrame = requestAnimationFrame(animateFocus);
+    } else {
+      focusMotionFrame = 0;
+    }
+  }
+
   function renderFocus() {
     if (!focusSequence || reducedMotion) return;
     var start = focusSequence.offsetTop;
     var distance = Math.max(1, focusSequence.offsetHeight - window.innerHeight);
     var progress = Math.max(0, Math.min(.999, (window.scrollY - start) / distance));
     var nextIndex = Math.min(focusIdeas.length - 1, Math.floor(progress * focusIdeas.length));
-    focusSequence.style.setProperty("--focus-progress", progress.toFixed(4));
+    focusTarget = progress;
+    if (!focusMotionFrame) focusMotionFrame = requestAnimationFrame(animateFocus);
     if (nextIndex === focusIndex) return;
     focusIndex = nextIndex;
     if (focusTitle) focusTitle.textContent = focusIdeas[nextIndex].title;
