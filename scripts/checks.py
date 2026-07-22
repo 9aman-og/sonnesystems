@@ -122,17 +122,52 @@ def check_brand_and_indexing():
         PROBLEMS.append("indexing: robots.txt does not expose the public site and sitemap")
 
 
+def check_lyfe_shell():
+    """Keep the published Lyfe entry point, PWA assets, and Sonne links intact."""
+    lyfe = ROOT / "lyfe"
+    required = {
+        "index.html",
+        "app.js",
+        "cloud.js",
+        "styles.css",
+        "sw.js",
+        "manifest.webmanifest",
+    }
+    for filename in sorted(required):
+        if not (lyfe / filename).is_file():
+            PROBLEMS.append(f"lyfe: {filename} is missing")
+
+    manifest_path = lyfe / "manifest.webmanifest"
+    if manifest_path.is_file():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as error:
+            PROBLEMS.append(f"lyfe: manifest is invalid JSON ({error})")
+        else:
+            for icon in manifest.get("icons", []):
+                source = icon.get("src", "")
+                if source and not (lyfe / source.lstrip("./")).is_file():
+                    PROBLEMS.append(f"lyfe: manifest references missing {source}")
+
+    ventures = (ROOT / "ventures.html").read_text(encoding="utf-8")
+    if 'href="/lyfe/"' not in ventures:
+        PROBLEMS.append("lyfe: Ventures page does not link to the live app")
+    if "lyfe-feature-cloud" in ventures:
+        PROBLEMS.append("lyfe: obsolete floating feature labels are present")
+
+
 def main() -> int:
     check_dashes()
     check_links()
     check_papers()
     check_brand_and_indexing()
+    check_lyfe_shell()
     if PROBLEMS:
         print(f"FAIL: {len(PROBLEMS)} problem(s)")
         for p in PROBLEMS:
             print("  -", p)
         return 1
-    print("OK: dashes clean, links resolve, papers encrypted, brand metadata valid")
+    print("OK: links resolve, papers are encrypted, brand metadata and Lyfe shell are valid")
     return 0
 
 
