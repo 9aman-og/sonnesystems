@@ -1,8 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
-  <title id="title">Sonne Systems sun mark</title>
-  <desc id="desc">A single-colour sun with eight even rays.</desc>
-  <g fill="none" stroke="#08090d" stroke-width="54" stroke-linecap="round">
-    <circle cx="512" cy="512" r="188"/>
-    <path d="M512 90v118M512 816v118M90 512h118M816 512h118M214 214l84 84M726 726l84 84M810 214l-84 84M298 726l-84 84"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Sonne Systems wheel mark</title>
+  <desc id="desc">A circular grid with twenty radial divisions and a central core.</desc>
+  <g fill="none" stroke="#08090d" stroke-width="7">
+    <circle cx="256" cy="256" r="230"/>
+    <circle cx="256" cy="256" r="138"/>
+    <circle cx="256" cy="256" r="64"/>
   </g>
+  <g fill="none" stroke="#08090d" stroke-width="7">
+    <path d="M256 26V192" transform="rotate(0 256 256)"/><path d="M256 26V192" transform="rotate(18 256 256)"/>
+    <path d="M256 26V192" transform="rotate(36 256 256)"/><path d="M256 26V192" transform="rotate(54 256 256)"/>
+    <path d="M256 26V192" transform="rotate(72 256 256)"/><path d="M256 26V192" transform="rotate(90 256 256)"/>
+    <path d="M256 26V192" transform="rotate(108 256 256)"/><path d="M256 26V192" transform="rotate(126 256 256)"/>
+    <path d="M256 26V192" transform="rotate(144 256 256)"/><path d="M256 26V192" transform="rotate(162 256 256)"/>
+    <path d="M256 26V192" transform="rotate(180 256 256)"/><path d="M256 26V192" transform="rotate(198 256 256)"/>
+    <path d="M256 26V192" transform="rotate(216 256 256)"/><path d="M256 26V192" transform="rotate(234 256 256)"/>
+    <path d="M256 26V192" transform="rotate(252 256 256)"/><path d="M256 26V192" transform="rotate(270 256 256)"/>
+    <path d="M256 26V192" transform="rotate(288 256 256)"/><path d="M256 26V192" transform="rotate(306 256 256)"/>
+    <path d="M256 26V192" transform="rotate(324 256 256)"/><path d="M256 26V192" transform="rotate(342 256 256)"/>
+  </g>
+  <circle cx="256" cy="256" r="43" fill="#08090d"/>
 </svg>
