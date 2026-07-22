@@ -16,8 +16,7 @@ The separate `backend/` directory contains a tested FastAPI service for future s
 ```text
 index.html       Company home and scroll-led research story
 research.html    Verified research record and known limits
-ventures.html    Lyfe product page plus Lyfe Alt and Lyfe Store previews
-lyfe/            Installable Lyfe personal workspace application
+ventures.html    Lyfe Alt and Lyfe Store development pages
 about.html       Studio, contracts, founder, and contact
 papers.html      Password-protected encrypted paper archive
 404.html         Site-wide not-found page
@@ -32,7 +31,8 @@ css/styles.css                 Design tokens, layouts, motion, and responsive ru
 js/site.js                     Shared navigation, footer, sound, reveal, transition, scroll sequence
 js/papers.js                   Browser-only Web Crypto paper decryption
 papers/*.pdf.enc               AES-256-GCM encrypted research PDFs
-assets/SonneSystemsCompanyLogo.png  1024 px transparent single-colour wheel mark
+assets/SonneSystemsCompanyLogo.svg  Scalable single-colour sun mark
+assets/SonneSystemsCompanyLogo.png  1024 px transparent PNG export
 assets/og.png                  1200 x 630 social preview
 scripts/checks.py              Link, style, and encrypted-file checks
 scripts/encrypt_paper.py       Paper encryption and round-trip verification
