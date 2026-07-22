@@ -1,7 +1,7 @@
 {
   "name": "Lyfe - your life, lightly kept",
   "short_name": "Lyfe",
-  "description": "A calm, gamified life tracker with Sol, your AI companion. Tasks, projects, goals, notes, docs and more.",
+  "description": "A calm, private life workspace with EOS, your personal companion. Tasks, projects, goals, notes, docs and more.",
   "start_url": "./index.html",
   "scope": "./",
   "id": "lyfe-app",
