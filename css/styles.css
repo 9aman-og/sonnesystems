@@ -100,15 +100,12 @@ p { text-wrap: pretty; }
 .brand { display: inline-flex; align-items: center; gap: 14px; color: inherit; text-decoration: none; }
 .brand > span:last-child { font-family: "Space Grotesk", Arial, sans-serif; font-size: .78rem; font-weight: 500; line-height: 1; letter-spacing: .24em; text-transform: uppercase; white-space: nowrap; }
 .brand-mark {
-  width: 31px;
-  height: 31px;
+  width: 34px;
+  height: 34px;
   flex: 0 0 auto;
-  border-radius: 50%;
-  background:
-    radial-gradient(circle, currentColor 0 10%, transparent 11% 25%, currentColor 26% 29%, transparent 30% 53%, currentColor 54% 57%, transparent 58% 92%, currentColor 93% 100%),
-    repeating-conic-gradient(currentColor 0 1.3deg, transparent 1.3deg 18deg);
-  -webkit-mask-image: radial-gradient(circle, #000 0 96%, transparent 97%);
-  mask-image: radial-gradient(circle, #000 0 96%, transparent 97%);
+  background-color: currentColor;
+  -webkit-mask: url("/assets/SonneSystemsCompanyLogo.png?v=brand3") center / contain no-repeat;
+  mask: url("/assets/SonneSystemsCompanyLogo.png?v=brand3") center / contain no-repeat;
 }
 .site-nav { display: flex; align-items: center; gap: clamp(18px, 2.5vw, 38px); }
 .site-nav a { position: relative; color: inherit; font-size: .82rem; text-decoration: none; }
