@@ -3,6 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; media-src 'none'">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>Sonne Systems | Advanced AI research and engineering</title>
   <meta name="description" content="Sonne Systems is an independent AI research company studying neuromorphic computing, continual learning, spiking neural networks, and evidence-led adaptive systems.">
   <link rel="canonical" href="https://sonnesystems.com/">
@@ -17,8 +19,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Serif:ital@0;1&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=clear1">
-  <script defer src="js/site.js?v=clear1"></script>
+  <link rel="stylesheet" href="css/styles.css?v=wheel1">
+  <script defer src="js/site.js?v=wheel1"></script>
 </head>
 <body>
   <div data-site-header></div>
@@ -42,6 +44,7 @@
         </div>
       </div>
       <div class="hero-atmosphere" aria-hidden="true"><i></i><i></i><i></i></div>
+      <i class="hero-wheel-seed" aria-hidden="true"></i>
     </section>
 
     <section class="focus-sequence" data-focus-sequence aria-label="How we approach adaptive intelligence">
@@ -123,12 +126,17 @@
     <section class="section section-lilac" aria-labelledby="ventures-title">
       <div class="shell split-heading">
         <div>
-          <p class="signal-label" data-reveal>In development</p>
+          <p class="signal-label" data-reveal>From research to daily life</p>
           <h2 id="ventures-title" data-reveal>Research can become something people use.</h2>
         </div>
-        <p data-reveal="soft">Our first consumer ventures are being developed carefully. No launch countdowns, no inflated promises.</p>
+        <p data-reveal="soft">Lyfe is available now. Lyfe Alt and Lyfe Store are being developed carefully, without imaginary features or launch dates.</p>
       </div>
       <div class="shell venture-preview">
+        <a class="venture-card venture-lyfe" href="/lyfe/" data-reveal="soft">
+          <span class="venture-app-icon" aria-hidden="true"><img src="assets/lyfe_logo.png" alt=""></span>
+          <div><span class="available-pill">Available now</span><h3>Lyfe</h3><p>A calm place for tasks, goals, notes, Wander, and your Sol companion.</p></div>
+          <span class="row-arrow" aria-hidden="true">↗</span>
+        </a>
         <a class="venture-card venture-alt" href="ventures.html#lyfe-alt" data-reveal="soft">
           <span class="venture-mark alt-mark" aria-hidden="true"><i></i><i></i></span>
           <div><span class="development-pill">In development</span><h3>Lyfe Alt</h3><p>A dating app for nerds, built around curiosity and real conversation.</p></div>
