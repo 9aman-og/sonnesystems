@@ -97,14 +97,16 @@ p { text-wrap: pretty; }
   justify-content: space-between;
   gap: 24px;
 }
-.brand { display: inline-flex; align-items: center; gap: 11px; color: inherit; font-weight: 600; text-decoration: none; letter-spacing: -.03em; }
-.brand-mark { position: relative; width: 25px; height: 25px; border: 1.5px solid currentColor; border-radius: 50%; }
-.brand-mark::before,
-.brand-mark::after { content: ""; position: absolute; inset: -5px 10px; background: currentColor; border-radius: 10px; }
-.brand-mark::after { transform: rotate(90deg); }
-.brand-mark i::before,
-.brand-mark i::after { content: ""; position: absolute; inset: -3px 10px; background: currentColor; border-radius: 10px; transform: rotate(45deg); }
-.brand-mark i::after { transform: rotate(-45deg); }
+.brand { display: inline-flex; align-items: center; gap: 14px; color: inherit; text-decoration: none; }
+.brand > span:last-child { font-family: "Space Grotesk", Arial, sans-serif; font-size: .78rem; font-weight: 500; line-height: 1; letter-spacing: .24em; text-transform: uppercase; white-space: nowrap; }
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  background-color: currentColor;
+  -webkit-mask: url("/assets/SonneSystemsCompanyLogo.png?v=brand3") center / contain no-repeat;
+  mask: url("/assets/SonneSystemsCompanyLogo.png?v=brand3") center / contain no-repeat;
+}
 .site-nav { display: flex; align-items: center; gap: clamp(18px, 2.5vw, 38px); }
 .site-nav a { position: relative; color: inherit; font-size: .82rem; text-decoration: none; }
 .site-nav a::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -8px; height: 2px; background: var(--coral); transition: right .24s var(--ease); }
@@ -142,6 +144,8 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
 .button:hover { transform: translateY(-2px); }
 .button:hover::before { transform: translateX(0); }
 .button-light { border-color: rgba(255,255,255,.7); color: #fff; background: rgba(255,255,255,.06); backdrop-filter: blur(14px); }
+.button-light::before,
+.button-quiet::before { background: #fff; }
 .button-light:hover { color: var(--ink); }
 .button-quiet { color: rgba(255,255,255,.78); border-color: rgba(255,255,255,.22); }
 .button-quiet:hover { color: var(--ink); }
@@ -249,18 +253,23 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
 /* ---------- Ventures preview and logos ---------- */
 .split-heading { display: grid; grid-template-columns: 1.25fr .55fr; gap: clamp(50px, 10vw, 150px); align-items: end; margin-bottom: clamp(50px, 8vw, 94px); }
 .split-heading > p { margin-bottom: 8px; max-width: 520px; font-size: 1.1rem; }
-.venture-preview { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.venture-preview { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .venture-card { position: relative; min-height: 460px; display: flex; flex-direction: column; justify-content: space-between; gap: 70px; padding: clamp(28px, 4vw, 52px); color: #fff; text-decoration: none; overflow: hidden; isolation: isolate; transition: transform .3s var(--ease), box-shadow .3s; }
 .venture-card::before { content: ""; position: absolute; z-index: -1; inset: 0; opacity: .7; background: radial-gradient(circle at 70% 10%, rgba(255,255,255,.18), transparent 36%); transition: transform .6s var(--ease); }
 .venture-card:hover { transform: translateY(-7px); box-shadow: 0 24px 70px rgba(23,20,55,.18); }
 .venture-card:hover::before { transform: scale(1.16) translate(-3%, 4%); }
+.venture-lyfe { background: linear-gradient(145deg, #0b1741, #354dbc 68%, #7b83f8); }
 .venture-alt { background: #301c4d; }
 .venture-store { background: #172b46; }
-.venture-card h3 { margin: 16px 0 10px; font-size: clamp(2.5rem, 5vw, 5rem); line-height: .94; letter-spacing: -.065em; font-weight: 500; }
+.venture-card h3 { margin: 16px 0 10px; font-size: clamp(2.5rem, 4vw, 4.6rem); line-height: .94; letter-spacing: -.065em; font-weight: 500; }
 .venture-card p { max-width: 480px; margin: 0; color: rgba(255,255,255,.68); }
 .venture-card > .row-arrow { position: absolute; right: 32px; top: 32px; }
 .development-pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid rgba(255,255,255,.28); border-radius: 999px; font: 500 .65rem/1 "IBM Plex Mono", monospace; letter-spacing: .09em; text-transform: uppercase; }
 .development-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 10px var(--lime); }
+.available-pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid rgba(255,255,255,.34); border-radius: 999px; font: 500 .65rem/1 "IBM Plex Mono", monospace; letter-spacing: .09em; text-transform: uppercase; }
+.available-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #9cffc5; box-shadow: 0 0 11px #9cffc5; }
+.venture-app-icon { width: 78px; height: 78px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(255,255,255,.34); border-radius: 24%; background: rgba(255,255,255,.11); box-shadow: inset 0 1px rgba(255,255,255,.42), 0 18px 50px rgba(4,8,28,.28); backdrop-filter: blur(15px); }
+.venture-app-icon img { width: 100%; height: 100%; object-fit: cover; }
 .venture-mark { position: relative; display: grid; place-items: center; width: 70px; height: 70px; color: currentColor; }
 .alt-mark i { position: absolute; width: 30px; height: 48px; border: 2px solid currentColor; border-radius: 50%; transform: translateX(-10px) rotate(-24deg); }
 .alt-mark i:nth-child(2) { transform: translateX(10px) rotate(24deg); }
@@ -319,11 +328,51 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
 
 /* ---------- Venture details ---------- */
 .venture-detail { min-height: 90vh; display: flex; align-items: center; padding: clamp(100px, 12vw, 180px) 0; }
+.venture-detail-lyfe { color: #fff; background: radial-gradient(circle at 16% 22%, rgba(160,201,255,.2), transparent 28%), linear-gradient(145deg, #07112d, #223c9e 62%, #6872e9); }
 .venture-detail-alt { color: #fff; background: #291942; }
 .venture-detail-store { color: #fff; background: #14273f; }
 .venture-detail-grid { display: grid; grid-template-columns: 1fr .75fr; gap: clamp(50px, 10vw, 150px); align-items: center; }
 .venture-logo-stage { position: relative; min-height: 560px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.035); }
 .venture-logo-lockup { position: relative; z-index: 2; display: flex; align-items: center; gap: 22px; font-size: clamp(2rem, 4vw, 4rem); letter-spacing: -.06em; }
+.venture-app-icon.large { width: 112px; height: 112px; }
+.lyfe-product-stage {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(182,207,255,.23), transparent 25%),
+    linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.025));
+  backdrop-filter: blur(22px);
+}
+.lyfe-product-stage::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  width: min(68%, 390px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 50%;
+  box-shadow: 0 0 0 42px rgba(255,255,255,.035), 0 0 0 84px rgba(255,255,255,.018), 0 0 90px rgba(111,151,255,.2);
+  animation: lyfe-stage-breathe 7s ease-in-out infinite alternate;
+}
+.lyfe-product-stage::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  width: 72%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent);
+  box-shadow: 0 0 22px rgba(145,180,255,.55);
+  transform: rotate(-12deg);
+  opacity: .62;
+}
+.lyfe-product-stage .venture-logo-lockup {
+  padding: 24px 32px;
+  border: 1px solid rgba(255,255,255,.28);
+  border-radius: 34px;
+  background: linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.055));
+  box-shadow: inset 0 1px rgba(255,255,255,.42), 0 28px 70px rgba(3,10,48,.28);
+  backdrop-filter: blur(20px);
+}
+@keyframes lyfe-stage-breathe { to { transform: scale(1.045); opacity: .76; } }
 .venture-mark.large { width: 100px; height: 100px; }
 .alt-mark.large i { width: 42px; height: 68px; }
 .logo-orbit { position: absolute; inset: 0; animation: slow-spin 28s linear infinite; }
@@ -333,6 +382,8 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
 .venture-detail-copy h2 { margin: 14px 0 28px; font-size: clamp(2.9rem, 5.7vw, 6rem); line-height: .95; letter-spacing: -.065em; font-weight: 500; }
 .venture-detail-copy > p:not(.signal-label) { color: rgba(255,255,255,.66); font-size: 1.08rem; }
 .venture-detail-copy .development-pill { margin-bottom: 38px; }
+.venture-detail-copy .available-pill { margin-bottom: 38px; }
+.venture-detail-copy .button { margin-top: 20px; }
 .store-grid { position: absolute; inset: 8%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; transform: rotate(-8deg) scale(1.1); }
 .store-grid i { border: 1px solid rgba(255,255,255,.1); background: linear-gradient(145deg, rgba(255,255,255,.04), transparent); animation: grid-breathe 4s ease-in-out infinite alternate; }
 .store-grid i:nth-child(2n) { animation-delay: -2s; }
@@ -393,6 +444,7 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
   .research-entry-title { max-width: 850px; }
   .venture-detail-grid { gap: 60px; }
   .venture-logo-stage { min-height: 420px; }
+  .venture-preview { grid-template-columns: 1fr; }
   .studio-story { gap: 55px; }.studio-portrait { min-height: 420px; }
 }
 
@@ -432,7 +484,7 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
 }
 
 @media (max-width: 470px) {
-  .brand { font-size: .9rem; }.brand-mark { width: 22px; height: 22px; }
+  .brand { gap: 10px; }.brand > span:last-child { font-size: .66rem; letter-spacing: .18em; }.brand-mark { width: 27px; height: 27px; }
   .hero h1 { font-size: 3.4rem; }
   .actions { align-items: stretch; flex-direction: column; }
   .button { width: 100%; }
