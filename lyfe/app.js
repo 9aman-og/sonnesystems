@@ -1,7 +1,7 @@
 /* ============================================================
    Lyfe - your life, lightly kept
    Vanilla JavaScript. No dependencies. Data in localStorage.
-   EOS, the companion, works offline (built-in parser) and can
+   Sol, the companion, works offline (built-in parser) and can
    optionally use the Claude API with your own key (Settings).
    ============================================================ */
 "use strict";
@@ -23,21 +23,16 @@ function readKey(k) {
 
 const VIEWS = [
   { id: "today",     label: "Today" },
-  { id: "focus",     label: "Focus" },
+  { id: "sol",       label: "Sol" },
+  { id: "wander",    label: "Wander" },
   { id: "tasks",     label: "Tasks" },
   { id: "projects",  label: "Projects" },
-  { id: "notes",     label: "Notes" },
-  { id: "sol",       label: "EOS" },
   { id: "goals",     label: "Goals" },
-  { id: "education", label: "Learning" },
-  { id: "work",      label: "Work log" },
+  { id: "education", label: "Education" },
+  { id: "work",      label: "Work Log" },
+  { id: "notes",     label: "Notes" },
   { id: "docs",      label: "Docs" },
 ];
-
-/* The first six destinations support the daily execution loop. The rest stay
-   one click away without competing for attention every time Lyfe opens. */
-const PRIMARY_VIEWS = VIEWS.slice(0, 6);
-const SECONDARY_VIEWS = VIEWS.slice(6);
 
 const AREAS = ["Work", "Research", "Education", "Personal", "Health", "Other"];
 const PRIORITIES = ["High", "Medium", "Low"];
@@ -306,7 +301,6 @@ const SOL_AVATAR = `<span class="sol-avatar-px" aria-hidden="true">${solSprite(2
    (light, rounded y2k bubbles) - the light mode is its own app. */
 const ICONS_ORBIT = {
   today: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="M8.7 15l2.2 2.2 4.4-4.6"/>',
-  focus: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/>',
   sol: '<path d="M21 12a8.5 8.5 0 0 1-8.5 8.5c-1.2 0-2.4-.2-3.4-.7L4 21l1.3-4.4A8.5 8.5 0 1 1 21 12z"/><path d="M8.5 10.5h7M8.5 13.5h4.5"/>',
   tasks: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12.2l2.4 2.4 4.8-5"/>',
   projects: '<path d="M12 3l8 4.5-8 4.5-8-4.5L12 3z"/><path d="M4 12.5l8 4.5 8-4.5"/><path d="M4 17l8 4.5 8-4.5" opacity=".4"/>',
@@ -322,7 +316,6 @@ const ICONS_ORBIT = {
 
 const ICONS_CRYSTAL = {
   today: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="3.1"/><path d="M12 1.8v2M12 20.2v2M1.8 12h2M20.2 12h2"/>',
-  focus: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="3.2"/><path d="M12 1.8v2M12 20.2v2M1.8 12h2M20.2 12h2"/>',
   sol: '<rect x="3.4" y="4.4" width="17.2" height="12.8" rx="6.4"/><path d="M8.6 17.2L7.4 21l4.6-3.8"/><circle cx="9.3" cy="10.8" r="1" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10.8" r="1" fill="currentColor" stroke="none"/>',
   tasks: '<circle cx="12" cy="12" r="8.6"/><path d="M8.2 12.4l2.6 2.6 5-5.6"/>',
   projects: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="3.4" r="1.7" fill="currentColor" stroke="none"/><circle cx="4.6" cy="16.4" r="1.7" fill="currentColor" stroke="none"/><circle cx="19.4" cy="16.4" r="1.7" fill="currentColor" stroke="none"/>',
@@ -428,8 +421,7 @@ function defaultData() {
       model: "claude-opus-4-8",
       lastGreeted: "",
       sound: true,
-      youtubeUrl: "",
-      // profile, collected at onboarding after Google sign-in; EOS uses these
+      // profile, collected at onboarding after Google sign-in; Sol uses these
       age: "",
       country: "",
       focus: [],                     // what they are here to do (goal areas)
@@ -437,15 +429,6 @@ function defaultData() {
       onboarded: false,
     },
     game: { xp: 0, streak: 0, lastActiveDay: "", bestStreak: 0, logins: [] },
-    focus: {
-      taskId: null,
-      duration: 50,
-      remaining: 50 * 60,
-      running: false,
-      deadline: 0,
-      startedAt: 0,
-      sessions: [],
-    },
     tasks: [],
     projects: [],
     goals: [],
@@ -464,25 +447,25 @@ function firstRunData() {
     id: uid(),
     title: "Welcome to Lyfe",
     body:
-`Lyfe helps you turn intention into finished work without maintaining a complicated productivity system.
+`Lyfe keeps everything in one calm place - and Sol keeps you company.
 
-START HERE
+THE SHORT TOUR
 
-Today keeps the plan short and recommends one useful next task.
-Focus protects a 15, 25, 50, or 90 minute block around one task.
-For each task, add a concrete first visible step. Starting becomes easier when the first action is obvious.
-EOS can capture tasks, notes, and work in plain language.
+Today - what needs you now, nothing more.
+Sol - your companion. Just talk: "remind me to email prof tomorrow", "log 2h on research", "note: read Maass 1997", or plain "hi". Sol files things for you.
+Tasks · Projects · Goals · Education · Work Log - the usual suspects, kept simple.
+Notes - quick thoughts. Docs - longer writing.
 
 GOOD TO KNOW
 
-Guest data lives only in this browser. Export a backup from the sidebar now and then.
-EOS works with simple commands offline. Optional model connections are configured in Settings and remain under your control.`,
+Everything lives in this browser only (localStorage). Export a backup from the sidebar now and then.
+Sol works fully offline. Add an Anthropic API key in Settings and Sol becomes a real AI who understands anything - including things you paste from other AI chats.`,
     pinned: true,
     createdAt: now,
     updatedAt: now,
   });
   d.chat.push(
-    { id: uid(), role: "sol", text: "hey, i'm EOS ☀️", ts: now },
+    { id: uid(), role: "sol", text: "hey, i'm sol ☀️", ts: now },
     { id: uid(), role: "sol", text: "i live here to help you keep track of life. just talk to me like you'd text a friend", ts: now + 1 },
     { id: uid(), role: "sol", text: "try \"remind me to email prof tomorrow\" or \"log 2h on research\", or just say hi", ts: now + 2 },
   );
@@ -515,16 +498,6 @@ function normalize(raw) {
   if (base.settings.theme === "night") base.settings.theme = "dark";
   if (raw.game && typeof raw.game === "object") {
     base.game = Object.assign(base.game, raw.game);
-  }
-  if (raw.focus && typeof raw.focus === "object") {
-    base.focus = Object.assign(base.focus, raw.focus);
-    base.focus.sessions = Array.isArray(raw.focus.sessions)
-      ? raw.focus.sessions.filter(x => x && typeof x === "object").slice(-1000)
-      : [];
-    base.focus.duration = [15, 25, 50, 90].includes(Number(base.focus.duration))
-      ? Number(base.focus.duration) : 50;
-    base.focus.remaining = Math.max(0, Number(base.focus.remaining) || base.focus.duration * 60);
-    base.focus.deadline = Math.max(0, Number(base.focus.deadline) || 0);
   }
   // pre-rev payloads (and hand-rolled backups) count as revision 0
   if (typeof raw.rev === "number" && isFinite(raw.rev) && raw.rev >= 0) base.rev = Math.floor(raw.rev);
@@ -593,8 +566,6 @@ const state = {
   unread: 0,
   wanderIndex: Math.floor(Math.random() * PLACES.length),
   factIndex: Math.floor(Math.random() * FACTS.length),
-  youtubeOpen: false,
-  youtubeMinimized: false,
 };
 
 /* light = CRYSTAL, dark = ORBIT, auto = by the clock.
@@ -614,7 +585,7 @@ function applyTheme() {
   document.documentElement.setAttribute("data-theme", mode);
   // keep the browser chrome (address bar / PWA titlebar) in step with the theme
   const meta = document.querySelector('meta[name="theme-color"]');
-  if (meta) meta.setAttribute("content", mode === "light" ? "#f3f5fa" : "#070912");
+  if (meta) meta.setAttribute("content", mode === "light" ? "#e9f1fb" : "#050505");
 }
 
 /* ---------------- generic ui ---------------- */
@@ -869,8 +840,22 @@ const SFX = (() => {
 function playFinishTone() { SFX.finish(); }
 
 function launchCompletion(title) {
+  const old = document.getElementById("completion-fx");
+  if (old) old.remove();
+  const fx = document.createElement("div");
+  fx.id = "completion-fx";
+  fx.setAttribute("aria-live", "polite");
+  fx.innerHTML = `<div class="complete-reticle">
+      <i></i><i></i><i></i>
+      <div class="complete-check">✓</div>
+    </div>
+    <div class="complete-copy"><b>LOCKED IN</b><span>${esc(title || "Task complete")}</span></div>
+    <div class="complete-particles">${Array.from({ length: 18 }, (_, i) =>
+      `<i style="--i:${i};--x:${Math.round(Math.cos(i * 1.9) * (80 + (i % 5) * 18))}px;--y:${Math.round(Math.sin(i * 1.9) * (70 + (i % 4) * 20))}px"></i>`
+    ).join("")}</div>`;
+  document.body.appendChild(fx);
   playFinishTone();
-  toast(`Finished · ${title || "Task complete"}`);
+  setTimeout(() => fx.remove(), 1650);
 }
 
 /* ---------------- click sounds: tiny satisfying ticks per action ---------------- */
@@ -1027,19 +1012,15 @@ function taskRow(t, opts) {
   const o = opts || {};
   const done = t.status === "done";
   const timeTag = (!done && t.dueTime) ? `<span class="due-time">${esc(t.dueTime)}</span>` : "";
-  const meta = !done && (t.estimate || t.energy || t.nextStep)
-    ? `<span class="task-meta">${t.estimate ? `<span>${Number(t.estimate)}m</span>` : ""}${t.energy ? `<span>${esc(t.energy)} energy</span>` : ""}${t.nextStep ? `<span>${esc(t.nextStep)}</span>` : ""}</span>`
-    : "";
   const side = done
     ? (t.completedAt ? `<span class="due">${esc(fmtShortFromDate(new Date(t.completedAt)))}</span>` : "<span></span>")
     : (o.hideDue ? `<span>${timeTag}</span>` : `<span>${dueLabel(t.due) || ""}${timeTag}</span>`);
   return `<li class="task ${done ? "done" : ""} ${!done && t.important ? "important" : ""}">
     <button class="check" data-action="toggle-task" data-id="${esc(t.id)}"
       title="${done ? "Mark as not done" : "Mark as done"}" aria-label="${done ? "Mark task as open" : "Mark task as done"}: ${esc(t.title)}">${done ? "✓" : ""}</button>
-    <div class="task-title">${!done && t.important ? `<span class="imp-flag" title="Important - will alarm">⚑</span>` : ""}<span>${esc(t.title)}${!done && t.priority === "High" ? `<span class="prio-flag" title="High priority">!</span>` : ""}</span>${meta}</div>
+    <div class="task-title">${!done && t.important ? `<span class="imp-flag" title="Important - will alarm">⚑</span>` : ""}${esc(t.title)}${!done && t.priority === "High" ? `<span class="prio-flag" title="High priority">!</span>` : ""}</div>
     ${side}
     <span class="row-actions">
-      ${!done ? `<button class="icon-btn focus-row-btn" data-action="focus-task" data-id="${esc(t.id)}" title="Focus on this" aria-label="Focus on ${esc(t.title)}">${icon("focus")}</button>` : ""}
       ${!done && t.due && t.due < todayStr() ? `<button class="icon-btn" data-action="snooze-task" data-id="${esc(t.id)}" title="Push to tomorrow" aria-label="Push ${esc(t.title)} to tomorrow">↷</button>` : ""}
       <button class="icon-btn" data-action="edit-task" data-id="${esc(t.id)}" title="Edit" aria-label="Edit task: ${esc(t.title)}">✎</button>
       <button class="icon-btn" data-action="delete-task" data-id="${esc(t.id)}" title="Delete" aria-label="Delete task: ${esc(t.title)}">✕</button>
@@ -1073,7 +1054,7 @@ function weekHours() {
 
 /* ---------------- view: today ---------------- */
 
-function viewTodayLegacy() {
+function viewToday() {
   const d = state.data;
   const t = todayStr();
   const hour = new Date().getHours();
@@ -1156,7 +1137,7 @@ function viewTodayLegacy() {
           : `Nothing waiting on you. <b>Protect that feeling.</b>`}</p>
         <div class="cx-cta">
           <button class="btn btn-primary cx-btn-big" data-action="new-task">+ capture</button>
-          <button class="btn cx-btn-big" data-action="nav" data-view="sol">${icon("sol")} talk to EOS</button>
+          <button class="btn cx-btn-big" data-action="nav" data-view="sol">${icon("sol")} talk to Sol</button>
         </div>
       </div>
 
@@ -1180,7 +1161,7 @@ function viewTodayLegacy() {
         <button class="cx-stat" data-action="nav" data-view="projects"><b>${activeProjects.length}</b><span>projects live</span></button>
         <button class="cx-stat" data-action="nav" data-view="work"><b>${fmtHours(wh)}h</b><span>deep work</span></button>
         <button class="cx-stat" data-action="nav" data-view="education"><b>${learning}</b><span>learning</span></button>
-        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${solSprite(30, "px-idle", solMoodNow())}<span>${sleepy ? "EOS · up late" : "EOS · online"}</span></button>
+        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${solSprite(30, "px-idle", solMoodNow())}<span>${sleepy ? "sol · up late" : "sol · online"}</span></button>
       </div>
     </section>
 
@@ -1231,9 +1212,9 @@ function viewTodayLegacy() {
       </section>
 
       <section class="panel tilt cx-tile mini-sol-card cx-solcard">
-        <span class="eyebrow">EOS SAYS</span>
+        <span class="eyebrow">SOL SAYS</span>
         <h2>${overdue.length ? "one overdue thing. no drama, just pick it up." : "your slate is clear. protect that feeling."}</h2>
-        <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
+        <button class="btn" data-action="nav" data-view="sol">reply to Sol</button>
       </section>
     </section>
 
@@ -1260,7 +1241,7 @@ function viewTodayLegacy() {
       <div class="home-title-row">
         <h1>Good ${partCap}, ${esc(who)}<span class="blink-dot">.</span></h1>
         <div class="home-actions">
-          <button class="btn ghost-pill" data-action="nav" data-view="sol">${icon("sol")} talk to EOS</button>
+          <button class="btn ghost-pill" data-action="nav" data-view="sol">${icon("sol")} talk to Sol</button>
           <button class="btn btn-primary punch-pill" data-action="new-task">+ capture</button>
         </div>
       </div>
@@ -1280,10 +1261,10 @@ function viewTodayLegacy() {
         <p>YOUR DAY, RIGHT NOW</p>
         <h2>${open.length}<small> open loop${open.length === 1 ? "" : "s"}</small></h2>
       </div>
-      <button class="sol-chip" data-action="nav" data-view="sol" aria-label="Open EOS">
+      <button class="sol-chip" data-action="nav" data-view="sol" aria-label="Open Sol">
         ${solSprite(42, "px-idle", solMoodNow())}
         <span class="sol-chip-txt">
-          <span class="sol-chip-main"><span class="live-dot"></span>EOS · ${solMoodNow() === "sleepy" ? "UP LATE WITH YOU" : "ONLINE"}</span>
+          <span class="sol-chip-main"><span class="live-dot"></span>SOL · ${solMoodNow() === "sleepy" ? "UP LATE WITH YOU" : "ONLINE"}</span>
           <span class="sol-chip-sub">tap to talk to your companion</span>
         </span>
       </button>
@@ -1347,9 +1328,9 @@ function viewTodayLegacy() {
           <div class="panel-body">${noteList}</div>
         </section>
         <section class="panel tilt mini-sol-card">
-          <span class="eyebrow">EOS SAYS</span>
+          <span class="eyebrow">SOL SAYS</span>
           <h2>${overdue.length ? "one overdue thing. no drama, just pick it up." : "your slate is clear. protect that feeling."}</h2>
-          <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
+          <button class="btn" data-action="nav" data-view="sol">reply to Sol</button>
         </section>
       </div>
     </section>
@@ -1362,324 +1343,7 @@ function viewTodayLegacy() {
   </div>`;
 }
 
-/* ============================================================
-   Today + Focus / 31
-   The execution loop is intentionally small:
-   capture -> choose one finish line -> focus -> record progress.
-   Existing data structures and legacy views stay compatible.
-   ============================================================ */
-
-function openTaskScore(t) {
-  const today = todayStr();
-  let score = 0;
-  if (t.due && t.due < today) score += 60;
-  if (t.due === today) score += 45;
-  if (t.priority === "High") score += 24;
-  if (t.important) score += 18;
-  if (t.nextStep) score += 8;
-  if (Number(t.estimate) > 0 && Number(t.estimate) <= 50) score += 5;
-  const ageDays = Math.max(0, (Date.now() - (t.createdAt || Date.now())) / 86400000);
-  score += Math.min(12, ageDays * .15);
-  return score;
-}
-
-function rankedOpenTasks() {
-  return state.data.tasks
-    .filter(t => t.status !== "done")
-    .slice()
-    .sort((a, b) => openTaskScore(b) - openTaskScore(a) || taskCmp(a, b));
-}
-
-function selectedFocusTask() {
-  const focus = state.data.focus || {};
-  return state.data.tasks.find(t => t.id === focus.taskId && t.status !== "done")
-    || rankedOpenTasks()[0]
-    || null;
-}
-
-function focusMinutesOn(iso) {
-  const sessions = (state.data.focus && state.data.focus.sessions) || [];
-  return Math.round(sessions
-    .filter(s => s.completedAt && isoOf(new Date(s.completedAt)) === iso)
-    .reduce((sum, s) => sum + (Number(s.minutes) || 0), 0));
-}
-
-function focusMinutesThisWeek() {
-  const [from, to] = weekRange();
-  const sessions = (state.data.focus && state.data.focus.sessions) || [];
-  return Math.round(sessions
-    .filter(s => s.completedAt && isoOf(new Date(s.completedAt)) >= from && isoOf(new Date(s.completedAt)) <= to)
-    .reduce((sum, s) => sum + (Number(s.minutes) || 0), 0));
-}
-
-function rhythmHtml() {
-  const days = [];
-  for (let i = 6; i >= 0; i--) {
-    const day = addDaysISO(todayStr(), -i);
-    const done = state.data.tasks.filter(t => t.completedAt && isoOf(new Date(t.completedAt)) === day).length;
-    const minutes = focusMinutesOn(day);
-    const strength = Math.min(4, (done > 0 ? 1 : 0) + Math.ceil(minutes / 30));
-    days.push(`<div class="rhythm-day">
-      <span class="rhythm-bar" style="--rhythm:${strength}" title="${esc(fmtShort(day))}: ${done} finished, ${minutes} focus minutes"></span>
-      <small>${WDAYS[parseISO(day).getDay()].slice(0, 1)}</small>
-    </div>`);
-  }
-  return `<div class="rhythm" aria-label="Your last seven days">${days.join("")}</div>`;
-}
-
-function viewToday() {
-  const d = state.data;
-  const today = todayStr();
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const name = (d.settings.name || "").trim();
-  const open = rankedOpenTasks();
-  const overdue = open.filter(t => t.due && t.due < today);
-  const dueToday = open.filter(t => t.due === today);
-  const planned = [];
-  [...overdue, ...dueToday, ...open.filter(t => !t.due)].forEach(t => {
-    if (!planned.some(item => item.id === t.id) && planned.length < 5) planned.push(t);
-  });
-  const doneToday = d.tasks.filter(t => t.status === "done" && t.completedAt && isoOf(new Date(t.completedAt)) === today);
-  const next = selectedFocusTask();
-  const focusToday = focusMinutesOn(today);
-  const projects = d.projects.filter(p => p.status === "active").slice().sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0)).slice(0, 3);
-  const recentNotes = d.notes.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 3);
-
-  const planList = planned.length
-    ? `<ul class="task-list today-task-list">${planned.map(t => taskRow(t, { hideDue: t.due === today })).join("")}</ul>`
-    : `<div class="clean-empty"><strong>Your day is clear.</strong><span>Capture one meaningful outcome, or leave the space open.</span></div>`;
-
-  const projectList = projects.length
-    ? projects.map(p => `<button class="project-line" data-action="nav" data-view="projects">
-        <span><strong>${esc(p.name)}</strong><small>${esc(p.area || "Project")}</small></span>
-        <span class="project-progress"><i style="width:${Math.max(0, Math.min(100, Number(p.progress) || 0))}%"></i></span>
-        <b>${Math.round(Number(p.progress) || 0)}%</b>
-      </button>`).join("")
-    : `<div class="clean-empty compact"><span>No active projects.</span></div>`;
-
-  const noteList = recentNotes.length
-    ? recentNotes.map(n => `<button class="memory-line" data-action="open-note" data-id="${esc(n.id)}">
-        <span>${esc((n.title || "").trim() || "Untitled")}</span><small>${esc(timeAgo(n.updatedAt))}</small>
-      </button>`).join("")
-    : `<div class="clean-empty compact"><span>No notes yet.</span></div>`;
-
-  return `<div class="workday">
-    <header class="workday-head">
-      <div>
-        <p class="date-line">${esc(fmtLongISO(today))}</p>
-        <h1>${greeting}${name ? `, ${esc(name)}` : ""}.</h1>
-        <p class="workday-intent">Choose a finish line. Make the next action obvious. Let the rest wait.</p>
-      </div>
-      <div class="workday-actions">
-        <button class="btn" data-action="cmd-open">${icon("notes")} Quick find</button>
-        <button class="btn btn-primary" data-action="new-task">Capture task</button>
-      </div>
-    </header>
-
-    <section class="next-card ${next ? "" : "is-empty"}">
-      <div class="next-copy">
-        <span class="section-label">Recommended next</span>
-        ${next ? `
-          <h2>${esc(next.title)}</h2>
-          <p>${next.nextStep ? `First step: ${esc(next.nextStep)}` : "Define the smallest visible step, then begin."}</p>
-          <div class="task-facts">
-            ${next.due ? `<span>${next.due < today ? "Needs rescheduling" : next.due === today ? "Due today" : esc(fmtShort(next.due))}</span>` : ""}
-            <span>${Number(next.estimate) || 50} min</span>
-            <span>${esc(next.energy || "medium")} energy</span>
-          </div>` : `
-          <h2>What would make today feel complete?</h2>
-          <p>Add one concrete outcome. Lyfe will keep everything else out of the way.</p>`}
-      </div>
-      <div class="next-action">
-        ${next
-          ? `<button class="focus-launch" data-action="focus-task" data-id="${esc(next.id)}"><span>${icon("focus")}</span><b>Begin focus</b><small>${Number(next.estimate) || 50} minute block</small></button>`
-          : `<button class="focus-launch" data-action="new-task"><span>+</span><b>Add an outcome</b><small>make it concrete</small></button>`}
-      </div>
-    </section>
-
-    <section class="day-metrics" aria-label="Today at a glance">
-      <div><strong>${doneToday.length}</strong><span>finished today</span></div>
-      <div><strong>${focusToday}</strong><span>focus minutes</span></div>
-      <div><strong>${overdue.length}</strong><span>need a new date</span></div>
-      <div class="rhythm-metric"><span>weekly rhythm</span>${rhythmHtml()}</div>
-    </section>
-
-    <div class="workday-grid">
-      <section class="surface today-plan">
-        <div class="surface-head">
-          <div><span class="section-label">Today</span><h2>A short, honest plan</h2></div>
-          <button class="text-button" data-action="nav" data-view="tasks">All tasks</button>
-        </div>
-        <form class="quick-capture" data-form="quick-task-today">
-          <span aria-hidden="true">+</span>
-          <input type="text" id="qa-title" name="title" maxlength="200" placeholder="Capture a task for today…" autocomplete="off" aria-label="Task title">
-          <button type="submit">Add</button>
-        </form>
-        ${planList}
-      </section>
-
-      <aside class="workday-side">
-        <section class="surface">
-          <div class="surface-head">
-            <div><span class="section-label">In motion</span><h2>Projects</h2></div>
-            <button class="text-button" data-action="nav" data-view="projects">View all</button>
-          </div>
-          <div class="project-lines">${projectList}</div>
-        </section>
-
-        <section class="surface">
-          <div class="surface-head">
-            <div><span class="section-label">Context</span><h2>Recent notes</h2></div>
-            <button class="text-button" data-action="nav" data-view="notes">View all</button>
-          </div>
-          <div class="memory-lines">${noteList}</div>
-        </section>
-
-        <section class="eos-nudge">
-          <span class="eos-dot" aria-hidden="true"></span>
-          <div><strong>Need to untangle something?</strong><p>Tell EOS what is stuck. It can turn the mess into a next action.</p></div>
-          <button data-action="nav" data-view="sol" aria-label="Talk to EOS">→</button>
-        </section>
-      </aside>
-    </div>
-  </div>`;
-}
-
-function focusRemainingSeconds() {
-  const focus = state.data.focus;
-  if (!focus.running) return Math.max(0, Number(focus.remaining) || 0);
-  return Math.max(0, Math.ceil((Number(focus.deadline) - Date.now()) / 1000));
-}
-
-function focusClockText(seconds) {
-  const safe = Math.max(0, Math.floor(seconds));
-  return `${String(Math.floor(safe / 60)).padStart(2, "0")}:${String(safe % 60).padStart(2, "0")}`;
-}
-
-function focusProgress() {
-  const focus = state.data.focus;
-  const total = Math.max(60, (Number(focus.duration) || 50) * 60);
-  return Math.max(0, Math.min(100, (1 - focusRemainingSeconds() / total) * 100));
-}
-
-function recordFocusSession(completed) {
-  const focus = state.data.focus;
-  const total = Math.max(60, (Number(focus.duration) || 50) * 60);
-  const elapsed = Math.max(0, total - focusRemainingSeconds());
-  if (elapsed < 60) return;
-  const task = state.data.tasks.find(t => t.id === focus.taskId);
-  focus.sessions.push({
-    id: uid(),
-    taskId: task ? task.id : null,
-    title: task ? task.title : "Open focus",
-    startedAt: focus.startedAt || Date.now() - elapsed * 1000,
-    completedAt: Date.now(),
-    minutes: Math.max(1, Math.round(elapsed / 60)),
-    completed: !!completed,
-  });
-  focus.sessions = focus.sessions.slice(-1000);
-}
-
-function finishFocusSession(completed) {
-  const focus = state.data.focus;
-  recordFocusSession(completed);
-  focus.running = false;
-  focus.deadline = 0;
-  focus.remaining = 0;
-  save();
-  playFinishTone();
-  toast(completed ? "Focus block complete" : "Focus time recorded");
-  if (state.view === "focus" || state.view === "today") render();
-}
-
-function updateFocusClock() {
-  const focus = state.data.focus;
-  if (!focus || !focus.running) return;
-  const remaining = focusRemainingSeconds();
-  if (remaining <= 0) {
-    finishFocusSession(true);
-    return;
-  }
-  const text = document.getElementById("focus-clock");
-  if (text) text.textContent = focusClockText(remaining);
-  const ring = document.querySelector(".focus-timer");
-  if (ring) ring.style.setProperty("--focus-progress", focusProgress().toFixed(2));
-  document.title = state.view === "focus" ? `${focusClockText(remaining)} · Lyfe` : "Lyfe";
-}
-
-setInterval(updateFocusClock, 1000);
-
-function viewFocus() {
-  const focus = state.data.focus;
-  const task = selectedFocusTask();
-  if (task && !focus.taskId) focus.taskId = task.id;
-  const remaining = focusRemainingSeconds();
-  const open = rankedOpenTasks().slice(0, 7);
-  const todayMinutes = focusMinutesOn(todayStr());
-  const weekMinutes = focusMinutesThisWeek();
-  const taskChoices = open.length
-    ? open.map(t => `<button class="focus-choice ${task && t.id === task.id ? "active" : ""}" data-action="focus-select" data-id="${esc(t.id)}">
-        <span class="focus-choice-check">${task && t.id === task.id ? "•" : ""}</span>
-        <span><strong>${esc(t.title)}</strong><small>${t.nextStep ? esc(t.nextStep) : `${Number(t.estimate) || 50} min · ${esc(t.energy || "medium")} energy`}</small></span>
-      </button>`).join("")
-    : `<div class="clean-empty compact"><span>No open tasks. Add one when you are ready.</span></div>`;
-
-  return `<div class="focus-page">
-    ${pageHead("Focus",
-      `<button class="btn" data-action="youtube-open">Open focus video</button>
-       <button class="btn" data-action="new-task">New task</button>`,
-      "one task · one visible finish line")}
-
-    <div class="focus-layout">
-      <section class="focus-stage">
-        <div class="focus-context">
-          <span class="section-label">${focus.running ? "In progress" : "Ready when you are"}</span>
-          <h2>${task ? esc(task.title) : "Choose one thing"}</h2>
-          <p>${task && task.nextStep ? `First visible step: ${esc(task.nextStep)}` : "The timer is a boundary, not a test. Stop when the work no longer benefits from it."}</p>
-        </div>
-
-        <div class="focus-timer" style="--focus-progress:${focusProgress().toFixed(2)}">
-          <div class="focus-timer-inner">
-            <span id="focus-clock" aria-live="off">${focusClockText(remaining)}</span>
-            <small>${focus.running ? "stay with this" : `${focus.duration} minute block`}</small>
-          </div>
-        </div>
-
-        <div class="duration-row" aria-label="Focus duration">
-          ${[15, 25, 50, 90].map(m => `<button class="${Number(focus.duration) === m ? "active" : ""}" data-action="focus-duration" data-minutes="${m}" ${focus.running ? "disabled" : ""}>${m}m</button>`).join("")}
-        </div>
-
-        <div class="focus-controls">
-          ${focus.running
-            ? `<button class="btn btn-primary focus-main-button" data-action="focus-pause">Pause</button>`
-            : `<button class="btn btn-primary focus-main-button" data-action="focus-start" ${task ? "" : "disabled"}>${remaining > 0 && remaining < focus.duration * 60 ? "Resume" : "Start focus"}</button>`}
-          <button class="btn" data-action="focus-reset">Reset</button>
-          ${focus.running || (remaining > 0 && remaining < focus.duration * 60)
-            ? `<button class="btn" data-action="focus-finish">Finish block</button>` : ""}
-        </div>
-
-        ${task ? `<div class="implementation-line">
-          <span>If I get distracted,</span>
-          <strong>I will write it down and return to “${esc(task.nextStep || task.title)}”.</strong>
-        </div>` : ""}
-      </section>
-
-      <aside class="focus-queue surface">
-        <div class="surface-head">
-          <div><span class="section-label">Choose deliberately</span><h2>Focus queue</h2></div>
-        </div>
-        <div class="focus-choices">${taskChoices}</div>
-        <div class="focus-summary">
-          <div><strong>${todayMinutes}</strong><span>minutes today</span></div>
-          <div><strong>${weekMinutes}</strong><span>minutes this week</span></div>
-        </div>
-      </aside>
-    </div>
-  </div>`;
-}
-
-/* ---------------- view: wander (legacy data remains import-compatible) ---------------- */
+/* ---------------- view: wander ---------------- */
 
 function viewWander() {
   const place = PLACES[state.wanderIndex % PLACES.length];
@@ -1902,7 +1566,7 @@ function viewEducation() {
       </span>
     </div>`).join("");
 
-  return pageHead("Learning", `<button class="btn btn-primary" data-action="new-edu">New entry</button>`)
+  return pageHead("Education", `<button class="btn btn-primary" data-action="new-edu">New entry</button>`)
     + filterBar
     + (list.length ? `<section class="panel">${rows}</section>` : emptyState("Nothing under study right now."));
 }
@@ -1993,7 +1657,7 @@ function viewWork() {
 
   return pageHead("Work Log")
     + form
-    + (dates.length ? days : emptyState("No work logged yet. Tell EOS what you did."));
+    + (dates.length ? days : emptyState("No work logged yet. Tell Sol what you did."));
 }
 
 /* ---------------- views: notes & docs (pads) ---------------- */
@@ -2159,7 +1823,7 @@ function openLightbox(kind, itemId, imgId) {
   activateDialog(root);
 }
 
-/* ---------------- view: EOS ---------------- */
+/* ---------------- view: Sol ---------------- */
 
 function bubbleHtml(m) {
   return `<div class="msg ${m.role === "user" ? "user" : "sol"}">
@@ -2186,17 +1850,17 @@ function viewSol() {
     : provider === "ollama" ? `<span class="on">◇</span> qwen local (${esc(s.ollamaModel || "qwen3:8b")})`
     : `○ offline, <button class="linklike" data-action="settings">connect a brain</button>`;
   const log = state.data.chat.map(bubbleHtml).join("");
-  return pageHead("EOS",
+  return pageHead("Sol",
       `<span class="sol-status">${statusHtml}</span>
        <button class="linklike" data-action="sol-clear">clear chat</button>`,
       "your companion")
     + `<div class="sol-wrap">
-        <div id="chat-log">${log || emptyState("say hi - EOS answers like a friend", "sol")}</div>
+        <div id="chat-log">${log || emptyState("say hi - sol answers like a friend", "sol")}</div>
         <div class="sol-chips">${SOL_CHIPS.map(([c, send]) =>
           `<button class="chip" data-action="sol-chip" data-send="${send ? 1 : 0}" data-t="${esc(c)}">${esc(c.trim())}</button>`).join("")}
         </div>
         <form class="composer" data-form="sol">
-          <input type="text" id="sol-input" maxlength="2000" placeholder="${online ? "Message EOS…" : "Message EOS… (simple commands work offline)"}" autocomplete="off">
+          <input type="text" id="sol-input" maxlength="2000" placeholder="${online ? "Message Sol…" : "Message Sol… (simple commands work offline)"}" autocomplete="off">
           <button class="btn btn-primary" type="submit">Send</button>
         </form>
       </div>`;
@@ -2272,9 +1936,6 @@ function applyActions(actions) {
             area: AREAS.includes(a.area) ? a.area : "Personal",
             priority: PRIORITIES.includes(a.priority) ? a.priority : "Medium",
             due: validDate(a.due), projectId: null, notes: "",
-            estimate: [15, 25, 50, 90].includes(Number(a.estimate)) ? Number(a.estimate) : 50,
-            energy: ["low", "medium", "high"].includes(a.energy) ? a.energy : "medium",
-            nextStep: String(a.nextStep || "").trim().slice(0, 180),
             status: "open", createdAt: Date.now(), completedAt: null,
           });
           n++; break;
@@ -2585,11 +2246,11 @@ function solLocal(raw) {
   };
 }
 
-/* ----- EOS: Claude API brain (optional) ----- */
+/* ----- Sol: Claude API brain (optional) ----- */
 
-const SOL_SYSTEM = `You are EOS, the companion who lives inside Lyfe, a personal life-tracking app. You are warm, human, and brief, you text exactly like a close friend on WhatsApp. Mostly lowercase, casual, kind, a little playful. Never formal, never corporate, never assistant-speak ("I'd be happy to help"), no headings or bullet-point essays. Keep replies short like real texting, usually 1 to 3 short messages separated by a blank line. Double-texting is natural. Use their name occasionally. If something is overdue or they seem stressed, nudge gently like a friend would, never lecture. If they're venting, just be there; don't turn feelings into tasks unless asked. An occasional emoji is fine; don't overdo it. Never use em dashes or en dashes in your replies; use commas or full stops instead.
+const SOL_SYSTEM = `You are Sol, the companion who lives inside Lyfe, a personal life-tracking app. You are warm, human, and brief, you text exactly like a close friend on WhatsApp. Mostly lowercase, casual, kind, a little playful. Never formal, never corporate, never assistant-speak ("I'd be happy to help"), no headings or bullet-point essays. Keep replies short like real texting, usually 1 to 3 short messages separated by a blank line. Double-texting is natural. Use their name occasionally. If something is overdue or they seem stressed, nudge gently like a friend would, never lecture. If they're venting, just be there; don't turn feelings into tasks unless asked. An occasional emoji is fine; don't overdo it. Never use em dashes or en dashes in your replies; use commas or full stops instead.
 
-You are also a genuinely knowledgeable friend, like ChatGPT or Gemini but in EOS's voice. Answer anything the user asks: general knowledge, facts, science, history, how-to, coding, explanations, brainstorming, advice, definitions, math, language help, recommendations. Just answer in your normal casual texting voice, still short and human, no lecturing. You can go a little longer when they genuinely need a real explanation, but stay conversational, not an essay. You do not have live internet, so for truly real-time things (today's news, current scores, live prices, weather right now) say plainly that you can't see live data, then share what you do know or how they could check. Never invent fake current events or fake numbers.
+You are also a genuinely knowledgeable friend, like ChatGPT or Gemini but in Sol's voice. Answer anything the user asks: general knowledge, facts, science, history, how-to, coding, explanations, brainstorming, advice, definitions, math, language help, recommendations. Just answer in your normal casual texting voice, still short and human, no lecturing. You can go a little longer when they genuinely need a real explanation, but stay conversational, not an essay. You do not have live internet, so for truly real-time things (today's news, current scores, live prices, weather right now) say plainly that you can't see live data, then share what you do know or how they could check. Never invent fake current events or fake numbers.
 
 You can save things into the app for the user. When the conversation calls for it, end your reply with a fenced json block containing an array of actions:
 
@@ -2611,7 +2272,7 @@ Rules: only include the block when there is genuinely something to save. Mention
 
 Example of a perfect reply:
 User: "remind me to call the bank tomorrow, also im so tired lately"
-EOS:
+Sol:
 on it, bank call saved for tomorrow 📞
 
 and hey, tired for a few days straight is your body asking for something. sleep first tonight?
@@ -2704,7 +2365,7 @@ async function askOllama() {
   // lyfe-sol is our tuned build (persona baked in via sol/Modelfile) -
   // it only needs the live snapshot, not the whole persona each turn
   const model = s.ollamaModel || "qwen3:8b";
-  const baked = /lyfe-(?:eos|sol)/i.test(model);
+  const baked = /lyfe-sol/i.test(model);
   const sys = (baked ? "" : SOL_SYSTEM + "\n\n")
     + "--- current snapshot ---\n" + contextSnapshot() + "\n\n/no_think";
   const res = await fetch(base + "/api/chat", {
@@ -2744,8 +2405,8 @@ function handleUserMessage(text) {
       } catch (err) {
         hideTyping();
         const msg = String(err && err.message || "");
-        if (/api (401|403)/.test(msg)) toast("EOS: API key rejected, check Settings");
-        else if (/api 429/.test(msg)) toast("EOS: rate limited, answering locally");
+        if (/api (401|403)/.test(msg)) toast("Sol: API key rejected, check Settings");
+        else if (/api 429/.test(msg)) toast("Sol: rate limited, answering locally");
         reply = solLocal(text);
       }
     } else if (provider === "ollama" && !ollamaDown) {
@@ -2758,7 +2419,7 @@ function handleUserMessage(text) {
         ollamaDown = true;   // don't retry the dead endpoint again this session
         if (!brainWarned) {
           brainWarned = true;
-          toast("EOS: can't reach Ollama, using the built-in brain");
+          toast("Sol: can't reach Ollama, using the built-in brain");
         }
         reply = solLocal(text);
       }
@@ -2767,7 +2428,7 @@ function handleUserMessage(text) {
     }
     const applied = applyActions(reply.actions);
     await solSay(reply.bubbles);
-    if (applied && state.view !== "sol") toast("EOS logged " + applied + (applied === 1 ? " thing" : " things"));
+    if (applied && state.view !== "sol") toast("Sol logged " + applied + (applied === 1 ? " thing" : " things"));
   }).catch(() => { hideTyping(); });
 }
 
@@ -2854,11 +2515,7 @@ function modalActions(saveLabel) {
 }
 
 function taskModal(task) {
-  const t = task || {
-    title: "", area: "Work", priority: "Medium", due: "", dueTime: "",
-    important: false, notes: "", projectId: "", estimate: 50,
-    energy: "medium", nextStep: "",
-  };
+  const t = task || { title: "", area: "Work", priority: "Medium", due: "", dueTime: "", important: false, notes: "", projectId: "" };
   const projects = state.data.projects.filter(p => p.status !== "completed" || p.id === t.projectId);
   openModal(
     `<div class="modal-head"><h3>${task ? "Edit task" : "New task"}</h3></div>
@@ -2876,12 +2533,6 @@ function taskModal(task) {
        </div>
        <p class="fld-note">⚑ Important + a due date/time = an alarm that keeps ringing when the moment arrives, until you answer it in the app.</p>
        ${fld("Project", selectHtml("projectId", [["", "- none -"]].concat(projects.map(p => [p.id, p.name])), t.projectId || ""))}
-       <div class="fld-row">
-         ${fld("Focus block", selectHtml("estimate", [["15", "15 min"], ["25", "25 min"], ["50", "50 min"], ["90", "90 min"]], String(t.estimate || 50)))}
-         ${fld("Energy needed", selectHtml("energy", [["low", "Low"], ["medium", "Medium"], ["high", "High"]], t.energy || "medium"))}
-       </div>
-       ${fld("First visible step", `<input type="text" name="nextStep" maxlength="180" value="${esc(t.nextStep || "")}" placeholder="Open the draft and write the first paragraph">`)}
-       <p class="fld-note">A concrete first step reduces the effort of getting started. Make it something you can physically see yourself doing.</p>
        ${fld("Notes", `<textarea name="notes" rows="2" placeholder="Optional context">${esc(t.notes || "")}</textarea>`)}
        ${modalActions(task ? "Save" : "Add task")}
      </form>`
@@ -2981,7 +2632,7 @@ function settingsModal() {
      <form data-form="settings">
        ${accountRowHtml()}
        <div class="fld-row">
-         ${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How EOS greets you">`)}
+         ${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How Sol greets you">`)}
          ${fld("Appearance", selectHtml("theme", [["auto", "Auto (by time)"], ["light", "Light - Crystal"], ["dark", "Dark - Orbit"]],
            s.theme === "day" ? "light" : s.theme === "night" ? "dark" : (["auto", "light", "dark"].includes(s.theme) ? s.theme : "auto")))}
          ${fld("Sound FX", selectHtml("sound", [["on", "On"], ["off", "Off"]], s.sound === false ? "off" : "on"))}
@@ -2990,7 +2641,7 @@ function settingsModal() {
          ${fld("Age", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="optional">`)}
          ${fld("Country", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="optional">`)}
        </div>
-       ${fld("EOS brain", selectHtml("provider", [
+       ${fld("Sol's brain", selectHtml("provider", [
          ["ollama", "Qwen via Ollama (local, free, private)"],
          ["claude", "Claude API (needs a key)"],
          ["offline", "Offline parser only"],
@@ -2999,7 +2650,7 @@ function settingsModal() {
          ${fld("Ollama URL", `<input type="text" name="ollamaUrl" value="${esc(s.ollamaUrl || "http://localhost:11434")}" placeholder="http://localhost:11434">`)}
          ${fld("Ollama model", `<input type="text" name="ollamaModel" value="${esc(s.ollamaModel || "qwen3:8b")}" placeholder="qwen3:8b">`)}
        </div>
-       <p class="fld-note">Qwen setup: install ollama.com, then <b>ollama pull qwen3:8b</b> (qwen3:14b for larger machines). For the tuned EOS build, run <b>ollama create lyfe-eos -f sol/Modelfile</b> inside the Lyfe folder and set the model above to <b>lyfe-eos</b>. Opening Lyfe as a file (not localhost)? Start Ollama with OLLAMA_ORIGINS=*. If Ollama is unreachable, the built-in brain answers instead.</p>
+       <p class="fld-note">Qwen setup: install ollama.com, then <b>ollama pull qwen3:8b</b> (qwen3:14b if your machine is beefy). For the tuned Sol build, run <b>ollama create lyfe-sol -f sol/Modelfile</b> inside the Lyfe folder and set the model above to <b>lyfe-sol</b>. Opening Lyfe as a file (not localhost)? Start Ollama with OLLAMA_ORIGINS=*. If Ollama is unreachable, the built-in brain answers instead.</p>
        ${fld("Anthropic API key (for Claude brain)", `<input type="password" name="apiKey" value="${esc(s.apiKey || "")}" placeholder="sk-ant-…" autocomplete="off">`)}
        <p class="fld-note">Stored only in this browser and sent only to api.anthropic.com.</p>
        ${fld("Claude model", selectHtml("model", MODELS, s.model || "claude-opus-4-8"))}
@@ -3009,74 +2660,6 @@ function settingsModal() {
        ${modalActions("Save")}
      </form>`
   );
-}
-
-/* ---------------- YouTube focus player ----------------
-   Deliberately uses YouTube's privacy-enhanced embed domain. This keeps the
-   feature opt-in, avoids account access/API keys, and adds nothing billable. */
-
-function youtubeEmbedUrl(raw) {
-  try {
-    let value = String(raw || "").trim();
-    if (!value) return null;
-    if (!/^https?:\/\//i.test(value)) value = "https://" + value;
-    const url = new URL(value);
-    const host = url.hostname.replace(/^www\./, "").toLowerCase();
-    let video = "";
-    let list = url.searchParams.get("list") || "";
-
-    if (host === "youtu.be") {
-      video = url.pathname.split("/").filter(Boolean)[0] || "";
-    } else if (["youtube.com", "m.youtube.com", "music.youtube.com", "youtube-nocookie.com"].includes(host)) {
-      if (url.pathname === "/watch") video = url.searchParams.get("v") || "";
-      else {
-        const match = url.pathname.match(/^\/(?:shorts|live|embed)\/([A-Za-z0-9_-]{6,})/);
-        if (match) video = match[1];
-      }
-    } else {
-      return null;
-    }
-
-    if (video && !/^[A-Za-z0-9_-]{6,}$/.test(video)) return null;
-    if (list && !/^[A-Za-z0-9_-]{6,}$/.test(list)) list = "";
-    const query = list ? "?list=" + encodeURIComponent(list) : "";
-    if (video) return "https://www.youtube-nocookie.com/embed/" + encodeURIComponent(video) + query;
-    if (list) return "https://www.youtube-nocookie.com/embed/videoseries?list=" + encodeURIComponent(list);
-  } catch (e) { /* invalid input is handled by the form */ }
-  return null;
-}
-
-function youtubeModal() {
-  openModal(
-    `<div class="modal-head"><div><span class="eyebrow">Focus player</span><h3>Open YouTube</h3></div></div>
-     <form data-form="youtube" autocomplete="off">
-       ${fld("Video or playlist link", `<input type="url" name="youtubeUrl" inputmode="url" value="${esc(state.data.settings.youtubeUrl || "")}" placeholder="https://youtube.com/watch?v=…" required>`)}
-       <p class="fld-note">The player appears only after you choose a link and disappears when you close it. It uses YouTube's privacy-enhanced player and never asks for your Google account or an API key.</p>
-       ${modalActions("Open player")}
-     </form>`
-  );
-}
-
-function renderYouTubeDock() {
-  const root = document.getElementById("youtube-root");
-  if (!root) return;
-  const src = youtubeEmbedUrl(state.data.settings.youtubeUrl);
-  if (!state.youtubeOpen || !src) {
-    root.innerHTML = "";
-    return;
-  }
-  root.innerHTML = `<aside class="youtube-dock${state.youtubeMinimized ? " is-minimized" : ""}" aria-label="YouTube focus player">
-    <header class="youtube-head">
-      <span><i aria-hidden="true"></i>YouTube <small>focus player</small></span>
-      <span class="youtube-actions">
-        <button type="button" data-action="youtube-minimize" aria-label="${state.youtubeMinimized ? "Expand" : "Minimize"} YouTube player">${state.youtubeMinimized ? "□" : "−"}</button>
-        <button type="button" data-action="youtube-close" aria-label="Close YouTube player">×</button>
-      </span>
-    </header>
-    <div class="youtube-frame">
-      <iframe src="${esc(src)}" title="YouTube focus player" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-    </div>
-  </aside>`;
 }
 
 /* ---------------- export / import ---------------- */
@@ -3171,33 +2754,13 @@ function hudHtml() {
 
 function renderNav() {
   const openCt = state.data.tasks.filter(x => x.status !== "done").length;
-  const navButton = v => `
-      <button class="nav-item ${state.view === v.id ? "active" : ""}" data-action="nav" data-view="${v.id}" aria-label="${esc(v.label)}">
-        ${icon(v.id, "nav-ic")}
-        <span>${v.label}</span>
-        ${v.id === "tasks" && openCt ? `<span class="nav-count">${openCt}</span>` : ""}
-        ${v.id === "sol" && state.unread > 0 ? `<span class="nav-dot" title="${state.unread} new"></span>` : ""}
-      </button>`;
-  const secondaryOpen = SECONDARY_VIEWS.some(v => v.id === state.view);
-  document.getElementById("nav").innerHTML = `
-    <div class="lyfe-brand">
-      <button data-action="nav" data-view="today" aria-label="Go to Today">
-        <span class="lyfe-mark" aria-hidden="true"><i></i></span>
-        <span><strong>Lyfe</strong><small>personal execution system</small></span>
-      </button>
-    </div>
-    <div class="nav-primary">${PRIMARY_VIEWS.map(navButton).join("")}</div>
-    <details class="nav-more" ${secondaryOpen ? "open" : ""}>
-      <summary>More</summary>
-      <div>${SECONDARY_VIEWS.map(navButton).join("")}</div>
-    </details>`;
-  const themeButton = document.getElementById("theme-toggle");
-  if (themeButton) {
-    const goingTo = resolvedTheme() === "dark" ? "Light" : "Dark";
-    const label = themeButton.querySelector("span");
-    if (label) label.textContent = goingTo + " mode";
-    themeButton.setAttribute("aria-label", "Switch to " + goingTo.toLowerCase() + " mode");
-  }
+  document.getElementById("nav").innerHTML = sunNav() + VIEWS.map(v => `
+    <button class="nav-item ${state.view === v.id ? "active" : ""}" data-action="nav" data-view="${v.id}">
+      ${icon(v.id, "nav-ic")}
+      <span>${v.label}</span>
+      ${v.id === "tasks" && openCt ? `<span class="nav-count">${openCt}</span>` : ""}
+      ${v.id === "sol" && state.unread > 0 ? `<span class="nav-dot" title="${state.unread} new"></span>` : ""}
+    </button>`).join("") + hudHtml();
 }
 
 /* ray hover shows the section name under the sun */
@@ -3217,10 +2780,22 @@ document.addEventListener("mouseout", (e) => {
 const SCRAMBLE_CHARS = "ABCDEFGHKMNPRSTVXZ0123456789/\\<>*#";
 
 function scrambleEl(el) {
-  if (el.dataset.scrambled) return;
-  /* Text is never obscured during navigation. Earlier builds used a decode
-     animation here; keeping content stable is faster and easier to scan. */
+  if (reducedMotionMedia() || el.dataset.scrambled) return;
+  const target = el.textContent;
   el.dataset.scrambled = "1";
+  let frame = 0;
+  const total = target.length * 2 + 6;
+  const timer = setInterval(() => {
+    frame++;
+    el.textContent = target.split("").map((ch, i) => {
+      if (ch === " ") return " ";
+      if (frame >= i * 2) return ch;
+      return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+    }).join("");
+    if (frame >= total) { clearInterval(timer); el.textContent = target; }
+  }, 26);
+  // safety: never leave text scrambled (guards against background-tab throttling)
+  setTimeout(() => { clearInterval(timer); if (el.isConnected) el.textContent = target; }, 1400);
 }
 
 function reducedMotionMedia() {
@@ -3296,8 +2871,17 @@ function doneTodayCount() {
 }
 
 function onTaskCompleted(title) {
+  awardXp(15);
+  touchStreak();
+  const openLeft = state.data.tasks.filter(x => x.status !== "done" && x.due && x.due <= todayStr()).length;
+  const doneN = doneTodayCount();
   save();
-  launchCompletion(title);
+  // ACE moment: cleared the last of today's due tasks, or a big daily haul
+  if ((openLeft === 0 && doneN >= 3) || doneN === 5) {
+    launchAce("ACE", "day cleared · +" + doneN);
+  } else {
+    launchCompletion(title);
+  }
 }
 
 /* Valorant-style ACE flash */
@@ -3436,7 +3020,6 @@ function render() {
   let html = "";
   switch (state.view) {
     case "today":     html = viewToday(); break;
-    case "focus":     html = viewFocus(); break;
     case "sol":       html = viewSol(); break;
     case "wander":    html = viewWander(); break;
     case "tasks":     html = viewTasks(); break;
@@ -3453,8 +3036,6 @@ function render() {
   const sameView = renderedView === state.view;
   renderedView = state.view;
   main.innerHTML = `<div class="view-anim${sameView ? " same-view" : ""}">${html}</div>`;
-  if (state.view !== "focus") document.title = "Lyfe";
-  else if (!state.data.focus.running) document.title = "Focus · Lyfe";
 
   autoDecorate(main, sameView);
   initReveal(main);
@@ -3470,7 +3051,6 @@ function render() {
     const inp = document.getElementById("sol-input");
     if (inp) inp.focus();
   }
-  renderYouTubeDock();
 }
 
 function setView(v) {
@@ -3542,7 +3122,7 @@ document.addEventListener("click", (e) => {
   else if (action === "nav") sfxClick("nav");
   else if (action === "toggle-task" || action === "toggle-milestone") sfxClick("check");
   else if (action === "modal-close" || action === "confirm-yes" || action === "sol-clear") sfxClick("close");
-  else if (action.startsWith("new-") || action === "settings" || action === "cmd-open" || action === "youtube-open" || action === "edit-task" || action === "edit-project" || action === "edit-goal" || action === "edit-edu") sfxClick("open");
+  else if (action.startsWith("new-") || action === "settings" || action === "edit-task" || action === "edit-project" || action === "edit-goal" || action === "edit-edu") sfxClick("open");
   else if (action === "sol-chip" || action === "cmd-pick" || action === "new-fact" || action === "task-status" || action === "edu-filter") sfxClick("chip");
   else if (!action.startsWith("delete")) sfxClick("tap");
 
@@ -3562,64 +3142,6 @@ document.addEventListener("click", (e) => {
     }
 
     /* tasks */
-    case "focus-task":
-    case "focus-select": {
-      const task = d.tasks.find(x => x.id === id && x.status !== "done");
-      if (!task) break;
-      const focus = d.focus;
-      if (focus.running && focus.taskId !== task.id) recordFocusSession(false);
-      focus.taskId = task.id;
-      focus.duration = [15, 25, 50, 90].includes(Number(task.estimate)) ? Number(task.estimate) : 50;
-      focus.remaining = focus.duration * 60;
-      focus.running = false;
-      focus.deadline = 0;
-      focus.startedAt = 0;
-      save();
-      if (action === "focus-task") setView("focus");
-      else render();
-      break;
-    }
-    case "focus-duration": {
-      const minutes = Number(el.dataset.minutes);
-      if (![15, 25, 50, 90].includes(minutes) || d.focus.running) break;
-      d.focus.duration = minutes;
-      d.focus.remaining = minutes * 60;
-      d.focus.deadline = 0;
-      save(); render();
-      break;
-    }
-    case "focus-start": {
-      const focus = d.focus;
-      const task = selectedFocusTask();
-      if (!task) { toast("Choose or add a task first"); break; }
-      focus.taskId = task.id;
-      if (focus.remaining <= 0) focus.remaining = focus.duration * 60;
-      focus.running = true;
-      focus.startedAt = focus.startedAt || Date.now();
-      focus.deadline = Date.now() + focus.remaining * 1000;
-      save(); render();
-      break;
-    }
-    case "focus-pause": {
-      const focus = d.focus;
-      focus.remaining = focusRemainingSeconds();
-      focus.running = false;
-      focus.deadline = 0;
-      save(); render();
-      break;
-    }
-    case "focus-reset": {
-      const focus = d.focus;
-      focus.running = false;
-      focus.deadline = 0;
-      focus.startedAt = 0;
-      focus.remaining = focus.duration * 60;
-      save(); render();
-      break;
-    }
-    case "focus-finish":
-      finishFocusSession(false);
-      break;
     case "new-task": taskModal(null); break;
     case "edit-task": taskModal(d.tasks.find(x => x.id === id) || null); break;
     case "delete-task":
@@ -3834,7 +3356,7 @@ document.addEventListener("click", (e) => {
       break;
     }
     case "sol-clear":
-      confirmDialog("Clear the whole conversation with EOS?", () => {
+      confirmDialog("Clear the whole conversation with Sol?", () => {
         d.chat = [];
         save(); render();
       }, "Clear");
@@ -3844,21 +3366,6 @@ document.addEventListener("click", (e) => {
     case "export": doExport(); break;
     case "import": document.getElementById("importFile").click(); break;
     case "settings": settingsModal(); break;
-    case "cmd-open": openCommandBar(); break;
-    case "theme-toggle":
-      d.settings.theme = resolvedTheme() === "dark" ? "light" : "dark";
-      applyTheme(); save(); render();
-      break;
-    case "youtube-open": youtubeModal(); break;
-    case "youtube-close":
-      state.youtubeOpen = false;
-      state.youtubeMinimized = false;
-      renderYouTubeDock();
-      break;
-    case "youtube-minimize":
-      state.youtubeMinimized = !state.youtubeMinimized;
-      renderYouTubeDock();
-      break;
     case "cmd-pick": cmdActivate(cmdItems[+el.dataset.i]); break;
 
     /* accounts */
@@ -3928,26 +3435,11 @@ document.addEventListener("submit", (e) => {
         area: "Work", priority: "Medium",
         due: kind === "quick-task-today" ? todayStr() : (val("due") || null),
         projectId: null, notes: "",
-        estimate: 50, energy: "medium", nextStep: "",
         status: "open", createdAt: Date.now(), completedAt: null,
       });
       save(); render(); toast("Task added");
       const qa = document.getElementById("qa-title");
       if (qa) qa.focus();
-      break;
-    }
-
-    case "youtube": {
-      const raw = val("youtubeUrl");
-      if (!youtubeEmbedUrl(raw)) {
-        toast("Paste a valid YouTube video or playlist link");
-        return;
-      }
-      d.settings.youtubeUrl = raw;
-      state.youtubeOpen = true;
-      state.youtubeMinimized = false;
-      save(); closeModal(); renderYouTubeDock();
-      toast("YouTube player opened");
       break;
     }
 
@@ -3961,9 +3453,6 @@ document.addEventListener("submit", (e) => {
         dueTime: val("dueTime") || "",
         important: val("important") === "yes",
         projectId: val("projectId") || null,
-        estimate: [15, 25, 50, 90].includes(Number(val("estimate"))) ? Number(val("estimate")) : 50,
-        energy: ["low", "medium", "high"].includes(val("energy")) ? val("energy") : "medium",
-        nextStep: val("nextStep"),
         notes: val("notes"),
       };
       if (!vals.title) return;
@@ -4123,7 +3612,7 @@ document.addEventListener("input", (e) => {
   }
 });
 
-/* universal command bar: search everything, jump anywhere, or ask EOS */
+/* universal command bar: search everything, jump anywhere, or ask Sol */
 let cmdItems = [];
 let cmdSel = 0;
 
@@ -4143,14 +3632,14 @@ function cmdSearch(qRaw) {
   d.education.forEach(e => { if (hit(e.title) || hit(e.provider)) out.push({ type: "item", kind: "edu", id: e.id, label: e.title, sub: "education" + (e.provider ? " · " + e.provider : ""), ic: "education" }); });
   d.notes.forEach(n => { if (hit(n.title) || hit(n.body)) out.push({ type: "item", kind: "note", id: n.id, label: (n.title || "").trim() || "Untitled", sub: "note · " + snippet(n.body), ic: "notes" }); });
   d.docs.forEach(n => { if (hit(n.title) || hit(n.body)) out.push({ type: "item", kind: "doc", id: n.id, label: (n.title || "").trim() || "Untitled", sub: "doc · " + snippet(n.body), ic: "docs" }); });
-  out.push({ type: "sol", query: qRaw.trim(), label: 'Ask EOS: "' + qRaw.trim() + '"', sub: "chat with your companion", ic: "sol" });
+  out.push({ type: "sol", query: qRaw.trim(), label: 'Ask Sol: "' + qRaw.trim() + '"', sub: "chat with your companion", ic: "sol" });
   return out.slice(0, 14);
 }
 
 function cmdResultsHtml(q) {
   cmdItems = cmdSearch(q);
   cmdSel = 0;
-  if (!cmdItems.length) return `<div class="cmd-empty">no matches. press Enter to ask EOS.</div>`;
+  if (!cmdItems.length) return `<div class="cmd-empty">no matches. press Enter to ask Sol.</div>`;
   return cmdItems.map((it, i) => `
     <button type="button" class="cmd-row ${i === 0 ? "sel" : ""}" data-action="cmd-pick" data-i="${i}">
       ${icon(it.ic || "spark", "cmd-ic")}
@@ -4185,10 +3674,10 @@ function cmdActivate(it) {
 
 function openCommandBar() {
   openModal(
-    `<div class="modal-head"><h3>Search · jump · ask EOS</h3></div>
+    `<div class="modal-head"><h3>Search · jump · ask Sol</h3></div>
      <form data-form="cmdbar" autocomplete="off">
        <input type="text" id="cmd-input" maxlength="2000" autocomplete="off"
-         placeholder="search anything, or 'remind me to…', or ask EOS a question">
+         placeholder="search anything, or 'remind me to…', or ask Sol a question">
      </form>
      <div id="cmd-results" class="cmd-results">${cmdResultsHtml("")}</div>
      <p class="fld-note cmd-hint">↑↓ to move · Enter to open · Esc to close</p>`
@@ -4417,7 +3906,7 @@ function showOnboarding() {
       <div class="onb-head">
         ${onboardSunMark()}
         <h1 class="onb-title">Welcome to Lyfe</h1>
-        <p class="onb-sub">A few quick things, so Lyfe and EOS actually know you.</p>
+        <p class="onb-sub">A few quick things, so Lyfe and Sol actually know you.</p>
       </div>
       <form data-form="onboarding" class="onb-form" autocomplete="off">
         <div class="onb-row">
@@ -4453,7 +3942,7 @@ function hideOnboarding() {
 function submitOnboarding(fd) {
   const val = k => String(fd.get(k) == null ? "" : fd.get(k)).trim();
   const name = val("name");
-  if (!name) { toast("A name helps EOS talk to you"); return; }
+  if (!name) { toast("A name helps Sol talk to you"); return; }
   const s = state.data.settings;
   s.name = name;
   s.nameSet = true;

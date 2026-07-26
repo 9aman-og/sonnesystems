@@ -21,42 +21,40 @@
   document.documentElement.setAttribute("data-theme", mode);
   document.addEventListener("DOMContentLoaded", function () {
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute("content", mode === "light" ? "#f3f5fa" : "#070912");
+    if (meta) meta.setAttribute("content", mode === "light" ? "#e9f1fb" : "#050505");
   });
 })();
 </script>
-<link rel="icon" type="image/png" href="favicon-32.png?v=eos-30">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=eos-30">
+<link rel="icon" type="image/png" href="favicon-32.png?v=crystal-28">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png?v=crystal-28">
 
 <!-- installable Android / PWA -->
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#070912">
+<meta name="theme-color" content="#050505">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Lyfe">
 <link rel="apple-touch-icon" href="icon-192.png">
 
-<link rel="stylesheet" href="styles.css?v=eos-36">
-<link rel="stylesheet" href="system.css?v=eos-36">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- warm up the photo pipes so Wander and the daily calm land faster -->
+<link rel="preconnect" href="https://en.wikipedia.org" crossorigin>
+<link rel="dns-prefetch" href="https://upload.wikimedia.org">
+<link rel="dns-prefetch" href="https://picsum.photos">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Unbounded:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css?v=crystal-28">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 <div id="scroll-progress" aria-hidden="true"></div>
+<div id="stars" aria-hidden="true"></div>
+<div id="bg-glow" aria-hidden="true"></div>
+
 <div id="app">
   <aside id="sidebar">
     <nav id="nav" aria-label="Sections"></nav>
-    <div class="side-tools" aria-label="Quick controls">
-      <button class="side-tool" data-action="cmd-open" type="button">
-        <span>Find anything</span><kbd>Ctrl K</kbd>
-      </button>
-      <button class="side-tool" data-action="youtube-open" type="button">
-        <span>Focus video</span><span aria-hidden="true">↗</span>
-      </button>
-      <button class="side-tool" id="theme-toggle" data-action="theme-toggle" type="button">
-        <span>Dark mode</span><span aria-hidden="true">◐</span>
-      </button>
-    </div>
     <div class="side-foot">
       <button class="linklike" data-action="export">Export</button>
       <span class="sep">·</span>
@@ -80,7 +78,7 @@
       </svg>
     </div>
     <h1 class="auth-title">Lyfe</h1>
-    <p class="auth-tag">turn intention into finished work</p>
+    <p class="auth-tag">your life, lightly kept</p>
     <button class="auth-btn auth-google" data-action="auth-google" type="button">
       <svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true">
         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -91,18 +89,17 @@
       Continue with Google
     </button>
     <button class="auth-btn auth-guest" data-action="auth-guest" type="button">Continue as guest</button>
-    <p class="auth-fine">Guest mode keeps everything on this device. Sign in only if you want private cross-device sync.</p>
+    <p class="auth-fine">Guest keeps everything on this device. Sign in to sync privately across your devices.</p>
   </div>
 </div>
 
 <div id="onboard-gate" hidden role="dialog" aria-modal="true" aria-label="Set up your Lyfe"></div>
 
 <div id="modal-root"></div>
-<div id="youtube-root" aria-live="polite"></div>
 <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
-<script src="supabase-config.js?v=eos-36"></script>
-<script src="cloud.js?v=eos-36"></script>
-<script src="app.js?v=eos-36"></script>
+<script src="supabase-config.js?v=crystal-28"></script>
+<script src="cloud.js?v=crystal-28"></script>
+<script src="app.js?v=crystal-28"></script>
 <script>
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */

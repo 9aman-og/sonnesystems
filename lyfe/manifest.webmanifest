@@ -1,14 +1,14 @@
 {
-  "name": "Lyfe - focus on what matters",
+  "name": "Lyfe - your life, lightly kept",
   "short_name": "Lyfe",
-  "description": "A private execution system for planning meaningful work, focusing deeply, and keeping useful context close.",
+  "description": "A calm, gamified life tracker with Sol, your AI companion. Tasks, projects, goals, notes, docs and more.",
   "start_url": "./index.html",
   "scope": "./",
   "id": "lyfe-app",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#0d0f0e",
-  "theme_color": "#5b5ce2",
+  "background_color": "#050505",
+  "theme_color": "#050505",
   "categories": ["productivity", "lifestyle", "utilities"],
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

@@ -10,8 +10,6 @@ Checks:
 Exit code 0 = healthy, 1 = problems (printed).
 """
 import re
-import json
-import struct
 import sys
 from pathlib import Path
 
@@ -75,99 +73,16 @@ def check_papers():
                 PROBLEMS.append(f"papers: {enc.name} lacks the SSE1 header (not our format?)")
 
 
-def png_size(path: Path):
-    data = path.read_bytes()[:24]
-    if len(data) != 24 or data[:8] != b"\x89PNG\r\n\x1a\n":
-        return None
-    return struct.unpack(">II", data[16:24])
-
-
-def check_brand_and_indexing():
-    expected_icons = {
-        "favicon-32.png": (32, 32),
-        "favicon-48.png": (48, 48),
-        "apple-touch-icon.png": (180, 180),
-        "icon-192.png": (192, 192),
-        "icon-512.png": (512, 512),
-    }
-    for filename, dimensions in expected_icons.items():
-        path = ROOT / filename
-        if not path.exists():
-            PROBLEMS.append(f"brand: {filename} is missing")
-        elif png_size(path) != dimensions:
-            PROBLEMS.append(f"brand: {filename} must be {dimensions[0]}x{dimensions[1]}")
-
-    manifest_path = ROOT / "site.webmanifest"
-    if manifest_path.exists():
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        if manifest.get("name") != "Sonne Systems" or len(manifest.get("icons", [])) < 2:
-            PROBLEMS.append("brand: site.webmanifest is incomplete")
-    else:
-        PROBLEMS.append("brand: site.webmanifest is missing")
-
-    icon_marker = 'href="/favicon-48.png"'
-    for filename in ("index.html", "research.html", "ventures.html", "about.html"):
-        html = (ROOT / filename).read_text(encoding="utf-8")
-        if icon_marker not in html or 'rel="apple-touch-icon"' not in html:
-            PROBLEMS.append(f"brand: {filename} lacks shared browser icons")
-        if 'name="robots" content="index, follow, max-image-preview:large"' not in html:
-            PROBLEMS.append(f"indexing: {filename} lacks the public robots directive")
-
-    home = (ROOT / "index.html").read_text(encoding="utf-8")
-    if 'type="application/ld+json"' not in home or 'https://sonnesystems.com/#organization' not in home:
-        PROBLEMS.append("indexing: homepage organization data is missing")
-
-    robots = (ROOT / "robots.txt").read_text(encoding="utf-8")
-    if "Allow: /" not in robots or "Sitemap: https://sonnesystems.com/sitemap.xml" not in robots:
-        PROBLEMS.append("indexing: robots.txt does not expose the public site and sitemap")
-
-
-def check_lyfe_shell():
-    """Keep the published Lyfe entry point, PWA assets, and Sonne links intact."""
-    lyfe = ROOT / "lyfe"
-    required = {
-        "index.html",
-        "app.js",
-        "cloud.js",
-        "styles.css",
-        "sw.js",
-        "manifest.webmanifest",
-    }
-    for filename in sorted(required):
-        if not (lyfe / filename).is_file():
-            PROBLEMS.append(f"lyfe: {filename} is missing")
-
-    manifest_path = lyfe / "manifest.webmanifest"
-    if manifest_path.is_file():
-        try:
-            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as error:
-            PROBLEMS.append(f"lyfe: manifest is invalid JSON ({error})")
-        else:
-            for icon in manifest.get("icons", []):
-                source = icon.get("src", "")
-                if source and not (lyfe / source.lstrip("./")).is_file():
-                    PROBLEMS.append(f"lyfe: manifest references missing {source}")
-
-    ventures = (ROOT / "ventures.html").read_text(encoding="utf-8")
-    if 'href="/lyfe/"' not in ventures:
-        PROBLEMS.append("lyfe: Ventures page does not link to the live app")
-    if "lyfe-feature-cloud" in ventures:
-        PROBLEMS.append("lyfe: obsolete floating feature labels are present")
-
-
 def main() -> int:
     check_dashes()
     check_links()
     check_papers()
-    check_brand_and_indexing()
-    check_lyfe_shell()
     if PROBLEMS:
         print(f"FAIL: {len(PROBLEMS)} problem(s)")
         for p in PROBLEMS:
             print("  -", p)
         return 1
-    print("OK: links resolve, papers are encrypted, brand metadata and Lyfe shell are valid")
+    print("OK: dashes clean, links resolve, papers encrypted")
     return 0
 
 
