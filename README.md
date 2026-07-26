@@ -3,7 +3,7 @@
 Public website for **Sonne Systems**, an independent AI research and engineering company.
 
 - Live: https://sonnesystems.com
-- Owner: Aman Agarwal, 9aman.aa@gmail.com, [@9aman-og](https://github.com/9aman-og)
+- Owner: Aman Agarwal, aman@sonnesystems.com, [@9aman-og](https://github.com/9aman-og)
 
 ## System shape
 

@@ -2,7 +2,7 @@
 
 ## Reporting
 
-Email **9aman.aa@gmail.com** with details. Please do not open a public issue for vulnerabilities.
+Email **aman@sonnesystems.com** with details. Please do not open a public issue for vulnerabilities.
 
 ## What is protected and how
 

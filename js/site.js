@@ -59,7 +59,7 @@
       '  <div class="footer-inner">',
       '    <div class="footer-top">',
       '      <p class="footer-statement">Build the claim. Test the boundary.</p>',
-      '      <div class="footer-contact"><small>Research and engineering</small><a href="mailto:9aman.aa@gmail.com">9aman.aa@gmail.com</a></div>',
+      '      <div class="footer-contact"><small>Research and engineering</small><a href="mailto:aman@sonnesystems.com">aman@sonnesystems.com</a></div>',
       '    </div>',
       '    <div class="footer-bottom">',
       '      <span>Copyright ' + new Date().getFullYear() + ' Sonne Systems</span>',

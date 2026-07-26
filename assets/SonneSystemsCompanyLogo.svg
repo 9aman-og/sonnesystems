@@ -1,22 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">Sonne Systems wheel mark</title>
-  <desc id="desc">A circular grid with twenty radial divisions and a central core.</desc>
-  <g fill="none" stroke="#08090d" stroke-width="7">
+  <title id="title">Sonne Systems radial mark</title>
+  <desc id="desc">Three concentric circles joined by twenty evenly spaced radial lines.</desc>
+  <defs>
+    <path id="spoke" d="M256 26V182"/>
+  </defs>
+  <g fill="none" stroke="#08090d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
     <circle cx="256" cy="256" r="230"/>
-    <circle cx="256" cy="256" r="138"/>
-    <circle cx="256" cy="256" r="64"/>
+    <circle cx="256" cy="256" r="132"/>
+    <circle cx="256" cy="256" r="74"/>
+    <use href="#spoke"/>
+    <use href="#spoke" transform="rotate(18 256 256)"/>
+    <use href="#spoke" transform="rotate(36 256 256)"/>
+    <use href="#spoke" transform="rotate(54 256 256)"/>
+    <use href="#spoke" transform="rotate(72 256 256)"/>
+    <use href="#spoke" transform="rotate(90 256 256)"/>
+    <use href="#spoke" transform="rotate(108 256 256)"/>
+    <use href="#spoke" transform="rotate(126 256 256)"/>
+    <use href="#spoke" transform="rotate(144 256 256)"/>
+    <use href="#spoke" transform="rotate(162 256 256)"/>
+    <use href="#spoke" transform="rotate(180 256 256)"/>
+    <use href="#spoke" transform="rotate(198 256 256)"/>
+    <use href="#spoke" transform="rotate(216 256 256)"/>
+    <use href="#spoke" transform="rotate(234 256 256)"/>
+    <use href="#spoke" transform="rotate(252 256 256)"/>
+    <use href="#spoke" transform="rotate(270 256 256)"/>
+    <use href="#spoke" transform="rotate(288 256 256)"/>
+    <use href="#spoke" transform="rotate(306 256 256)"/>
+    <use href="#spoke" transform="rotate(324 256 256)"/>
+    <use href="#spoke" transform="rotate(342 256 256)"/>
   </g>
-  <g fill="none" stroke="#08090d" stroke-width="7">
-    <path d="M256 26V192" transform="rotate(0 256 256)"/><path d="M256 26V192" transform="rotate(18 256 256)"/>
-    <path d="M256 26V192" transform="rotate(36 256 256)"/><path d="M256 26V192" transform="rotate(54 256 256)"/>
-    <path d="M256 26V192" transform="rotate(72 256 256)"/><path d="M256 26V192" transform="rotate(90 256 256)"/>
-    <path d="M256 26V192" transform="rotate(108 256 256)"/><path d="M256 26V192" transform="rotate(126 256 256)"/>
-    <path d="M256 26V192" transform="rotate(144 256 256)"/><path d="M256 26V192" transform="rotate(162 256 256)"/>
-    <path d="M256 26V192" transform="rotate(180 256 256)"/><path d="M256 26V192" transform="rotate(198 256 256)"/>
-    <path d="M256 26V192" transform="rotate(216 256 256)"/><path d="M256 26V192" transform="rotate(234 256 256)"/>
-    <path d="M256 26V192" transform="rotate(252 256 256)"/><path d="M256 26V192" transform="rotate(270 256 256)"/>
-    <path d="M256 26V192" transform="rotate(288 256 256)"/><path d="M256 26V192" transform="rotate(306 256 256)"/>
-    <path d="M256 26V192" transform="rotate(324 256 256)"/><path d="M256 26V192" transform="rotate(342 256 256)"/>
-  </g>
-  <circle cx="256" cy="256" r="43" fill="#08090d"/>
 </svg>

@@ -38,4 +38,4 @@ Imperative and specific: `Fix gate error copy on wrong password`, not `updates`.
 
 ## Security
 
-Found a vulnerability? Email 9aman.aa@gmail.com. Do not open a public issue for it.
+Found a vulnerability? Email aman@sonnesystems.com. Do not open a public issue for it.

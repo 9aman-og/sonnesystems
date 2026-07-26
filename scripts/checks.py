@@ -13,6 +13,7 @@ import re
 import json
 import struct
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -89,6 +90,9 @@ def check_brand_and_indexing():
         "apple-touch-icon.png": (180, 180),
         "icon-192.png": (192, 192),
         "icon-512.png": (512, 512),
+        "assets/SonneSystemsCompanyLogo.png": (1024, 1024),
+        "assets/SonneSystemsBrowserIcon.png": (1024, 1024),
+        "assets/og.png": (1200, 630),
     }
     for filename, dimensions in expected_icons.items():
         path = ROOT / filename
@@ -96,6 +100,18 @@ def check_brand_and_indexing():
             PROBLEMS.append(f"brand: {filename} is missing")
         elif png_size(path) != dimensions:
             PROBLEMS.append(f"brand: {filename} must be {dimensions[0]}x{dimensions[1]}")
+
+    svg_path = ROOT / "assets" / "SonneSystemsCompanyLogo.svg"
+    if not svg_path.exists():
+        PROBLEMS.append("brand: scalable Sonne Systems logo is missing")
+    else:
+        svg = svg_path.read_text(encoding="utf-8")
+        if svg.count("<circle") != 3 or svg.count("<use") != 20:
+            PROBLEMS.append("brand: scalable logo must contain three rings and twenty spokes")
+
+    ico_path = ROOT / "favicon.ico"
+    if not ico_path.exists() or ico_path.read_bytes()[:4] != b"\x00\x00\x01\x00":
+        PROBLEMS.append("brand: favicon.ico is missing or invalid")
 
     manifest_path = ROOT / "site.webmanifest"
     if manifest_path.exists():
@@ -112,14 +128,55 @@ def check_brand_and_indexing():
             PROBLEMS.append(f"brand: {filename} lacks shared browser icons")
         if 'name="robots" content="index, follow, max-image-preview:large"' not in html:
             PROBLEMS.append(f"indexing: {filename} lacks the public robots directive")
+        if 'property="og:image:alt"' not in html or 'name="twitter:image:alt"' not in html:
+            PROBLEMS.append(f"indexing: {filename} lacks complete social image metadata")
+        for payload in re.findall(r'<script type="application/ld\+json">(.*?)</script>', html, re.S):
+            try:
+                json.loads(payload)
+            except json.JSONDecodeError as error:
+                PROBLEMS.append(f"indexing: {filename} has invalid JSON-LD ({error})")
 
     home = (ROOT / "index.html").read_text(encoding="utf-8")
-    if 'type="application/ld+json"' not in home or 'https://sonnesystems.com/#organization' not in home:
+    if (
+        'type="application/ld+json"' not in home
+        or 'https://sonnesystems.com/#organization' not in home
+        or '"email":"mailto:aman@sonnesystems.com"' not in home
+        or '"url":"https://sonnesystems.com/icon-512.png"' not in home
+    ):
         PROBLEMS.append("indexing: homepage organization data is missing")
+
+    contact_files = ("index.html", "about.html", "js/site.js", "README.md", "SECURITY.md", "CONTRIBUTING.md")
+    retired_email = "9aman.aa" + "@gmail.com"
+    for filename in contact_files:
+        text = (ROOT / filename).read_text(encoding="utf-8")
+        if retired_email in text:
+            PROBLEMS.append(f"contact: {filename} still contains the retired email address")
 
     robots = (ROOT / "robots.txt").read_text(encoding="utf-8")
     if "Allow: /" not in robots or "Sitemap: https://sonnesystems.com/sitemap.xml" not in robots:
         PROBLEMS.append("indexing: robots.txt does not expose the public site and sitemap")
+
+    sitemap_path = ROOT / "sitemap.xml"
+    try:
+        sitemap = ET.parse(sitemap_path)
+    except (ET.ParseError, OSError) as error:
+        PROBLEMS.append(f"indexing: sitemap.xml is invalid ({error})")
+    else:
+        namespace = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+        locations = {node.text for node in sitemap.findall(".//s:loc", namespace)}
+        expected_locations = {
+            "https://sonnesystems.com/",
+            "https://sonnesystems.com/research.html",
+            "https://sonnesystems.com/ventures.html",
+            "https://sonnesystems.com/lyfe/",
+            "https://sonnesystems.com/about.html",
+        }
+        if locations != expected_locations:
+            PROBLEMS.append("indexing: sitemap.xml does not contain exactly the canonical public URLs")
+
+    indexnow_key = ROOT / "af28275a-6ac9-4b6f-952b-9defb6fef22c.txt"
+    if not indexnow_key.exists() or indexnow_key.read_text(encoding="utf-8").strip() != indexnow_key.stem:
+        PROBLEMS.append("indexing: IndexNow ownership key is missing or invalid")
 
 
 def check_lyfe_shell():
