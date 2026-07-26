@@ -2,14 +2,15 @@
    HTML is network-first (always fresh when online); versioned assets cache-first. */
 "use strict";
 
-const CACHE = "lyfe-eos-30";
+const CACHE = "lyfe-eos-36";
 const SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=eos-30",
-  "./supabase-config.js?v=eos-30",
-  "./cloud.js?v=eos-30",
-  "./app.js?v=eos-30",
+  "./styles.css?v=eos-36",
+  "./system.css?v=eos-36",
+  "./supabase-config.js?v=eos-36",
+  "./cloud.js?v=eos-36",
+  "./app.js?v=eos-36",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",

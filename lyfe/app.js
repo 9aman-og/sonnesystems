@@ -23,16 +23,21 @@ function readKey(k) {
 
 const VIEWS = [
   { id: "today",     label: "Today" },
-  { id: "sol",       label: "EOS" },
-  { id: "wander",    label: "Wander" },
+  { id: "focus",     label: "Focus" },
   { id: "tasks",     label: "Tasks" },
   { id: "projects",  label: "Projects" },
-  { id: "goals",     label: "Goals" },
-  { id: "education", label: "Education" },
-  { id: "work",      label: "Work Log" },
   { id: "notes",     label: "Notes" },
+  { id: "sol",       label: "EOS" },
+  { id: "goals",     label: "Goals" },
+  { id: "education", label: "Learning" },
+  { id: "work",      label: "Work log" },
   { id: "docs",      label: "Docs" },
 ];
+
+/* The first six destinations support the daily execution loop. The rest stay
+   one click away without competing for attention every time Lyfe opens. */
+const PRIMARY_VIEWS = VIEWS.slice(0, 6);
+const SECONDARY_VIEWS = VIEWS.slice(6);
 
 const AREAS = ["Work", "Research", "Education", "Personal", "Health", "Other"];
 const PRIORITIES = ["High", "Medium", "Low"];
@@ -301,6 +306,7 @@ const SOL_AVATAR = `<span class="sol-avatar-px" aria-hidden="true">${solSprite(2
    (light, rounded y2k bubbles) - the light mode is its own app. */
 const ICONS_ORBIT = {
   today: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="M8.7 15l2.2 2.2 4.4-4.6"/>',
+  focus: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/>',
   sol: '<path d="M21 12a8.5 8.5 0 0 1-8.5 8.5c-1.2 0-2.4-.2-3.4-.7L4 21l1.3-4.4A8.5 8.5 0 1 1 21 12z"/><path d="M8.5 10.5h7M8.5 13.5h4.5"/>',
   tasks: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12.2l2.4 2.4 4.8-5"/>',
   projects: '<path d="M12 3l8 4.5-8 4.5-8-4.5L12 3z"/><path d="M4 12.5l8 4.5 8-4.5"/><path d="M4 17l8 4.5 8-4.5" opacity=".4"/>',
@@ -316,6 +322,7 @@ const ICONS_ORBIT = {
 
 const ICONS_CRYSTAL = {
   today: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="3.1"/><path d="M12 1.8v2M12 20.2v2M1.8 12h2M20.2 12h2"/>',
+  focus: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="3.2"/><path d="M12 1.8v2M12 20.2v2M1.8 12h2M20.2 12h2"/>',
   sol: '<rect x="3.4" y="4.4" width="17.2" height="12.8" rx="6.4"/><path d="M8.6 17.2L7.4 21l4.6-3.8"/><circle cx="9.3" cy="10.8" r="1" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10.8" r="1" fill="currentColor" stroke="none"/>',
   tasks: '<circle cx="12" cy="12" r="8.6"/><path d="M8.2 12.4l2.6 2.6 5-5.6"/>',
   projects: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="3.4" r="1.7" fill="currentColor" stroke="none"/><circle cx="4.6" cy="16.4" r="1.7" fill="currentColor" stroke="none"/><circle cx="19.4" cy="16.4" r="1.7" fill="currentColor" stroke="none"/>',
@@ -430,6 +437,15 @@ function defaultData() {
       onboarded: false,
     },
     game: { xp: 0, streak: 0, lastActiveDay: "", bestStreak: 0, logins: [] },
+    focus: {
+      taskId: null,
+      duration: 50,
+      remaining: 50 * 60,
+      running: false,
+      deadline: 0,
+      startedAt: 0,
+      sessions: [],
+    },
     tasks: [],
     projects: [],
     goals: [],
@@ -448,19 +464,19 @@ function firstRunData() {
     id: uid(),
     title: "Welcome to Lyfe",
     body:
-`Lyfe keeps everything in one calm place - and EOS keeps you company.
+`Lyfe helps you turn intention into finished work without maintaining a complicated productivity system.
 
-THE SHORT TOUR
+START HERE
 
-Today - what needs you now, nothing more.
-EOS - your companion. Just talk: "remind me to email prof tomorrow", "log 2h on research", "note: read Maass 1997", or plain "hi". EOS files things for you.
-Tasks · Projects · Goals · Education · Work Log - the usual suspects, kept simple.
-Notes - quick thoughts. Docs - longer writing.
+Today keeps the plan short and recommends one useful next task.
+Focus protects a 15, 25, 50, or 90 minute block around one task.
+For each task, add a concrete first visible step. Starting becomes easier when the first action is obvious.
+EOS can capture tasks, notes, and work in plain language.
 
 GOOD TO KNOW
 
-Everything lives in this browser only (localStorage). Export a backup from the sidebar now and then.
-EOS works fully offline. Add an Anthropic API key in Settings and EOS can understand open-ended questions, including things you paste from other chats.`,
+Guest data lives only in this browser. Export a backup from the sidebar now and then.
+EOS works with simple commands offline. Optional model connections are configured in Settings and remain under your control.`,
     pinned: true,
     createdAt: now,
     updatedAt: now,
@@ -499,6 +515,16 @@ function normalize(raw) {
   if (base.settings.theme === "night") base.settings.theme = "dark";
   if (raw.game && typeof raw.game === "object") {
     base.game = Object.assign(base.game, raw.game);
+  }
+  if (raw.focus && typeof raw.focus === "object") {
+    base.focus = Object.assign(base.focus, raw.focus);
+    base.focus.sessions = Array.isArray(raw.focus.sessions)
+      ? raw.focus.sessions.filter(x => x && typeof x === "object").slice(-1000)
+      : [];
+    base.focus.duration = [15, 25, 50, 90].includes(Number(base.focus.duration))
+      ? Number(base.focus.duration) : 50;
+    base.focus.remaining = Math.max(0, Number(base.focus.remaining) || base.focus.duration * 60);
+    base.focus.deadline = Math.max(0, Number(base.focus.deadline) || 0);
   }
   // pre-rev payloads (and hand-rolled backups) count as revision 0
   if (typeof raw.rev === "number" && isFinite(raw.rev) && raw.rev >= 0) base.rev = Math.floor(raw.rev);
@@ -843,22 +869,8 @@ const SFX = (() => {
 function playFinishTone() { SFX.finish(); }
 
 function launchCompletion(title) {
-  const old = document.getElementById("completion-fx");
-  if (old) old.remove();
-  const fx = document.createElement("div");
-  fx.id = "completion-fx";
-  fx.setAttribute("aria-live", "polite");
-  fx.innerHTML = `<div class="complete-reticle">
-      <i></i><i></i><i></i>
-      <div class="complete-check">✓</div>
-    </div>
-    <div class="complete-copy"><b>LOCKED IN</b><span>${esc(title || "Task complete")}</span></div>
-    <div class="complete-particles">${Array.from({ length: 18 }, (_, i) =>
-      `<i style="--i:${i};--x:${Math.round(Math.cos(i * 1.9) * (80 + (i % 5) * 18))}px;--y:${Math.round(Math.sin(i * 1.9) * (70 + (i % 4) * 20))}px"></i>`
-    ).join("")}</div>`;
-  document.body.appendChild(fx);
   playFinishTone();
-  setTimeout(() => fx.remove(), 1650);
+  toast(`Finished · ${title || "Task complete"}`);
 }
 
 /* ---------------- click sounds: tiny satisfying ticks per action ---------------- */
@@ -1015,15 +1027,19 @@ function taskRow(t, opts) {
   const o = opts || {};
   const done = t.status === "done";
   const timeTag = (!done && t.dueTime) ? `<span class="due-time">${esc(t.dueTime)}</span>` : "";
+  const meta = !done && (t.estimate || t.energy || t.nextStep)
+    ? `<span class="task-meta">${t.estimate ? `<span>${Number(t.estimate)}m</span>` : ""}${t.energy ? `<span>${esc(t.energy)} energy</span>` : ""}${t.nextStep ? `<span>${esc(t.nextStep)}</span>` : ""}</span>`
+    : "";
   const side = done
     ? (t.completedAt ? `<span class="due">${esc(fmtShortFromDate(new Date(t.completedAt)))}</span>` : "<span></span>")
     : (o.hideDue ? `<span>${timeTag}</span>` : `<span>${dueLabel(t.due) || ""}${timeTag}</span>`);
   return `<li class="task ${done ? "done" : ""} ${!done && t.important ? "important" : ""}">
     <button class="check" data-action="toggle-task" data-id="${esc(t.id)}"
       title="${done ? "Mark as not done" : "Mark as done"}" aria-label="${done ? "Mark task as open" : "Mark task as done"}: ${esc(t.title)}">${done ? "✓" : ""}</button>
-    <div class="task-title">${!done && t.important ? `<span class="imp-flag" title="Important - will alarm">⚑</span>` : ""}${esc(t.title)}${!done && t.priority === "High" ? `<span class="prio-flag" title="High priority">!</span>` : ""}</div>
+    <div class="task-title">${!done && t.important ? `<span class="imp-flag" title="Important - will alarm">⚑</span>` : ""}<span>${esc(t.title)}${!done && t.priority === "High" ? `<span class="prio-flag" title="High priority">!</span>` : ""}</span>${meta}</div>
     ${side}
     <span class="row-actions">
+      ${!done ? `<button class="icon-btn focus-row-btn" data-action="focus-task" data-id="${esc(t.id)}" title="Focus on this" aria-label="Focus on ${esc(t.title)}">${icon("focus")}</button>` : ""}
       ${!done && t.due && t.due < todayStr() ? `<button class="icon-btn" data-action="snooze-task" data-id="${esc(t.id)}" title="Push to tomorrow" aria-label="Push ${esc(t.title)} to tomorrow">↷</button>` : ""}
       <button class="icon-btn" data-action="edit-task" data-id="${esc(t.id)}" title="Edit" aria-label="Edit task: ${esc(t.title)}">✎</button>
       <button class="icon-btn" data-action="delete-task" data-id="${esc(t.id)}" title="Delete" aria-label="Delete task: ${esc(t.title)}">✕</button>
@@ -1057,7 +1073,7 @@ function weekHours() {
 
 /* ---------------- view: today ---------------- */
 
-function viewToday() {
+function viewTodayLegacy() {
   const d = state.data;
   const t = todayStr();
   const hour = new Date().getHours();
@@ -1346,7 +1362,324 @@ function viewToday() {
   </div>`;
 }
 
-/* ---------------- view: wander ---------------- */
+/* ============================================================
+   Today + Focus / 31
+   The execution loop is intentionally small:
+   capture -> choose one finish line -> focus -> record progress.
+   Existing data structures and legacy views stay compatible.
+   ============================================================ */
+
+function openTaskScore(t) {
+  const today = todayStr();
+  let score = 0;
+  if (t.due && t.due < today) score += 60;
+  if (t.due === today) score += 45;
+  if (t.priority === "High") score += 24;
+  if (t.important) score += 18;
+  if (t.nextStep) score += 8;
+  if (Number(t.estimate) > 0 && Number(t.estimate) <= 50) score += 5;
+  const ageDays = Math.max(0, (Date.now() - (t.createdAt || Date.now())) / 86400000);
+  score += Math.min(12, ageDays * .15);
+  return score;
+}
+
+function rankedOpenTasks() {
+  return state.data.tasks
+    .filter(t => t.status !== "done")
+    .slice()
+    .sort((a, b) => openTaskScore(b) - openTaskScore(a) || taskCmp(a, b));
+}
+
+function selectedFocusTask() {
+  const focus = state.data.focus || {};
+  return state.data.tasks.find(t => t.id === focus.taskId && t.status !== "done")
+    || rankedOpenTasks()[0]
+    || null;
+}
+
+function focusMinutesOn(iso) {
+  const sessions = (state.data.focus && state.data.focus.sessions) || [];
+  return Math.round(sessions
+    .filter(s => s.completedAt && isoOf(new Date(s.completedAt)) === iso)
+    .reduce((sum, s) => sum + (Number(s.minutes) || 0), 0));
+}
+
+function focusMinutesThisWeek() {
+  const [from, to] = weekRange();
+  const sessions = (state.data.focus && state.data.focus.sessions) || [];
+  return Math.round(sessions
+    .filter(s => s.completedAt && isoOf(new Date(s.completedAt)) >= from && isoOf(new Date(s.completedAt)) <= to)
+    .reduce((sum, s) => sum + (Number(s.minutes) || 0), 0));
+}
+
+function rhythmHtml() {
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const day = addDaysISO(todayStr(), -i);
+    const done = state.data.tasks.filter(t => t.completedAt && isoOf(new Date(t.completedAt)) === day).length;
+    const minutes = focusMinutesOn(day);
+    const strength = Math.min(4, (done > 0 ? 1 : 0) + Math.ceil(minutes / 30));
+    days.push(`<div class="rhythm-day">
+      <span class="rhythm-bar" style="--rhythm:${strength}" title="${esc(fmtShort(day))}: ${done} finished, ${minutes} focus minutes"></span>
+      <small>${WDAYS[parseISO(day).getDay()].slice(0, 1)}</small>
+    </div>`);
+  }
+  return `<div class="rhythm" aria-label="Your last seven days">${days.join("")}</div>`;
+}
+
+function viewToday() {
+  const d = state.data;
+  const today = todayStr();
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const name = (d.settings.name || "").trim();
+  const open = rankedOpenTasks();
+  const overdue = open.filter(t => t.due && t.due < today);
+  const dueToday = open.filter(t => t.due === today);
+  const planned = [];
+  [...overdue, ...dueToday, ...open.filter(t => !t.due)].forEach(t => {
+    if (!planned.some(item => item.id === t.id) && planned.length < 5) planned.push(t);
+  });
+  const doneToday = d.tasks.filter(t => t.status === "done" && t.completedAt && isoOf(new Date(t.completedAt)) === today);
+  const next = selectedFocusTask();
+  const focusToday = focusMinutesOn(today);
+  const projects = d.projects.filter(p => p.status === "active").slice().sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0)).slice(0, 3);
+  const recentNotes = d.notes.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 3);
+
+  const planList = planned.length
+    ? `<ul class="task-list today-task-list">${planned.map(t => taskRow(t, { hideDue: t.due === today })).join("")}</ul>`
+    : `<div class="clean-empty"><strong>Your day is clear.</strong><span>Capture one meaningful outcome, or leave the space open.</span></div>`;
+
+  const projectList = projects.length
+    ? projects.map(p => `<button class="project-line" data-action="nav" data-view="projects">
+        <span><strong>${esc(p.name)}</strong><small>${esc(p.area || "Project")}</small></span>
+        <span class="project-progress"><i style="width:${Math.max(0, Math.min(100, Number(p.progress) || 0))}%"></i></span>
+        <b>${Math.round(Number(p.progress) || 0)}%</b>
+      </button>`).join("")
+    : `<div class="clean-empty compact"><span>No active projects.</span></div>`;
+
+  const noteList = recentNotes.length
+    ? recentNotes.map(n => `<button class="memory-line" data-action="open-note" data-id="${esc(n.id)}">
+        <span>${esc((n.title || "").trim() || "Untitled")}</span><small>${esc(timeAgo(n.updatedAt))}</small>
+      </button>`).join("")
+    : `<div class="clean-empty compact"><span>No notes yet.</span></div>`;
+
+  return `<div class="workday">
+    <header class="workday-head">
+      <div>
+        <p class="date-line">${esc(fmtLongISO(today))}</p>
+        <h1>${greeting}${name ? `, ${esc(name)}` : ""}.</h1>
+        <p class="workday-intent">Choose a finish line. Make the next action obvious. Let the rest wait.</p>
+      </div>
+      <div class="workday-actions">
+        <button class="btn" data-action="cmd-open">${icon("notes")} Quick find</button>
+        <button class="btn btn-primary" data-action="new-task">Capture task</button>
+      </div>
+    </header>
+
+    <section class="next-card ${next ? "" : "is-empty"}">
+      <div class="next-copy">
+        <span class="section-label">Recommended next</span>
+        ${next ? `
+          <h2>${esc(next.title)}</h2>
+          <p>${next.nextStep ? `First step: ${esc(next.nextStep)}` : "Define the smallest visible step, then begin."}</p>
+          <div class="task-facts">
+            ${next.due ? `<span>${next.due < today ? "Needs rescheduling" : next.due === today ? "Due today" : esc(fmtShort(next.due))}</span>` : ""}
+            <span>${Number(next.estimate) || 50} min</span>
+            <span>${esc(next.energy || "medium")} energy</span>
+          </div>` : `
+          <h2>What would make today feel complete?</h2>
+          <p>Add one concrete outcome. Lyfe will keep everything else out of the way.</p>`}
+      </div>
+      <div class="next-action">
+        ${next
+          ? `<button class="focus-launch" data-action="focus-task" data-id="${esc(next.id)}"><span>${icon("focus")}</span><b>Begin focus</b><small>${Number(next.estimate) || 50} minute block</small></button>`
+          : `<button class="focus-launch" data-action="new-task"><span>+</span><b>Add an outcome</b><small>make it concrete</small></button>`}
+      </div>
+    </section>
+
+    <section class="day-metrics" aria-label="Today at a glance">
+      <div><strong>${doneToday.length}</strong><span>finished today</span></div>
+      <div><strong>${focusToday}</strong><span>focus minutes</span></div>
+      <div><strong>${overdue.length}</strong><span>need a new date</span></div>
+      <div class="rhythm-metric"><span>weekly rhythm</span>${rhythmHtml()}</div>
+    </section>
+
+    <div class="workday-grid">
+      <section class="surface today-plan">
+        <div class="surface-head">
+          <div><span class="section-label">Today</span><h2>A short, honest plan</h2></div>
+          <button class="text-button" data-action="nav" data-view="tasks">All tasks</button>
+        </div>
+        <form class="quick-capture" data-form="quick-task-today">
+          <span aria-hidden="true">+</span>
+          <input type="text" id="qa-title" name="title" maxlength="200" placeholder="Capture a task for today…" autocomplete="off" aria-label="Task title">
+          <button type="submit">Add</button>
+        </form>
+        ${planList}
+      </section>
+
+      <aside class="workday-side">
+        <section class="surface">
+          <div class="surface-head">
+            <div><span class="section-label">In motion</span><h2>Projects</h2></div>
+            <button class="text-button" data-action="nav" data-view="projects">View all</button>
+          </div>
+          <div class="project-lines">${projectList}</div>
+        </section>
+
+        <section class="surface">
+          <div class="surface-head">
+            <div><span class="section-label">Context</span><h2>Recent notes</h2></div>
+            <button class="text-button" data-action="nav" data-view="notes">View all</button>
+          </div>
+          <div class="memory-lines">${noteList}</div>
+        </section>
+
+        <section class="eos-nudge">
+          <span class="eos-dot" aria-hidden="true"></span>
+          <div><strong>Need to untangle something?</strong><p>Tell EOS what is stuck. It can turn the mess into a next action.</p></div>
+          <button data-action="nav" data-view="sol" aria-label="Talk to EOS">→</button>
+        </section>
+      </aside>
+    </div>
+  </div>`;
+}
+
+function focusRemainingSeconds() {
+  const focus = state.data.focus;
+  if (!focus.running) return Math.max(0, Number(focus.remaining) || 0);
+  return Math.max(0, Math.ceil((Number(focus.deadline) - Date.now()) / 1000));
+}
+
+function focusClockText(seconds) {
+  const safe = Math.max(0, Math.floor(seconds));
+  return `${String(Math.floor(safe / 60)).padStart(2, "0")}:${String(safe % 60).padStart(2, "0")}`;
+}
+
+function focusProgress() {
+  const focus = state.data.focus;
+  const total = Math.max(60, (Number(focus.duration) || 50) * 60);
+  return Math.max(0, Math.min(100, (1 - focusRemainingSeconds() / total) * 100));
+}
+
+function recordFocusSession(completed) {
+  const focus = state.data.focus;
+  const total = Math.max(60, (Number(focus.duration) || 50) * 60);
+  const elapsed = Math.max(0, total - focusRemainingSeconds());
+  if (elapsed < 60) return;
+  const task = state.data.tasks.find(t => t.id === focus.taskId);
+  focus.sessions.push({
+    id: uid(),
+    taskId: task ? task.id : null,
+    title: task ? task.title : "Open focus",
+    startedAt: focus.startedAt || Date.now() - elapsed * 1000,
+    completedAt: Date.now(),
+    minutes: Math.max(1, Math.round(elapsed / 60)),
+    completed: !!completed,
+  });
+  focus.sessions = focus.sessions.slice(-1000);
+}
+
+function finishFocusSession(completed) {
+  const focus = state.data.focus;
+  recordFocusSession(completed);
+  focus.running = false;
+  focus.deadline = 0;
+  focus.remaining = 0;
+  save();
+  playFinishTone();
+  toast(completed ? "Focus block complete" : "Focus time recorded");
+  if (state.view === "focus" || state.view === "today") render();
+}
+
+function updateFocusClock() {
+  const focus = state.data.focus;
+  if (!focus || !focus.running) return;
+  const remaining = focusRemainingSeconds();
+  if (remaining <= 0) {
+    finishFocusSession(true);
+    return;
+  }
+  const text = document.getElementById("focus-clock");
+  if (text) text.textContent = focusClockText(remaining);
+  const ring = document.querySelector(".focus-timer");
+  if (ring) ring.style.setProperty("--focus-progress", focusProgress().toFixed(2));
+  document.title = state.view === "focus" ? `${focusClockText(remaining)} · Lyfe` : "Lyfe";
+}
+
+setInterval(updateFocusClock, 1000);
+
+function viewFocus() {
+  const focus = state.data.focus;
+  const task = selectedFocusTask();
+  if (task && !focus.taskId) focus.taskId = task.id;
+  const remaining = focusRemainingSeconds();
+  const open = rankedOpenTasks().slice(0, 7);
+  const todayMinutes = focusMinutesOn(todayStr());
+  const weekMinutes = focusMinutesThisWeek();
+  const taskChoices = open.length
+    ? open.map(t => `<button class="focus-choice ${task && t.id === task.id ? "active" : ""}" data-action="focus-select" data-id="${esc(t.id)}">
+        <span class="focus-choice-check">${task && t.id === task.id ? "•" : ""}</span>
+        <span><strong>${esc(t.title)}</strong><small>${t.nextStep ? esc(t.nextStep) : `${Number(t.estimate) || 50} min · ${esc(t.energy || "medium")} energy`}</small></span>
+      </button>`).join("")
+    : `<div class="clean-empty compact"><span>No open tasks. Add one when you are ready.</span></div>`;
+
+  return `<div class="focus-page">
+    ${pageHead("Focus",
+      `<button class="btn" data-action="youtube-open">Open focus video</button>
+       <button class="btn" data-action="new-task">New task</button>`,
+      "one task · one visible finish line")}
+
+    <div class="focus-layout">
+      <section class="focus-stage">
+        <div class="focus-context">
+          <span class="section-label">${focus.running ? "In progress" : "Ready when you are"}</span>
+          <h2>${task ? esc(task.title) : "Choose one thing"}</h2>
+          <p>${task && task.nextStep ? `First visible step: ${esc(task.nextStep)}` : "The timer is a boundary, not a test. Stop when the work no longer benefits from it."}</p>
+        </div>
+
+        <div class="focus-timer" style="--focus-progress:${focusProgress().toFixed(2)}">
+          <div class="focus-timer-inner">
+            <span id="focus-clock" aria-live="off">${focusClockText(remaining)}</span>
+            <small>${focus.running ? "stay with this" : `${focus.duration} minute block`}</small>
+          </div>
+        </div>
+
+        <div class="duration-row" aria-label="Focus duration">
+          ${[15, 25, 50, 90].map(m => `<button class="${Number(focus.duration) === m ? "active" : ""}" data-action="focus-duration" data-minutes="${m}" ${focus.running ? "disabled" : ""}>${m}m</button>`).join("")}
+        </div>
+
+        <div class="focus-controls">
+          ${focus.running
+            ? `<button class="btn btn-primary focus-main-button" data-action="focus-pause">Pause</button>`
+            : `<button class="btn btn-primary focus-main-button" data-action="focus-start" ${task ? "" : "disabled"}>${remaining > 0 && remaining < focus.duration * 60 ? "Resume" : "Start focus"}</button>`}
+          <button class="btn" data-action="focus-reset">Reset</button>
+          ${focus.running || (remaining > 0 && remaining < focus.duration * 60)
+            ? `<button class="btn" data-action="focus-finish">Finish block</button>` : ""}
+        </div>
+
+        ${task ? `<div class="implementation-line">
+          <span>If I get distracted,</span>
+          <strong>I will write it down and return to “${esc(task.nextStep || task.title)}”.</strong>
+        </div>` : ""}
+      </section>
+
+      <aside class="focus-queue surface">
+        <div class="surface-head">
+          <div><span class="section-label">Choose deliberately</span><h2>Focus queue</h2></div>
+        </div>
+        <div class="focus-choices">${taskChoices}</div>
+        <div class="focus-summary">
+          <div><strong>${todayMinutes}</strong><span>minutes today</span></div>
+          <div><strong>${weekMinutes}</strong><span>minutes this week</span></div>
+        </div>
+      </aside>
+    </div>
+  </div>`;
+}
+
+/* ---------------- view: wander (legacy data remains import-compatible) ---------------- */
 
 function viewWander() {
   const place = PLACES[state.wanderIndex % PLACES.length];
@@ -1569,7 +1902,7 @@ function viewEducation() {
       </span>
     </div>`).join("");
 
-  return pageHead("Education", `<button class="btn btn-primary" data-action="new-edu">New entry</button>`)
+  return pageHead("Learning", `<button class="btn btn-primary" data-action="new-edu">New entry</button>`)
     + filterBar
     + (list.length ? `<section class="panel">${rows}</section>` : emptyState("Nothing under study right now."));
 }
@@ -1939,6 +2272,9 @@ function applyActions(actions) {
             area: AREAS.includes(a.area) ? a.area : "Personal",
             priority: PRIORITIES.includes(a.priority) ? a.priority : "Medium",
             due: validDate(a.due), projectId: null, notes: "",
+            estimate: [15, 25, 50, 90].includes(Number(a.estimate)) ? Number(a.estimate) : 50,
+            energy: ["low", "medium", "high"].includes(a.energy) ? a.energy : "medium",
+            nextStep: String(a.nextStep || "").trim().slice(0, 180),
             status: "open", createdAt: Date.now(), completedAt: null,
           });
           n++; break;
@@ -2518,7 +2854,11 @@ function modalActions(saveLabel) {
 }
 
 function taskModal(task) {
-  const t = task || { title: "", area: "Work", priority: "Medium", due: "", dueTime: "", important: false, notes: "", projectId: "" };
+  const t = task || {
+    title: "", area: "Work", priority: "Medium", due: "", dueTime: "",
+    important: false, notes: "", projectId: "", estimate: 50,
+    energy: "medium", nextStep: "",
+  };
   const projects = state.data.projects.filter(p => p.status !== "completed" || p.id === t.projectId);
   openModal(
     `<div class="modal-head"><h3>${task ? "Edit task" : "New task"}</h3></div>
@@ -2536,6 +2876,12 @@ function taskModal(task) {
        </div>
        <p class="fld-note">⚑ Important + a due date/time = an alarm that keeps ringing when the moment arrives, until you answer it in the app.</p>
        ${fld("Project", selectHtml("projectId", [["", "- none -"]].concat(projects.map(p => [p.id, p.name])), t.projectId || ""))}
+       <div class="fld-row">
+         ${fld("Focus block", selectHtml("estimate", [["15", "15 min"], ["25", "25 min"], ["50", "50 min"], ["90", "90 min"]], String(t.estimate || 50)))}
+         ${fld("Energy needed", selectHtml("energy", [["low", "Low"], ["medium", "Medium"], ["high", "High"]], t.energy || "medium"))}
+       </div>
+       ${fld("First visible step", `<input type="text" name="nextStep" maxlength="180" value="${esc(t.nextStep || "")}" placeholder="Open the draft and write the first paragraph">`)}
+       <p class="fld-note">A concrete first step reduces the effort of getting started. Make it something you can physically see yourself doing.</p>
        ${fld("Notes", `<textarea name="notes" rows="2" placeholder="Optional context">${esc(t.notes || "")}</textarea>`)}
        ${modalActions(task ? "Save" : "Add task")}
      </form>`
@@ -2825,13 +3171,26 @@ function hudHtml() {
 
 function renderNav() {
   const openCt = state.data.tasks.filter(x => x.status !== "done").length;
-  document.getElementById("nav").innerHTML = sunNav() + VIEWS.map(v => `
-    <button class="nav-item ${state.view === v.id ? "active" : ""}" data-action="nav" data-view="${v.id}">
-      ${icon(v.id, "nav-ic")}
-      <span>${v.label}</span>
-      ${v.id === "tasks" && openCt ? `<span class="nav-count">${openCt}</span>` : ""}
-      ${v.id === "sol" && state.unread > 0 ? `<span class="nav-dot" title="${state.unread} new"></span>` : ""}
-    </button>`).join("") + hudHtml();
+  const navButton = v => `
+      <button class="nav-item ${state.view === v.id ? "active" : ""}" data-action="nav" data-view="${v.id}" aria-label="${esc(v.label)}">
+        ${icon(v.id, "nav-ic")}
+        <span>${v.label}</span>
+        ${v.id === "tasks" && openCt ? `<span class="nav-count">${openCt}</span>` : ""}
+        ${v.id === "sol" && state.unread > 0 ? `<span class="nav-dot" title="${state.unread} new"></span>` : ""}
+      </button>`;
+  const secondaryOpen = SECONDARY_VIEWS.some(v => v.id === state.view);
+  document.getElementById("nav").innerHTML = `
+    <div class="lyfe-brand">
+      <button data-action="nav" data-view="today" aria-label="Go to Today">
+        <span class="lyfe-mark" aria-hidden="true"><i></i></span>
+        <span><strong>Lyfe</strong><small>personal execution system</small></span>
+      </button>
+    </div>
+    <div class="nav-primary">${PRIMARY_VIEWS.map(navButton).join("")}</div>
+    <details class="nav-more" ${secondaryOpen ? "open" : ""}>
+      <summary>More</summary>
+      <div>${SECONDARY_VIEWS.map(navButton).join("")}</div>
+    </details>`;
   const themeButton = document.getElementById("theme-toggle");
   if (themeButton) {
     const goingTo = resolvedTheme() === "dark" ? "Light" : "Dark";
@@ -2858,22 +3217,10 @@ document.addEventListener("mouseout", (e) => {
 const SCRAMBLE_CHARS = "ABCDEFGHKMNPRSTVXZ0123456789/\\<>*#";
 
 function scrambleEl(el) {
-  if (reducedMotionMedia() || el.dataset.scrambled) return;
-  const target = el.textContent;
+  if (el.dataset.scrambled) return;
+  /* Text is never obscured during navigation. Earlier builds used a decode
+     animation here; keeping content stable is faster and easier to scan. */
   el.dataset.scrambled = "1";
-  let frame = 0;
-  const total = target.length * 2 + 6;
-  const timer = setInterval(() => {
-    frame++;
-    el.textContent = target.split("").map((ch, i) => {
-      if (ch === " ") return " ";
-      if (frame >= i * 2) return ch;
-      return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
-    }).join("");
-    if (frame >= total) { clearInterval(timer); el.textContent = target; }
-  }, 26);
-  // safety: never leave text scrambled (guards against background-tab throttling)
-  setTimeout(() => { clearInterval(timer); if (el.isConnected) el.textContent = target; }, 1400);
 }
 
 function reducedMotionMedia() {
@@ -2949,17 +3296,8 @@ function doneTodayCount() {
 }
 
 function onTaskCompleted(title) {
-  awardXp(15);
-  touchStreak();
-  const openLeft = state.data.tasks.filter(x => x.status !== "done" && x.due && x.due <= todayStr()).length;
-  const doneN = doneTodayCount();
   save();
-  // ACE moment: cleared the last of today's due tasks, or a big daily haul
-  if ((openLeft === 0 && doneN >= 3) || doneN === 5) {
-    launchAce("ACE", "day cleared · +" + doneN);
-  } else {
-    launchCompletion(title);
-  }
+  launchCompletion(title);
 }
 
 /* Valorant-style ACE flash */
@@ -3098,6 +3436,7 @@ function render() {
   let html = "";
   switch (state.view) {
     case "today":     html = viewToday(); break;
+    case "focus":     html = viewFocus(); break;
     case "sol":       html = viewSol(); break;
     case "wander":    html = viewWander(); break;
     case "tasks":     html = viewTasks(); break;
@@ -3114,6 +3453,8 @@ function render() {
   const sameView = renderedView === state.view;
   renderedView = state.view;
   main.innerHTML = `<div class="view-anim${sameView ? " same-view" : ""}">${html}</div>`;
+  if (state.view !== "focus") document.title = "Lyfe";
+  else if (!state.data.focus.running) document.title = "Focus · Lyfe";
 
   autoDecorate(main, sameView);
   initReveal(main);
@@ -3221,6 +3562,64 @@ document.addEventListener("click", (e) => {
     }
 
     /* tasks */
+    case "focus-task":
+    case "focus-select": {
+      const task = d.tasks.find(x => x.id === id && x.status !== "done");
+      if (!task) break;
+      const focus = d.focus;
+      if (focus.running && focus.taskId !== task.id) recordFocusSession(false);
+      focus.taskId = task.id;
+      focus.duration = [15, 25, 50, 90].includes(Number(task.estimate)) ? Number(task.estimate) : 50;
+      focus.remaining = focus.duration * 60;
+      focus.running = false;
+      focus.deadline = 0;
+      focus.startedAt = 0;
+      save();
+      if (action === "focus-task") setView("focus");
+      else render();
+      break;
+    }
+    case "focus-duration": {
+      const minutes = Number(el.dataset.minutes);
+      if (![15, 25, 50, 90].includes(minutes) || d.focus.running) break;
+      d.focus.duration = minutes;
+      d.focus.remaining = minutes * 60;
+      d.focus.deadline = 0;
+      save(); render();
+      break;
+    }
+    case "focus-start": {
+      const focus = d.focus;
+      const task = selectedFocusTask();
+      if (!task) { toast("Choose or add a task first"); break; }
+      focus.taskId = task.id;
+      if (focus.remaining <= 0) focus.remaining = focus.duration * 60;
+      focus.running = true;
+      focus.startedAt = focus.startedAt || Date.now();
+      focus.deadline = Date.now() + focus.remaining * 1000;
+      save(); render();
+      break;
+    }
+    case "focus-pause": {
+      const focus = d.focus;
+      focus.remaining = focusRemainingSeconds();
+      focus.running = false;
+      focus.deadline = 0;
+      save(); render();
+      break;
+    }
+    case "focus-reset": {
+      const focus = d.focus;
+      focus.running = false;
+      focus.deadline = 0;
+      focus.startedAt = 0;
+      focus.remaining = focus.duration * 60;
+      save(); render();
+      break;
+    }
+    case "focus-finish":
+      finishFocusSession(false);
+      break;
     case "new-task": taskModal(null); break;
     case "edit-task": taskModal(d.tasks.find(x => x.id === id) || null); break;
     case "delete-task":
@@ -3529,6 +3928,7 @@ document.addEventListener("submit", (e) => {
         area: "Work", priority: "Medium",
         due: kind === "quick-task-today" ? todayStr() : (val("due") || null),
         projectId: null, notes: "",
+        estimate: 50, energy: "medium", nextStep: "",
         status: "open", createdAt: Date.now(), completedAt: null,
       });
       save(); render(); toast("Task added");
@@ -3561,6 +3961,9 @@ document.addEventListener("submit", (e) => {
         dueTime: val("dueTime") || "",
         important: val("important") === "yes",
         projectId: val("projectId") || null,
+        estimate: [15, 25, 50, 90].includes(Number(val("estimate"))) ? Number(val("estimate")) : 50,
+        energy: ["low", "medium", "high"].includes(val("energy")) ? val("energy") : "medium",
+        nextStep: val("nextStep"),
         notes: val("notes"),
       };
       if (!vals.title) return;

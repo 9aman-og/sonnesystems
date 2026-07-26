@@ -1,14 +1,14 @@
 {
-  "name": "Lyfe - your life, lightly kept",
+  "name": "Lyfe - focus on what matters",
   "short_name": "Lyfe",
-  "description": "A calm, private life workspace with EOS, your personal companion. Tasks, projects, goals, notes, docs and more.",
+  "description": "A private execution system for planning meaningful work, focusing deeply, and keeping useful context close.",
   "start_url": "./index.html",
   "scope": "./",
   "id": "lyfe-app",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#050505",
-  "theme_color": "#050505",
+  "background_color": "#0d0f0e",
+  "theme_color": "#5b5ce2",
   "categories": ["productivity", "lifestyle", "utilities"],
   "icons": [
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
