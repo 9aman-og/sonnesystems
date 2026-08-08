@@ -849,7 +849,7 @@ details.done-details summary::-webkit-details-marker { display: none; }
 }
 #pad-body::placeholder { color: var(--ink-3); }
 
-/* ---------------- Sol (companion) ---------------- */
+/* ---------------- EOS (companion) ---------------- */
 
 .sol-wrap {
   display: flex;
@@ -1555,7 +1555,7 @@ h1, h2, h3 {
   opacity: .45;
 }
 
-/* ---- Sol chip (replaces the spinning beacon) ---- */
+/* ---- EOS chip (replaces the spinning beacon) ---- */
 .sol-chip {
   position: absolute;
   z-index: 3;
@@ -1905,7 +1905,7 @@ h1, h2, h3 {
 .fact-panel .linklike { color: #080808; }
 .wander-footer { margin-top: 90px; max-width: 680px; color: var(--ink-3); font-size: 18px; }
 
-/* Sol */
+/* EOS */
 
 .sol-wrap {
   height: calc(100vh - 235px);
@@ -2258,10 +2258,10 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
 @media (min-width: 1600px) { .cosmos-copy h2 { font-size: 150px; } }
 
 /* ============================================================
-   ORBIT-14: pixel Sol, alarms, heatmap, calmer re-renders, sidebar
+   ORBIT-14: pixel EOS, alarms, heatmap, calmer re-renders, sidebar
    ============================================================ */
 
-/* ---- pixel Sol, the puppy companion ----
+/* ---- pixel EOS, the puppy companion ----
    idle = gentle bob + blink + sprout sway (matches the character sheet) */
 .pixel-sol { image-rendering: pixelated; display: block; flex: none; }
 .pixel-sol.px-idle { animation: solBob 3.4s ease-in-out infinite; }
@@ -2280,7 +2280,7 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
   0%, 100% { transform: rotate(-7deg); }
   50%      { transform: rotate(8deg); }
 }
-/* excited hop when you hover anything holding Sol */
+/* excited hop when you hover anything holding EOS */
 .sol-chip:hover .pixel-sol, .sol-avatar-px:hover .pixel-sol {
   animation: solHop .55s cubic-bezier(.3, 1.6, .4, 1) infinite;
 }
@@ -2894,7 +2894,7 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
 :root[data-theme="light"] .calm-img { filter: saturate(1.02) contrast(1.02); }
 :root[data-theme="light"] .home-side .calm-img { filter: saturate(1.05) contrast(1.03); }
 
-/* Sol's card goes full holographic foil */
+/* EOS's card goes full holographic foil */
 :root[data-theme="light"] .mini-sol-card {
   background:
     linear-gradient(120deg, rgba(255, 255, 255, .55), rgba(255, 255, 255, 0) 42%),

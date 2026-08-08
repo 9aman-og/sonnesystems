@@ -1,7 +1,7 @@
 # Lyfe - your life, lightly kept
 
 One calm place for everything: tasks, projects, goals, education, work log,
-notes, docs - and **Sol**, a companion you can just talk to.
+notes, docs - and **EOS**, a companion you can just talk to.
 
 No frameworks, no build step, no dependencies. Three files that will still
 open in twenty years.
@@ -43,7 +43,7 @@ Files added for this: `manifest.webmanifest`, `sw.js`, `icon-192/512*.png`.
 | Section   | What it holds                                            |
 |-----------|----------------------------------------------------------|
 | Today     | What needs you now - due tasks, quick capture, a glance at everything in motion |
-| Sol       | Your companion. Talk like you'd text a friend - Sol files things for you |
+| EOS       | Your companion. Talk like you'd text a friend - EOS files things for you |
 | Tasks     | Grouped Overdue / Today / Upcoming / Someday             |
 | Projects  | Bigger undertakings with progress                        |
 | Goals     | Long-horizon aims with tickable milestones               |
@@ -52,9 +52,9 @@ Files added for this: `manifest.webmanifest`, `sw.js`, `icon-192/512*.png`.
 | Notes     | Quick thoughts, searchable, pinnable                     |
 | Docs      | Longer writing, with word counts                         |
 
-## Sol, the companion
+## EOS, the companion
 
-Sol understands plain text and logs it for you:
+EOS understands plain text and logs it for you:
 
 - `remind me to email prof tomorrow` → task, due tomorrow
 - `log 2h on spike encoder` → work log entry
@@ -62,29 +62,29 @@ Sol understands plain text and logs it for you:
 - `done email prof` → ticks the task off
 - `goal: publish SNN paper` / `doc: research plan` / `learning: Spanish`
 - `how am i doing` / `what's due` → a status rundown
-- or just say `hi` - Sol says hi back, greets you whenever you open the app
+- or just say `hi` - EOS says hi back, greets you whenever you open the app
   after a break, and checks in on its own while the app is open
 - vent to it ("i'm so tired") and it responds like a friend, not a form
 
-Sol never uses em dashes. Three brains, picked in **Settings**:
+EOS never uses em dashes. Three brains, picked in **Settings**:
 
 1. **Qwen via Ollama (default, local, free).** Install [ollama.com](https://ollama.com),
-   run `ollama pull qwen3.5:9b` (or use `qwen3.5:27b`/`35b` on stronger hardware), and Sol
+   run `ollama pull qwen3.5:9b` (or use `qwen3.5:27b`/`35b` on stronger hardware), and EOS
    becomes a real open-source LLM running on your own machine. Private, no keys.
    If you open Lyfe as a `file://` page rather than localhost, start Ollama with
-   `OLLAMA_ORIGINS=*` so the browser may call it. Sol is prompt-tuned for Lyfe
+   `OLLAMA_ORIGINS=*` so the browser may call it. EOS is prompt-tuned for Lyfe
    (persona + action protocol); true LoRA fine-tuning would need a training run.
 2. **Claude API.** Paste an Anthropic key; strongest understanding. The key is
    stored only in this browser and sent only to `api.anthropic.com`.
 3. **Offline parser.** No model at all; the built-in commands above still work.
 
 Whichever brain is picked, if it is unreachable the built-in parser answers,
-so Sol never goes silent.
+so EOS never goes silent.
 
 ## Your data
 
 Guest data is stored in the browser's `localStorage` under the key `lyfe.v1`.
-It stays on that device except for Sol's optional API calls. If the optional
+It stays on that device except for EOS's optional API calls. If the optional
 Supabase integration is configured, signing in enables private cross-device
 sync; the Anthropic API key is stripped before any sync write.
 
@@ -115,7 +115,7 @@ Dark in Settings to pin one. Cards lift softly under the cursor with an
 iridescent light that follows it, and a thin holo rail tracks your scroll;
 set your OS to reduced motion to turn all animation off.
 
-Sol appears as a pixel puppy (cream coat, golden ears, a sprout on the head,
+EOS appears as a pixel puppy (cream coat, golden ears, a sprout on the head,
 charcoal bandana) with a gentle idle bob, blink and sprout sway - and closed
 sleepy eyes if you're up past 11pm.
 

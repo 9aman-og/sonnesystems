@@ -18,7 +18,7 @@ breaks while it is half-configured.
   ever read or write its own row. Even though the key in the app is public, no
   one can reach anyone else's data.
 
-Your Anthropic API key (if you use the Claude brain for Sol) is deliberately
+Your Anthropic API key (if you use the Claude brain for EOS) is deliberately
 **never** uploaded. It stays on the device where you typed it.
 
 ---
