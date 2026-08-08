@@ -322,6 +322,30 @@ h1, h2, h3 { font-family: var(--serif); font-weight: 500; }
 }
 .nav-item.active .nav-ic { color: var(--accent); opacity: 1; }
 
+.nav-item.nav-connect {
+  text-decoration: none;
+  border-color: var(--hair);
+  background: var(--accent-dim);
+}
+.nav-item.nav-connect:hover { color: var(--accent-2); border-color: var(--accent); background: var(--panel-2); }
+.nav-connect-mark {
+  width: 24px;
+  height: 24px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 0 16px rgba(104, 141, 255, .22);
+}
+.nav-connect-mark img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.nav-connect-pulse {
+  width: 6px;
+  height: 6px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
 .nav-count {
   margin-left: auto;
   font-size: 11px;
@@ -1787,7 +1811,7 @@ h1, h2, h3 {
 .mini-sol-card h2 { font-size: 29px; line-height: 1.02; }
 .mini-sol-card .btn { background: #090909; color: #fff; border-color: #090909; }
 
-/* Connect is a doorway into an early concept, not a fake app preview. */
+/* Connect is a doorway into the local-first networking preview. */
 .connect-card {
   position: relative;
   display: flex;
@@ -2734,6 +2758,18 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
 :root[data-theme="light"] .nav-item.active::after { display: none; }
 :root[data-theme="light"] .nav-count { background: #e3edfb; color: #3f5e8c; }
 :root[data-theme="light"] .nav-item.active .nav-count { background: rgba(255, 255, 255, .22); color: #fff; }
+:root[data-theme="light"] .nav-item.nav-connect {
+  color: #374f8d;
+  border-color: var(--hair);
+  background: var(--accent-dim);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+}
+:root[data-theme="light"] .nav-item.nav-connect:hover {
+  color: #172d6a;
+  border-color: var(--accent);
+  background: var(--panel-2);
+}
+:root[data-theme="light"] .nav-connect-pulse { margin-left: 1px; }
 
 /* the HUD rides the bar as a compact chip */
 :root[data-theme="light"] .hud {

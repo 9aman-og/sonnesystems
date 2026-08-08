@@ -54,10 +54,15 @@ Files added for this: `manifest.webmanifest`, `sw.js`, `icon-192/512*.png`.
 
 ## Lyfe Connect
 
-`connect.html` is the public concept page for Lyfe Connect. The Today screen
-links to it in both Crystal and Orbit themes. It explains the intended product
-direction without pretending that matching, messaging, verification, or shared
-Lyfe spaces have already shipped.
+`connect.html` is a functional, local-first preview of Lyfe Connect, a
+networking platform for collaborators, peers, mentors, projects, and focused
+communities. It combines a visual work feed, context-rich profiles, private
+outreach drafts, small topic Circles, and lightweight workspace pages.
+
+The preview uses fictional people and posts, and stores all Connect activity in
+this browser under `lyfe.connect.preview.v1`. Nothing is published or sent to a
+real person. A workspace page can offer its approved title and note to Lyfe as a
+task, but Lyfe asks for confirmation before copying anything.
 
 ## EOS, the companion
 

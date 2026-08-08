@@ -1244,8 +1244,8 @@ function viewToday() {
 
       <a class="cx-connect-card" href="connect.html">
         <span class="cx-connect-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
-        <span class="cx-connect-copy"><span class="eyebrow">LYFE CONNECT / EARLY CONCEPT</span><strong>Meet through what makes you curious.</strong><span>A calmer way to begin with an idea, project, book, game, or question.</span></span>
-        <span class="cx-connect-link">EXPLORE THE IDEA <span aria-hidden="true">↗</span></span>
+        <span class="cx-connect-copy"><span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span><strong>Find the people and rooms your work needs.</strong><span>A calmer network for collaborators, work posts, focused Circles, and shared project pages.</span></span>
+        <span class="cx-connect-link">OPEN CONNECT <span aria-hidden="true">↗</span></span>
       </a>
     </section>
 
@@ -1365,10 +1365,10 @@ function viewToday() {
         </section>
         <a class="panel tilt connect-card" href="connect.html">
           <span class="connect-card-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
-          <span class="eyebrow">LYFE CONNECT / EARLY CONCEPT</span>
-          <strong>Meet through what makes you curious.</strong>
-          <span>A calmer way to begin with a real interest.</span>
-          <span class="btn">explore the idea <span aria-hidden="true">↗</span></span>
+          <span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span>
+          <strong>Find the people and rooms your work needs.</strong>
+          <span>Discover collaborators, share work in context, and turn a useful thread into organized action.</span>
+          <span class="btn">open connect <span aria-hidden="true">↗</span></span>
         </a>
       </div>
     </section>
@@ -2792,13 +2792,18 @@ function hudHtml() {
 
 function renderNav() {
   const openCt = state.data.tasks.filter(x => x.status !== "done").length;
+  const connectNav = `<a class="nav-item nav-connect" href="connect.html" aria-label="Open Lyfe Connect">
+    <span class="nav-connect-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
+    <span>Connect</span>
+    <span class="nav-connect-pulse" aria-hidden="true"></span>
+  </a>`;
   document.getElementById("nav").innerHTML = sunNav() + VIEWS.map(v => `
     <button class="nav-item ${state.view === v.id ? "active" : ""}" data-action="nav" data-view="${v.id}">
       ${icon(v.id, "nav-ic")}
       <span>${v.label}</span>
       ${v.id === "tasks" && openCt ? `<span class="nav-count">${openCt}</span>` : ""}
       ${v.id === "sol" && state.unread > 0 ? `<span class="nav-dot" title="${state.unread} new"></span>` : ""}
-    </button>`).join("") + hudHtml();
+    </button>${v.id === "sol" ? connectNav : ""}`).join("") + hudHtml();
 }
 
 /* ray hover shows the section name under the sun */
@@ -3855,6 +3860,43 @@ window.addEventListener("pageshow", (e) => { if (e.persisted) syncFromStorage();
    When cloud is not configured at all, it silently runs guest, so the
    app never breaks while the backend is half set up. */
 
+function maybeOfferConnectPlan() {
+  const params = new URLSearchParams(location.search);
+  const title = String(params.get("connectPlan") || "").trim().slice(0, 200);
+  if (!title) return;
+  const note = String(params.get("connectNote") || "").trim().slice(0, 500);
+
+  // Remove the handoff immediately so a refresh cannot offer the same plan
+  // twice. Nothing enters Lyfe until the person confirms in the modal.
+  try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {}
+  setTimeout(() => {
+    confirmDialog(
+      "Add \"" + title + "\" to your Lyfe tasks? Only this title and the note you approved in Connect will be copied.",
+      () => {
+        state.data.tasks.push({
+          id: uid(),
+          title,
+          area: "Personal",
+          priority: "Medium",
+          due: null,
+          dueTime: "",
+          important: false,
+          projectId: null,
+          notes: note,
+          status: "open",
+          createdAt: Date.now(),
+          completedAt: null,
+          alarmAck: false,
+        });
+        save();
+        setView("tasks");
+        toast("Connect plan added to Lyfe");
+      },
+      "Add plan"
+    );
+  }, 120);
+}
+
 let booted = false;
 let gateReturnFocus = null;
 function bootApp() {
@@ -3874,6 +3916,7 @@ function bootApp() {
   }
 
   render();
+  maybeOfferConnectPlan();
   maybeGreet();
   scheduleNudge();
 

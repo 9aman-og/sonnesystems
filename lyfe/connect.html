@@ -3,145 +3,213 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lyfe Connect | Meet through what makes you curious</title>
-  <meta name="description" content="Lyfe Connect is an early concept for meeting people through ideas, projects, books, games, and the questions that genuinely interest them.">
+  <title>Lyfe Connect | A network organized around useful work</title>
+  <meta name="description" content="Lyfe Connect is a calmer networking platform for finding collaborators, peers, mentors, projects, and communities through the work and ideas you care about.">
   <link rel="canonical" href="https://sonnesystems.com/lyfe/connect.html">
-  <meta name="theme-color" content="#101735">
+  <meta name="theme-color" content="#edf5ff">
   <meta name="robots" content="index, follow, max-image-preview:large">
   <link rel="icon" type="image/png" href="favicon-32.png">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Lyfe Connect | Meet through curiosity">
-  <meta property="og:description" content="A calmer dating concept built around real interests, useful context, and thoughtful conversation.">
+  <meta property="og:title" content="Lyfe Connect | A network organized around useful work">
+  <meta property="og:description" content="Find collaborators, peers, projects, and communities through useful context instead of popularity.">
   <meta property="og:url" content="https://sonnesystems.com/lyfe/connect.html">
   <meta property="og:image" content="https://sonnesystems.com/assets/lyfe_connect_logo.png">
   <meta property="og:image:alt" content="Lyfe Connect interlocking ring mark">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Lyfe Connect | Meet through curiosity">
-  <meta name="twitter:description" content="A calmer dating concept built around real interests, useful context, and thoughtful conversation.">
+  <meta name="twitter:description" content="Find collaborators, peers, projects, and communities through useful context instead of popularity.">
   <meta name="twitter:image" content="https://sonnesystems.com/assets/lyfe_connect_logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Unbounded:wght@500;600;700&amp;display=swap">
-  <link rel="stylesheet" href="connect.css?v=connect1">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Unbounded:wght@500;600;700&amp;display=swap">
+  <link rel="stylesheet" href="connect.css?v=connect4">
 </head>
 <body>
-  <a class="skip-link" href="#main-content">Skip to content</a>
+  <a class="skip-link" href="#connect-main">Skip to the app</a>
 
-  <header class="connect-header">
+  <header class="connect-topbar">
     <a class="connect-brand" href="connect.html" aria-label="Lyfe Connect home">
       <img src="../assets/lyfe_connect_logo.png" alt="">
       <span>lyfe connect</span>
     </a>
-    <nav aria-label="Connect links">
-      <a href="#principles">How it could work</a>
-      <a href="#safety">Trust and safety</a>
-      <a class="nav-lyfe" href="./">Open Lyfe <span aria-hidden="true">↗</span></a>
+
+    <nav class="primary-nav" aria-label="Lyfe Connect">
+      <button class="top-nav active" type="button" data-action="view" data-view="discover">Discover</button>
+      <button class="top-nav" type="button" data-action="view" data-view="connections">Network <span id="connection-count" class="nav-count" hidden>0</span></button>
+      <button class="top-nav" type="button" data-action="view" data-view="plans">Workspace</button>
+      <button class="top-nav" type="button" data-action="view" data-view="circles">Circles</button>
+      <button class="top-nav" type="button" data-action="view" data-view="profile">You</button>
     </nav>
+
+    <div class="top-actions">
+      <span class="privacy-pill"><i aria-hidden="true"></i>Local-first private preview</span>
+      <button class="icon-button" type="button" data-action="safety" aria-label="Open safety centre" title="Safety centre">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.8 6v5.3c0 4.4 2.9 8.1 7.2 9.7 4.3-1.6 7.2-5.3 7.2-9.7V6L12 3Z"/><path d="m8.8 12 2 2 4.4-4.4"/></svg>
+      </button>
+      <a class="open-lyfe" href="./">Open Lyfe <span aria-hidden="true">↗</span></a>
+    </div>
   </header>
 
-  <main id="main-content">
-    <section class="connect-hero">
-      <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i><span></span></div>
-      <div class="hero-copy">
-        <p class="eyebrow">EARLY CONCEPT / FOR ADULTS 18+</p>
-        <h1>Meet through what makes you curious.</h1>
-        <p class="hero-lede">Lyfe Connect is for people who would rather begin with a real question, a project, a book, a game, or an oddly specific interest than perform for an algorithm.</p>
-        <div class="hero-actions">
-          <a class="primary-action" href="mailto:aman@sonnesystems.com?subject=Lyfe%20Connect%20early%20interest">Tell us you are interested <span aria-hidden="true">↗</span></a>
-          <a class="quiet-action" href="#principles">See the idea</a>
+  <main id="connect-main" tabindex="-1">
+    <section class="app-screen active" data-screen="discover" aria-labelledby="discover-title">
+      <div class="screen-heading discover-heading">
+        <div>
+          <p class="eyebrow">TODAY'S INTRODUCTIONS</p>
+          <h1 id="discover-title">People and projects worth your time.</h1>
+          <p id="discover-lede">A small, relevant set of collaborators, peers, and builders. No follower race, no engagement bait, and no pressure to collect contacts you will never speak to.</p>
         </div>
-        <p class="honesty-note"><span aria-hidden="true"></span>This is a product direction, not a finished dating service or a promised launch date.</p>
-      </div>
-
-      <div class="conversation-card" aria-label="Example of a Lyfe Connect conversation prompt">
-        <div class="card-top"><span>CONVERSATION SEED</span><span>01 / 03</span></div>
-        <div class="profile-line">
-          <div class="profile-orb" aria-hidden="true"></div>
-          <div><strong>A person who cares about...</strong><span>urban design, strange maps, long walks</span></div>
-        </div>
-        <blockquote>“What is one place in your city that deserves a better story?”</blockquote>
-        <div class="interest-row"><span>cities</span><span>design</span><span>walking</span></div>
-        <div class="reply-preview"><span>Your opening</span><strong>I have one. It is a railway bridge that everyone treats like a shortcut...</strong></div>
-        <p>Specific beats impressive.</p>
-      </div>
-    </section>
-
-    <section class="connect-intro" id="principles">
-      <div>
-        <p class="eyebrow">A BETTER FIRST MINUTE</p>
-        <h2>Enough context to say something real.</h2>
-      </div>
-      <p>The first version should help two people find a genuine thread quickly. It should not turn either person into a catalogue item or make popularity feel like the point.</p>
-    </section>
-
-    <section class="step-grid" aria-label="How Lyfe Connect could work">
-      <article>
-        <span>01</span>
-        <h3>Choose a few sparks.</h3>
-        <p>Add the questions, interests, projects, and small obsessions you would actually enjoy talking about.</p>
-      </article>
-      <article>
-        <span>02</span>
-        <h3>See fewer people, more clearly.</h3>
-        <p>A small set of profiles gives each person room for context. No public follower count or popularity score.</p>
-      </article>
-      <article>
-        <span>03</span>
-        <h3>Open with something specific.</h3>
-        <p>Respond to a real detail. Conversation suggestions can inspire, but they should never speak for you.</p>
-      </article>
-    </section>
-
-    <section class="pressure-section">
-      <div class="pressure-copy">
-        <p class="eyebrow">LESS PERFORMANCE, MORE SIGNAL</p>
-        <h2>A dating product should not make you feel like content.</h2>
-        <p>Connect is being shaped around slower, more deliberate choices. The product direction avoids endless swiping, public status metrics, and artificial urgency. You should be able to pause, change your mind, and leave without being punished by the interface.</p>
-      </div>
-      <div class="prompt-stack" aria-label="Example profile prompts">
-        <article><span>PROMPT 01</span><p>What are you learning badly but enjoying anyway?</p></article>
-        <article><span>PROMPT 02</span><p>What could you explain for an hour without notes?</p></article>
-        <article><span>PROMPT 03</span><p>What are you making this month?</p></article>
-      </div>
-    </section>
-
-    <section class="safety-section" id="safety">
-      <div class="safety-heading">
-        <p class="eyebrow">PLANNED PRODUCT PRINCIPLES</p>
-        <h2>Trust is part of the product.</h2>
-        <p>These are requirements for a future build, not claims about features that already exist.</p>
-      </div>
-      <div class="safety-grid">
-        <article><span class="safety-dot"></span><h3>Control stays visible.</h3><p>Blocking, reporting, pausing, and leaving should be easy to find at the moment they are needed.</p></article>
-        <article><span class="safety-dot"></span><h3>Ask before collecting.</h3><p>Only request information the experience truly needs, explain why, and keep optional choices optional.</p></article>
-        <article><span class="safety-dot"></span><h3>Slow down harmful messages.</h3><p>A review-before-send moment can create space to reconsider language without reading private conversations for engagement.</p></article>
-        <article><span class="safety-dot"></span><h3>Make identity clearer.</h3><p>Verification and scam-resistant design matter because a good conversation begins with confidence that the other person is real.</p></article>
-      </div>
-    </section>
-
-    <section class="lyfe-bridge">
-      <div class="bridge-mark" aria-hidden="true"><img src="../assets/lyfe_connect_logo.png" alt=""></div>
-      <div class="bridge-copy">
-        <p class="eyebrow">THE LYFE CONNECTION</p>
-        <h2>Let a good conversation become a shared little plan.</h2>
-        <p>If both people choose it, a conversation seed could become a shared reading list, a date plan, or a small project inside Lyfe. Nothing should move between Connect and Lyfe without clear consent from both sides.</p>
-        <div class="bridge-actions">
-          <a class="primary-action" href="./">Open Lyfe <span aria-hidden="true">↗</span></a>
-          <a class="quiet-action" href="../ventures.html#lyfe-connect">Read the Sonne Systems overview</a>
+        <div class="daily-note" aria-label="Preview information">
+          <strong><span id="remaining-count">3</span> introductions</strong>
+          <span>Fictional profiles for this private preview</span>
         </div>
       </div>
+
+      <div class="discover-shell">
+        <aside class="spark-rail" aria-labelledby="spark-title">
+          <div>
+            <p class="rail-label">YOUR LENS</p>
+            <h2 id="spark-title">What do you want to connect around?</h2>
+            <p>Choose a field or working style to make the set more relevant. Change it whenever your focus changes.</p>
+          </div>
+          <div id="spark-filters" class="spark-list" aria-label="Filter by interest"></div>
+          <button class="quiet-button pause-button" type="button" data-action="pause">
+            <span class="pause-icon" aria-hidden="true">Ⅱ</span>
+            <span><strong id="pause-label">Pause introductions</strong><small>Step away without losing anything</small></span>
+          </button>
+        </aside>
+
+        <div class="profile-stage">
+          <div id="profile-card"></div>
+          <div id="discover-actions" class="discover-actions">
+            <button class="choice-button pass" type="button" data-action="pass"><span aria-hidden="true">×</span><strong>Pass for now</strong><small>Quietly move on</small></button>
+            <button class="choice-button save" type="button" data-action="save-profile"><span aria-hidden="true">⌁</span><strong>Save to network</strong><small>No notification</small></button>
+            <button class="choice-button respond" type="button" data-action="respond"><span aria-hidden="true">↗</span><strong>Respond to their work</strong><small>Begin with useful context</small></button>
+          </div>
+        </div>
+      </div>
+
+      <section class="feed-section" aria-labelledby="feed-title">
+        <div class="feed-heading">
+          <div><p class="eyebrow">FROM THE NETWORK</p><h2 id="feed-title">Work in progress, shared with context.</h2></div>
+          <p>A visual feed for build logs, research notes, questions, and open calls, without the personal branding theatre.</p>
+        </div>
+        <div id="feed-list" class="feed-grid"></div>
+      </section>
+
+      <section class="why-section" aria-label="How Connect is different">
+        <article><span>01</span><h2>Relevant people, enough context.</h2><p>See what someone is building, what they can help with, and what kind of connection they are actually open to.</p></article>
+        <article><span>02</span><h2>Work starts the conversation.</h2><p>Respond to a project, question, or idea they shared. A useful opening beats a generic connection request.</p></article>
+        <article><span>03</span><h2>Conversation can become collaboration.</h2><p>Turn a promising thread into a call, reading group, feedback exchange, or project and carry the next step into Lyfe.</p></article>
+      </section>
     </section>
 
-    <section class="closing-section">
-      <p class="eyebrow">HELP SHAPE THE FIRST VERSION</p>
-      <h2>What would make meeting someone online feel more human to you?</h2>
-      <a class="primary-action" href="mailto:aman@sonnesystems.com?subject=Lyfe%20Connect%20feedback">Share your thoughts <span aria-hidden="true">↗</span></a>
+    <section class="app-screen" data-screen="connections" aria-labelledby="connections-title" hidden>
+      <div class="screen-heading">
+        <div>
+          <p class="eyebrow">CONNECTIONS</p>
+          <h1 id="connections-title">A network you can actually remember.</h1>
+          <p>Keep the people, context, and private outreach drafts that matter. In this preview, nothing is sent to a real person.</p>
+        </div>
+      </div>
+      <div class="conversation-shell">
+        <aside class="conversation-list" aria-label="Your conversations">
+          <div class="list-head"><strong>Threads</strong><span id="thread-total">0</span></div>
+          <div id="connection-list"></div>
+        </aside>
+        <section id="conversation-panel" class="conversation-panel" aria-live="polite"></section>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="plans" aria-labelledby="plans-title" hidden>
+      <div class="screen-heading">
+        <div>
+          <p class="eyebrow">SHARED WORKSPACE</p>
+          <h1 id="plans-title">Turn conversations into organized work.</h1>
+          <p>Create lightweight project pages for briefs, decisions, next steps, and collaborators. Send only the action you approve into Lyfe.</p>
+        </div>
+        <button class="primary-button" type="button" data-action="new-plan">New page</button>
+      </div>
+      <div id="plan-list" class="plan-grid"></div>
+      <section class="lyfe-bridge">
+        <img src="../assets/lyfe_connect_logo.png" alt="">
+        <div><p class="eyebrow">CONNECT × LYFE</p><h2>Next steps move. Private context does not.</h2><p>Only the task title and note you approve are handed to Lyfe. Your network profile, filters, circles, and outreach drafts stay in Connect.</p></div>
+        <a href="./">Open Lyfe <span aria-hidden="true">↗</span></a>
+      </section>
+    </section>
+
+    <section class="app-screen" data-screen="circles" aria-labelledby="circles-title" hidden>
+      <div class="screen-heading">
+        <div>
+          <p class="eyebrow">SMALL TOPIC COMMUNITIES</p>
+          <h1 id="circles-title">Find the room where your question belongs.</h1>
+          <p>Circles are focused spaces for exchanging work, finding collaborators, and learning in public without turning every discussion into a broadcast.</p>
+        </div>
+        <button class="primary-button" type="button" data-action="new-circle">Start a circle</button>
+      </div>
+      <div id="circle-list" class="circle-grid"></div>
+    </section>
+
+    <section class="app-screen" data-screen="profile" aria-labelledby="profile-title" hidden>
+      <div class="screen-heading">
+        <div>
+          <p class="eyebrow">YOUR SIDE OF THE CONVERSATION</p>
+          <h1 id="profile-title">Show what you care about and where you can help.</h1>
+          <p>Keep it useful and human. Every field is optional in this local preview and stays in this browser.</p>
+        </div>
+      </div>
+
+      <form id="profile-form" class="profile-form">
+        <section class="form-card">
+          <div class="form-card-head"><span>01</span><div><h2>The basics</h2><p>Enough context to make a professional or creative introduction useful.</p></div></div>
+          <div class="field-grid">
+            <label><span>What should people call you?</span><input name="name" maxlength="40" autocomplete="name" placeholder="Your first name"></label>
+            <label><span>Your city or time zone</span><input name="city" maxlength="60" autocomplete="address-level2" placeholder="City, region, or UTC offset"></label>
+            <label><span>What are you here for?</span><select name="intent"><option value="collaborators">Find collaborators</option><option value="peers">Meet thoughtful peers</option><option value="mentorship">Learn or mentor</option><option value="opportunities">Find projects and opportunities</option><option value="explore">Explore useful ideas</option></select></label>
+          </div>
+        </section>
+
+        <section class="form-card">
+          <div class="form-card-head"><span>02</span><div><h2>Your sparks</h2><p>Pick a handful of things you would genuinely enjoy talking about.</p></div></div>
+          <div id="profile-sparks" class="profile-sparks" aria-label="Choose your interests"></div>
+        </section>
+
+        <section class="form-card">
+          <div class="form-card-head"><span>03</span><div><h2>What you are working on</h2><p>One concrete sentence gives the right person a useful place to begin.</p></div></div>
+          <label><span>What are you building, researching, learning, or trying to solve?</span><textarea name="prompt" maxlength="280" rows="5" placeholder="Share the work, question, or problem, not a pitch."></textarea></label>
+        </section>
+
+        <div class="form-actions">
+          <p id="profile-save-note">Saved only on this device.</p>
+          <button class="primary-button" type="submit">Save my profile</button>
+        </div>
+      </form>
+
+      <section class="privacy-card">
+        <div><p class="eyebrow">PRIVACY CHOICES</p><h2>Your information should have a clear reason to exist.</h2><p>Connect does not upload this preview data or read your Lyfe workspace. You can pause introductions, leave circles, or erase the preview at any time.</p></div>
+        <div class="privacy-actions">
+          <button class="quiet-button" type="button" data-action="safety">Open safety centre</button>
+          <button class="quiet-button danger-text" type="button" data-action="reset">Erase Connect data</button>
+        </div>
+      </section>
     </section>
   </main>
 
+  <nav class="mobile-nav" aria-label="Lyfe Connect mobile navigation">
+    <button class="active" type="button" data-action="view" data-view="discover"><span aria-hidden="true">◉</span>Discover</button>
+    <button type="button" data-action="view" data-view="connections"><span aria-hidden="true">◌</span>Network</button>
+    <button type="button" data-action="view" data-view="plans"><span aria-hidden="true">◇</span>Workspace</button>
+    <button type="button" data-action="view" data-view="circles"><span aria-hidden="true">◎</span>Circles</button>
+    <button type="button" data-action="view" data-view="profile"><span aria-hidden="true">○</span>You</button>
+  </nav>
+
   <footer class="connect-footer">
-    <span>Lyfe Connect is an early Sonne Systems concept.</span>
-    <div><a href="../">Sonne Systems</a><a href="./">Lyfe</a><a href="mailto:aman@sonnesystems.com">Contact</a></div>
+    <span>Lyfe Connect · a local-first private preview by Sonne Systems</span>
+    <div><button type="button" data-action="safety">Safety</button><button type="button" data-action="profile-privacy">Privacy</button><a href="../">Sonne Systems</a><a href="./">Lyfe</a></div>
   </footer>
+
+  <div id="modal-root"></div>
+  <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
+  <noscript><p class="noscript">Lyfe Connect needs JavaScript for its local, interactive preview.</p></noscript>
+  <script src="connect.js?v=connect4"></script>
 </body>
 </html>
