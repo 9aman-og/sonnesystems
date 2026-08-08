@@ -472,6 +472,17 @@ EOS works fully offline. Add an Anthropic API key in Settings and EOS becomes a 
   return d;
 }
 
+/* The companion was renamed from Sol to EOS. Keep the storage schema and
+   internal view id stable, but repair old assistant-visible copy when an
+   existing guest or cloud snapshot is opened after the rename. User-authored
+   messages and notes are left untouched. */
+function migrateLegacyCompanionText(value) {
+  return String(value || "")
+    .replace(/\bSOL\b/g, "EOS")
+    .replace(/\bSol\b/g, "EOS")
+    .replace(/\bsol\b/g, "eos");
+}
+
 function normalize(raw) {
   const base = defaultData();
   if (!raw || typeof raw !== "object") return base;
@@ -481,6 +492,20 @@ function normalize(raw) {
   base.chat = base.chat.map(message => Object.assign({}, message, {
     text: String(message.text || "").replace(/\s*[—–]\s*/g, ", "),
   }));
+  base.chat = base.chat.map(message => {
+    if (message.role === "user") return message;
+    const text = migrateLegacyCompanionText(message.text);
+    return text === message.text ? message : Object.assign({}, message, { text });
+  });
+  base.notes = base.notes.map(note => {
+    const body = String(note.body || "");
+    const isOriginalWelcome = note.title === "Welcome to Lyfe" && note.pinned === true
+      && /Lyfe keeps everything in one calm place/i.test(body)
+      && /\bsol\b/i.test(body);
+    if (!isOriginalWelcome) return note;
+    const migratedBody = migrateLegacyCompanionText(body);
+    return migratedBody === body ? note : Object.assign({}, note, { body: migratedBody });
+  });
   if (raw.settings && typeof raw.settings === "object") {
     base.settings = Object.assign(base.settings, raw.settings);
   }
@@ -1216,6 +1241,12 @@ function viewToday() {
         <h2>${overdue.length ? "one overdue thing. no drama, just pick it up." : "your slate is clear. protect that feeling."}</h2>
         <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
       </section>
+
+      <a class="cx-connect-card" href="connect.html">
+        <span class="cx-connect-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
+        <span class="cx-connect-copy"><span class="eyebrow">LYFE CONNECT / EARLY CONCEPT</span><strong>Meet through what makes you curious.</strong><span>A calmer way to begin with an idea, project, book, game, or question.</span></span>
+        <span class="cx-connect-link">EXPLORE THE IDEA <span aria-hidden="true">↗</span></span>
+      </a>
     </section>
 
     <section class="panel tilt calm-card cx-moment">
@@ -1332,6 +1363,13 @@ function viewToday() {
           <h2>${overdue.length ? "one overdue thing. no drama, just pick it up." : "your slate is clear. protect that feeling."}</h2>
           <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
         </section>
+        <a class="panel tilt connect-card" href="connect.html">
+          <span class="connect-card-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
+          <span class="eyebrow">LYFE CONNECT / EARLY CONCEPT</span>
+          <strong>Meet through what makes you curious.</strong>
+          <span>A calmer way to begin with a real interest.</span>
+          <span class="btn">explore the idea <span aria-hidden="true">↗</span></span>
+        </a>
       </div>
     </section>
 
@@ -2362,10 +2400,10 @@ async function askOllama() {
   if (!history.length) throw new Error("no user message");
 
   const base = (s.ollamaUrl || "http://localhost:11434").replace(/\/+$/, "");
-  // lyfe-sol is our tuned build (persona baked in via sol/Modelfile) -
+  // lyfe-eos is our tuned build (persona baked in via sol/Modelfile) -
   // it only needs the live snapshot, not the whole persona each turn
   const model = s.ollamaModel || "qwen3:8b";
-  const baked = /lyfe-sol/i.test(model);
+  const baked = /lyfe-(?:sol|eos)/i.test(model);
   const sys = (baked ? "" : SOL_SYSTEM + "\n\n")
     + "--- current snapshot ---\n" + contextSnapshot() + "\n\n/no_think";
   const res = await fetch(base + "/api/chat", {
@@ -2650,7 +2688,7 @@ function settingsModal() {
          ${fld("Ollama URL", `<input type="text" name="ollamaUrl" value="${esc(s.ollamaUrl || "http://localhost:11434")}" placeholder="http://localhost:11434">`)}
          ${fld("Ollama model", `<input type="text" name="ollamaModel" value="${esc(s.ollamaModel || "qwen3:8b")}" placeholder="qwen3:8b">`)}
        </div>
-       <p class="fld-note">Qwen setup: install ollama.com, then <b>ollama pull qwen3:8b</b> (qwen3:14b if your machine is beefy). For the tuned EOS build, run <b>ollama create lyfe-sol -f sol/Modelfile</b> inside the Lyfe folder and set the model above to <b>lyfe-sol</b>. Opening Lyfe as a file (not localhost)? Start Ollama with OLLAMA_ORIGINS=*. If Ollama is unreachable, the built-in brain answers instead.</p>
+       <p class="fld-note">Qwen setup: install ollama.com, then <b>ollama pull qwen3:8b</b> (qwen3:14b if your machine is beefy). For the tuned EOS build, run <b>ollama create lyfe-eos -f sol/Modelfile</b> inside the Lyfe folder and set the model above to <b>lyfe-eos</b>. Existing <b>lyfe-sol</b> builds remain compatible. Opening Lyfe as a file (not localhost)? Start Ollama with OLLAMA_ORIGINS=*. If Ollama is unreachable, the built-in brain answers instead.</p>
        ${fld("Anthropic API key (for Claude brain)", `<input type="password" name="apiKey" value="${esc(s.apiKey || "")}" placeholder="sk-ant-…" autocomplete="off">`)}
        <p class="fld-note">Stored only in this browser and sent only to api.anthropic.com.</p>
        ${fld("Claude model", selectHtml("model", MODELS, s.model || "claude-opus-4-8"))}

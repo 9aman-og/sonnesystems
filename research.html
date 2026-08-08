@@ -4,16 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Research | Sonne Systems</title>
-  <meta name="description" content="Sonne Systems research in spiking neural networks, neuromorphic computing, continual learning, adaptive systems, and certified robustness.">
+  <meta name="description" content="Sonne Systems research into AI that learns over time, brain-inspired computing, and guarantees that state exactly where they stop.">
   <link rel="canonical" href="https://sonnesystems.com/research.html">
   <meta name="theme-color" content="#08090d">
   <meta name="robots" content="index, follow, max-image-preview:large"><meta name="application-name" content="Sonne Systems"><meta name="apple-mobile-web-app-title" content="Sonne Systems">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="shortcut icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="mask-icon" href="/assets/SonneSystemsCompanyLogo.svg" color="#08090d"><link rel="manifest" href="/site.webmanifest">
   <meta property="og:type" content="website"><meta property="og:site_name" content="Sonne Systems"><meta property="og:locale" content="en_US"><meta property="og:title" content="Research | Sonne Systems"><meta property="og:description" content="Controlled experiments for adaptive, sparse, and trustworthy AI."><meta property="og:url" content="https://sonnesystems.com/research.html"><meta property="og:image" content="https://sonnesystems.com/assets/og.png?v=brand4"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Sonne Systems radial mark and wordmark">
   <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Research | Sonne Systems"><meta name="twitter:description" content="Controlled experiments for adaptive, sparse, and trustworthy AI."><meta name="twitter:image" content="https://sonnesystems.com/assets/og.png?v=brand4"><meta name="twitter:image:alt" content="Sonne Systems radial mark and wordmark">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","@id":"https://sonnesystems.com/research.html#webpage","url":"https://sonnesystems.com/research.html","name":"Research | Sonne Systems","description":"Sonne Systems research in spiking neural networks, neuromorphic computing, continual learning, adaptive systems, and certified robustness.","isPartOf":{"@id":"https://sonnesystems.com/#website"},"about":{"@id":"https://sonnesystems.com/#organization"},"primaryImageOfPage":{"@type":"ImageObject","url":"https://sonnesystems.com/assets/og.png","width":1200,"height":630},"inLanguage":"en"}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","@id":"https://sonnesystems.com/research.html#webpage","url":"https://sonnesystems.com/research.html","name":"Research | Sonne Systems","description":"Sonne Systems research into AI that learns over time, brain-inspired computing, and carefully limited robustness guarantees.","isPartOf":{"@id":"https://sonnesystems.com/#website"},"about":{"@id":"https://sonnesystems.com/#organization"},"primaryImageOfPage":{"@type":"ImageObject","url":"https://sonnesystems.com/assets/og.png","width":1200,"height":630},"inLanguage":"en"}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=clear7"><script defer src="js/site.js?v=clear2"></script>
+  <link rel="stylesheet" href="css/styles.css?v=clear8"><script defer src="js/site.js?v=clear2"></script>
 </head>
 <body>
   <div data-site-header></div>
@@ -21,7 +21,7 @@
     <header class="page-hero page-hero-research">
       <div class="shell page-hero-grid">
         <div><p class="signal-label" data-reveal>Research</p><h1 data-reveal>Claims should earn their confidence.</h1></div>
-        <p data-reveal="soft">We study advanced AI through controlled experiments, matched comparisons, and written limits. The goal is not to make every idea look successful. It is to learn which ideas remain useful after a fair test.</p>
+        <p data-reveal="soft">We study adaptive AI through controlled experiments, matched comparisons, and explicit failure cases. The goal is not to make every idea look successful. It is to learn which ideas remain useful after a fair test.</p>
       </div>
     </header>
 
@@ -29,9 +29,9 @@
       <div class="shell research-entry-grid">
         <div class="research-entry-title" data-reveal><span class="topic-chip">Spiking intelligence</span><h2>When do spiking-convolutional hybrids help?</h2></div>
         <div class="research-entry-body" data-reveal="soft">
-          <p class="lead">Spiking neural networks can process sparse events, but that does not automatically make them more accurate or efficient.</p>
-          <p>Our controlled study tests a content-adaptive spiking neuron called CA-LIF. Several apparent wins disappeared under matched controls. A smaller result remained: at low timestep counts, the hybrid used less estimated energy than matched dense networks on grayscale Fashion-MNIST and MNIST tasks.</p>
-          <div class="boundary"><strong>Known limit</strong><p>The advantage vanished on RGB CIFAR-10, where input encoding dominated the cost. This is a bounded result, not a general efficiency claim.</p></div>
+          <p class="lead">Some neural networks work with small bursts of activity. That is interesting, but it does not automatically make them better.</p>
+          <p>Our controlled study tests a content-adaptive spiking neuron called CA-LIF. Several apparent wins disappeared when we compared like with like. One narrower result remained: in a Fashion-MNIST comparison at low timestep counts, the hybrid used fewer estimated operations than the matched dense network.</p>
+          <div class="boundary"><strong>What this does not show</strong><p>The advantage disappeared on CIFAR-10, a colour-image benchmark, because preparing the input dominated the estimate. We did not measure energy on real hardware, so this is not a general efficiency claim.</p></div>
           <a class="text-link" href="papers.html">Access the full paper</a>
         </div>
       </div>
@@ -41,34 +41,22 @@
       <div class="shell research-entry-grid">
         <div class="research-entry-title" data-reveal><span class="topic-chip">Continual learning</span><h2>When should a model reuse, repair, or grow?</h2></div>
         <div class="research-entry-body" data-reveal="soft">
-          <p class="lead">A continual system should not add a new expert for every surprise. It should first ask whether what it already knows can explain the new situation.</p>
-          <p>Project SOL develops evidence gates for structural change. Candidate mechanisms are compared against the full set of reusable alternatives on fresh data before they can enter the model library. Related work studies predictive states, local adapters, and confirmation-gated growth.</p>
-          <div class="boundary"><strong>Known limit</strong><p>The results support a research protocol for controlled adaptation. They do not establish general-agent superiority, architectural novelty, or measured neuromorphic efficiency.</p></div>
-          <a class="text-link" href="papers.html">Access Project SOL papers</a>
+          <p class="lead">A system that keeps learning needs a way to decide whether a surprise is truly new.</p>
+          <p>EOS is our name for the rules around that decision. In the Project SOL papers, we compare reuse, combination, refinement, recalibration, repair, abstention, and growth. The system has to predict before it updates. A candidate stays separate until its crossing state and evidence have been recorded and checked.</p>
+          <div class="boundary"><strong>What this does not show</strong><p>The results support a carefully scoped protocol for controlled adaptation. They do not prove a generally intelligent agent, unlimited lifelong growth, or a measured neuromorphic energy advantage.</p></div>
+          <a class="text-link" href="papers.html">Access the EOS / Project SOL papers</a>
         </div>
       </div>
     </section>
 
     <section class="research-entry section-violet" id="robustness">
       <div class="shell research-entry-grid">
-        <div class="research-entry-title" data-reveal><span class="topic-chip">Robustness</span><h2>Can a guarantee survive a change in lighting?</h2></div>
+          <div class="research-entry-title" data-reveal><span class="topic-chip">Robustness</span><h2>What can an illumination guarantee actually cover?</h2></div>
         <div class="research-entry-body" data-reveal="soft">
-          <p class="lead">A standard robustness certificate can become useless when image contrast changes, even when a person sees the same object.</p>
-          <p>Our construction combines a rank-based image front end with a Lipschitz network. It gives exact invariance to monotonic lighting changes and keeps the certificate valid in rank space.</p>
-          <div class="boundary"><strong>Fundamental limit</strong><p>On images with large flat regions, exact illumination invariance and a useful pixel-space certificate cannot both be guaranteed. The paper proves this boundary rather than hiding it.</p></div>
+          <p class="lead">A guarantee is only as broad as the change it was written to cover.</p>
+          <p>Our construction compares the ordering of image values, then studies what happens when brightness changes without changing that ordering. In that setting, the model can be exactly unchanged.</p>
+          <div class="boundary"><strong>What this does not show</strong><p>The result covers the declared class of brightness changes in rank space. Ties, flat regions, and a guarantee about ordinary pixel values remain open limits.</p></div>
           <a class="text-link" href="papers.html">Access the full paper</a>
-        </div>
-      </div>
-    </section>
-
-    <section class="research-entry section-lime" id="technical-work">
-      <div class="shell research-entry-grid">
-        <div class="research-entry-title" data-reveal><span class="topic-chip">Technical report</span><h2>SpikingMammal: a hybrid classifier with early exit.</h2></div>
-        <div class="research-entry-body" data-reveal="soft">
-          <p class="lead">This engineering study combines a conventional visual backbone, an out-of-distribution gate, and a spiking classification head.</p>
-          <p>The system reached 83% accuracy across twelve cat breeds, rejected dogs in the test set with 97.2% accuracy, and used an average of 12.1 out of 20 available timesteps.</p>
-          <div class="boundary"><strong>Known limit</strong><p>This is an integration of known techniques, not new science. The sparse operation count does not prove a real energy advantage on standard CPU or GPU hardware.</p></div>
-          <a class="text-link" href="papers.html">Access the technical report</a>
         </div>
       </div>
     </section>
@@ -77,10 +65,10 @@
       <div class="shell research-method">
         <div><p class="signal-label" data-reveal>Research standard</p><h2 data-reveal>How we decide what to claim.</h2></div>
         <div class="method-grid">
-          <article data-reveal="soft"><h3>Freeze the question</h3><p>Define the comparison and decision rule before reading the result.</p></article>
-          <article data-reveal="soft"><h3>Match the control</h3><p>Compare budgets, parameters, operating points, and seeds fairly.</p></article>
-          <article data-reveal="soft"><h3>Keep negative results</h3><p>Retracted wins and failed gates remain part of the research record.</p></article>
-          <article data-reveal="soft"><h3>State the boundary</h3><p>Separate what the evidence shows from what remains an open question.</p></article>
+          <article data-reveal="soft"><h3>Decide what we are testing</h3><p>Write down the comparison and decision rule before looking at the answer.</p></article>
+          <article data-reveal="soft"><h3>Make the comparison fair</h3><p>Keep budgets, settings, and random seeds comparable.</p></article>
+          <article data-reveal="soft"><h3>Keep the result that says no</h3><p>A failed idea is still useful information, so it stays in the record.</p></article>
+          <article data-reveal="soft"><h3>Say where it stops</h3><p>Separate what the evidence shows from what we still need to learn.</p></article>
         </div>
       </div>
     </section>

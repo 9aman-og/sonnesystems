@@ -10,29 +10,29 @@
   <meta name="application-name" content="Sonne Systems"><meta name="apple-mobile-web-app-title" content="Sonne Systems">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="shortcut icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="mask-icon" href="/assets/SonneSystemsCompanyLogo.svg" color="#08090d"><link rel="manifest" href="/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=clear7"><script defer src="js/site.js?v=clear2"></script><script defer src="js/papers.js?v=clear1"></script>
+  <link rel="stylesheet" href="css/styles.css?v=clear8"><script defer src="js/site.js?v=clear2"></script><script defer src="js/papers.js?v=clear1"></script>
 </head>
 <body class="vault-page">
   <div data-site-header></div>
   <main id="main-content">
     <header class="vault-hero">
       <div class="shell vault-hero-grid">
-        <div><p class="signal-label" data-reveal>Private archive</p><h1 data-reveal>Research papers.</h1></div>
+        <div><p class="signal-label" data-reveal>Private archive</p><h1 data-reveal>The papers behind the work.</h1><p class="vault-intro" data-reveal="soft">You do not need a technical background to start. Each paper explains a question, a test, a result, and the point where that result stops.</p></div>
         <div class="vault-unlock" data-reveal="soft">
           <label for="paperPassword">Shared passphrase</label>
           <div class="password-field"><input id="paperPassword" type="password" autocomplete="current-password" spellcheck="false" placeholder="Enter passphrase"><button type="button" data-toggle-password>Show</button></div>
-          <p data-vault-message aria-live="polite">Files are decrypted only in your browser.</p>
+          <p data-vault-message aria-live="polite">Files are opened only in your browser. The archive is shared privately.</p>
         </div>
       </div>
     </header>
 
     <section class="vault-list shell" aria-label="Available papers">
-      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Research paper</span><h2>When Do Spiking-Convolutional Hybrids Help?</h2><p>Content-adaptive spiking neurons and a controlled study of the energy-accuracy frontier.</p></div><button class="button button-light" type="button" data-paper="papers/calif.pdf.enc" data-filename="Sonne-CA-LIF.pdf">Decrypt paper</button></article>
-      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Research paper</span><h2>Illumination-Invariant Certified Robustness</h2><p>A construction for exact monotonic illumination invariance and a proof of its fundamental limit.</p></div><button class="button button-light" type="button" data-paper="papers/nnn.pdf.enc" data-filename="Sonne-Illumination-Robustness.pdf">Decrypt paper</button></article>
-      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Preprint</span><h2>Project SOL: Evidence-Gated Structural Self-Modification</h2><p>A complete record of controlled structural adaptation experiments for continual learned agents.</p></div><button class="button button-light" type="button" data-paper="papers/project-sol.pdf.enc" data-filename="Sonne-Project-SOL.pdf">Decrypt paper</button></article>
-      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Working paper</span><h2>Confirmation-Gated Structural Growth</h2><p>Predictive-state refinement, local repair, and controlled mechanism growth in SOL-IPS.</p></div><button class="button button-light" type="button" data-paper="papers/sol-ips.pdf.enc" data-filename="Sonne-SOL-IPS.pdf">Decrypt paper</button></article>
-      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Submission draft</span><h2>Counterexamples, Not Certificates</h2><p>An evidence interface for one-sided counterexample discovery in learned structural decisions.</p></div><button class="button button-light" type="button" data-paper="papers/counterexamples.pdf.enc" data-filename="Sonne-Counterexamples-Not-Certificates.pdf">Decrypt paper</button></article>
-      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Technical report</span><h2>SpikingMammal: Method and Findings</h2><p>A hybrid CNN and spiking classifier with open-set rejection and adaptive early exit.</p></div><button class="button button-light" type="button" data-paper="papers/spikingmammal.pdf.enc" data-filename="Sonne-SpikingMammal.pdf">Decrypt paper</button></article>
+      <div class="vault-selection-note"><span>Selected set</span><p>These five documents are the most useful route into the current work. Older engineering material remains preserved in the repository, but it is not presented as a central research contribution.</p></div>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Research paper</span><h2>When do spiking-convolutional hybrids help?</h2><p>Some neural networks work in bursts. This paper asks when that helps under a fair comparison, and records the cases where the apparent advantage disappears.</p></div><button class="button button-light" type="button" data-paper="papers/calif.pdf.enc" data-filename="Sonne-CA-LIF.pdf">Open paper</button></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Research paper</span><h2>What can an illumination guarantee cover?</h2><p>A careful study of brightness changes that preserve the ordering of image values, with ties and ordinary pixel-space limits kept visible.</p></div><button class="button button-light" type="button" data-paper="papers/nnn.pdf.enc" data-filename="Sonne-Illumination-Robustness.pdf">Open paper</button></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Research program</span><h2>Project SOL: when should a system change?</h2><p>The main EOS line: a system predicts first, tests whether the surprise is real, and keeps a possible new mechanism separate until the evidence is checked.</p></div><button class="button button-light" type="button" data-paper="papers/project-sol.pdf.enc" data-filename="Sonne-Project-SOL.pdf">Open paper</button></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Working paper</span><h2>Confirmation-gated structural growth</h2><p>A closer look at how SOL-IPS records the exact moment a candidate crosses its evidence threshold and links that moment back to the learner.</p></div><button class="button button-light" type="button" data-paper="papers/sol-ips.pdf.enc" data-filename="Sonne-SOL-IPS.pdf">Open paper</button></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Evidence note</span><h2>Counterexamples, not certificates</h2><p>A reminder that finding one case where a structural decision fails is valuable evidence, not a reason to claim a broad guarantee.</p></div><button class="button button-light" type="button" data-paper="papers/counterexamples.pdf.enc" data-filename="Sonne-Counterexamples-Not-Certificates.pdf">Open paper</button></article>
     </section>
   </main>
   <div data-site-footer></div>

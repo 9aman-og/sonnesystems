@@ -50,7 +50,8 @@ LINK_RE = re.compile(r"""(?:href|src)=["']([^"']+)["']""")
 
 
 def check_links():
-    for page in ROOT.glob("*.html"):
+    pages = [*ROOT.glob("*.html"), ROOT / "lyfe" / "index.html", ROOT / "lyfe" / "connect.html"]
+    for page in pages:
         html = page.read_text(encoding="utf-8")
         for url in LINK_RE.findall(html):
             if url.startswith(("http://", "https://", "mailto:", "data:", "#", "tel:")):
@@ -62,7 +63,7 @@ def check_links():
             if target.endswith("/"):
                 path = path / "index.html"
             if not path.exists():
-                PROBLEMS.append(f"link: {page.name} references missing {url}")
+                PROBLEMS.append(f"link: {page.relative_to(ROOT)} references missing {url}")
 
 
 def check_papers():
@@ -169,6 +170,7 @@ def check_brand_and_indexing():
             "https://sonnesystems.com/research.html",
             "https://sonnesystems.com/ventures.html",
             "https://sonnesystems.com/lyfe/",
+            "https://sonnesystems.com/lyfe/connect.html",
             "https://sonnesystems.com/about.html",
         }
         if locations != expected_locations:
@@ -189,6 +191,8 @@ def check_lyfe_shell():
         "styles.css",
         "sw.js",
         "manifest.webmanifest",
+        "connect.html",
+        "connect.css",
     }
     for filename in sorted(required):
         if not (lyfe / filename).is_file():
@@ -209,6 +213,8 @@ def check_lyfe_shell():
     ventures = (ROOT / "ventures.html").read_text(encoding="utf-8")
     if 'href="/lyfe/"' not in ventures:
         PROBLEMS.append("lyfe: Ventures page does not link to the live app")
+    if 'href="/lyfe/connect.html"' not in ventures:
+        PROBLEMS.append("lyfe: Ventures page does not link to Lyfe Connect")
     if "lyfe-feature-cloud" in ventures:
         PROBLEMS.append("lyfe: obsolete floating feature labels are present")
 

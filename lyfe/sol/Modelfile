@@ -1,7 +1,7 @@
-# lyfe-sol - EOS, the Lyfe companion, tuned on top of Qwen3
+# lyfe-eos - EOS, the Lyfe companion, tuned on top of Qwen3
 #
-# Build it once:   ollama create lyfe-sol -f sol/Modelfile
-# Then in Lyfe:    Settings → Ollama model → lyfe-sol
+# Build it once:   ollama create lyfe-eos -f sol/Modelfile
+# Then in Lyfe:    Settings → Ollama model → lyfe-eos
 #
 # This bakes EOS's persona + action protocol into the model itself
 # (prompt-tuning). For a true weight-level fine-tune later, collect chat

@@ -52,6 +52,13 @@ Files added for this: `manifest.webmanifest`, `sw.js`, `icon-192/512*.png`.
 | Notes     | Quick thoughts, searchable, pinnable                     |
 | Docs      | Longer writing, with word counts                         |
 
+## Lyfe Connect
+
+`connect.html` is the public concept page for Lyfe Connect. The Today screen
+links to it in both Crystal and Orbit themes. It explains the intended product
+direction without pretending that matching, messaging, verification, or shared
+Lyfe spaces have already shipped.
+
 ## EOS, the companion
 
 EOS understands plain text and logs it for you:

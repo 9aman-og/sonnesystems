@@ -3,7 +3,7 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
     <loc>https://sonnesystems.com/</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-09</lastmod>
     <image:image>
       <image:loc>https://sonnesystems.com/icon-512.png</image:loc>
       <image:title>Sonne Systems radial mark</image:title>
@@ -15,21 +15,26 @@
   </url>
   <url>
     <loc>https://sonnesystems.com/research.html</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-09</lastmod>
     <image:image><image:loc>https://sonnesystems.com/assets/og.png</image:loc></image:image>
   </url>
   <url>
     <loc>https://sonnesystems.com/ventures.html</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-09</lastmod>
     <image:image><image:loc>https://sonnesystems.com/assets/og.png</image:loc></image:image>
   </url>
   <url>
     <loc>https://sonnesystems.com/lyfe/</loc>
-    <lastmod>2026-07-18</lastmod>
+    <lastmod>2026-08-09</lastmod>
+  </url>
+  <url>
+    <loc>https://sonnesystems.com/lyfe/connect.html</loc>
+    <lastmod>2026-08-09</lastmod>
+    <image:image><image:loc>https://sonnesystems.com/assets/lyfe_connect_logo.png</image:loc></image:image>
   </url>
   <url>
     <loc>https://sonnesystems.com/about.html</loc>
-    <lastmod>2026-07-26</lastmod>
+    <lastmod>2026-08-09</lastmod>
     <image:image><image:loc>https://sonnesystems.com/assets/og.png</image:loc></image:image>
   </url>
 </urlset>
