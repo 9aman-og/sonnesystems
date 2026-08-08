@@ -259,7 +259,7 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
 .venture-card:hover { transform: translateY(-7px); box-shadow: 0 24px 70px rgba(23,20,55,.18); }
 .venture-card:hover::before { transform: scale(1.16) translate(-3%, 4%); }
 .venture-lyfe { background: linear-gradient(145deg, #0b1741, #354dbc 68%, #7b83f8); }
-.venture-alt { background: #301c4d; }
+.venture-alt { background: linear-gradient(145deg, #071a4f, #2542b2 62%, #765cf2); }
 .venture-store { background: #172b46; }
 .venture-card h3 { margin: 16px 0 10px; font-size: clamp(2.5rem, 4vw, 4.6rem); line-height: .94; letter-spacing: -.065em; font-weight: 500; }
 .venture-card p { max-width: 480px; margin: 0; color: rgba(255,255,255,.68); }
@@ -329,7 +329,7 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
 /* ---------- Venture details ---------- */
 .venture-detail { min-height: 90vh; display: flex; align-items: center; padding: clamp(100px, 12vw, 180px) 0; }
 .venture-detail-lyfe { color: #fff; background: radial-gradient(circle at 16% 22%, rgba(160,201,255,.2), transparent 28%), linear-gradient(145deg, #07112d, #223c9e 62%, #6872e9); }
-.venture-detail-alt { color: #fff; background: #291942; }
+.venture-detail-alt { color: #fff; background: radial-gradient(circle at 18% 20%, rgba(92,224,255,.22), transparent 26%), linear-gradient(145deg, #061535, #2542b2 60%, #765cf2); }
 .venture-detail-store { color: #fff; background: #14273f; }
 .venture-detail-grid { display: grid; grid-template-columns: 1fr .75fr; gap: clamp(50px, 10vw, 150px); align-items: center; }
 .venture-logo-stage { position: relative; min-height: 560px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.035); }
