@@ -992,7 +992,7 @@
         "\" aria-pressed=\"" + (active ? "true" : "false") + "\">" + esc(spark) + "</button>";
     }).join("");
     openModal([
-      "<img class=\"onboard-mark\" src=\"../assets/lyfe_connect_logo_minimal.png\" alt=\"\">",
+      "<img class=\"onboard-mark\" src=\"../assets/lyfe_connect_mark_v2.png\" alt=\"\">",
       modalHead("Build a network around your work.", "Choose a few fields so the private preview can show useful people, posts, projects, and circles."),
       "<div class=\"onboard-steps\"><i class=\"active\"></i><i class=\"active\"></i><i></i></div>",
       "<form class=\"modal-body\" data-form=\"onboarding\">",

@@ -1118,7 +1118,7 @@ function viewToday() {
 
   const connectActivity = connectSummary();
   const connectInbox = `<a class="connect-inbox-card" href="connect.html#notifications">
-    <span class="connect-inbox-icon"><img src="../assets/lyfe_connect_logo_minimal.png" alt=""></span>
+    <span class="connect-inbox-icon"><img src="../assets/lyfe_connect_mark_v2.png" alt=""></span>
     <span class="connect-inbox-copy"><span class="eyebrow">CONNECT NOTIFICATIONS</span><strong>${connectActivity.unread ? connectActivity.unread + " unread update" + (connectActivity.unread === 1 ? "" : "s") : "Your Connect inbox is quiet."}</strong><small>${esc(connectActivity.latest)}</small></span>
     <span class="connect-inbox-meta"><b>${connectActivity.threads}</b> drafts · <b>${connectActivity.saved}</b> saved</span>
   </a>`;
@@ -1256,7 +1256,7 @@ function viewToday() {
       </section>
 
       <a class="cx-connect-card" href="connect.html">
-        <span class="cx-connect-mark"><img src="../assets/lyfe_connect_logo_minimal.png" alt=""></span>
+        <span class="cx-connect-mark"><img src="../assets/lyfe_connect_mark_v2.png" alt=""></span>
         <span class="cx-connect-copy"><span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span><strong>Find the people and rooms your work needs.</strong><span>A calmer network for collaborators, work posts, focused Circles, and shared project pages.</span></span>
         <span class="cx-connect-link">OPEN CONNECT <span aria-hidden="true">↗</span></span>
       </a>
@@ -1370,7 +1370,7 @@ function viewToday() {
           <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
         </section>
         <a class="panel tilt connect-card" href="connect.html">
-          <span class="connect-card-mark"><img src="../assets/lyfe_connect_logo_minimal.png" alt=""></span>
+          <span class="connect-card-mark"><img src="../assets/lyfe_connect_mark_v2.png" alt=""></span>
           <span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span>
           <strong>Find the people and rooms your work needs.</strong>
           <span>Discover collaborators, share work in context, and turn a useful thread into organized action.</span>
@@ -1549,7 +1549,7 @@ function viewProfile() {
       </form>
 
       <aside class="panel profile-connect-card">
-        <img src="../assets/lyfe_connect_logo_minimal.png" alt="">
+        <img src="../assets/lyfe_connect_mark_v2.png" alt="">
         <span class="eyebrow">LYFE CONNECT</span>
         <h2>One profile, two useful contexts.</h2>
         <p>Connect uses the identity you approve here, then keeps social posts, outreach, and circles separate from your private Lyfe workspace.</p>
@@ -2922,7 +2922,7 @@ function renderNav() {
   const openCt = state.data.tasks.filter(x => x.status !== "done").length;
   const connectActivity = connectSummary();
   const connectNav = `<a class="nav-item nav-connect" href="connect.html" aria-label="Open Lyfe Connect">
-    <span class="nav-connect-mark"><img src="../assets/lyfe_connect_logo_minimal.png" alt=""></span>
+    <span class="nav-connect-mark"><img src="../assets/lyfe_connect_mark_v2.png" alt=""></span>
     <span>Connect</span>
     ${connectActivity.unread ? `<span class="nav-count">${connectActivity.unread}</span>` : `<span class="nav-connect-pulse" aria-hidden="true"></span>`}
   </a>`;
