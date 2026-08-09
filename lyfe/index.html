@@ -113,7 +113,9 @@
    only over http/https (not file://). */
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js").catch(function () { /* offline install optional */ });
+    navigator.serviceWorker.register("sw.js?v=auth-42").then(function (registration) {
+      registration.update().catch(function () { /* the installed offline copy still works */ });
+    }).catch(function () { /* offline install optional */ });
   });
 }
 </script>
