@@ -112,16 +112,15 @@
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-  var refreshingForWorker = false;
-  navigator.serviceWorker.addEventListener("controllerchange", function () {
-    if (refreshingForWorker) return;
-    refreshingForWorker = true;
-    location.reload();
-  });
+  var workerRefreshKey = "lyfe.worker.refresh.auth44";
+  if (!sessionStorage.getItem(workerRefreshKey)) {
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      sessionStorage.setItem(workerRefreshKey, "1");
+      location.reload();
+    }, { once: true });
+  }
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js?v=auth-43").then(function (registration) {
-      registration.update().catch(function () { /* the installed offline copy still works */ });
-    }).catch(function () { /* offline install optional */ });
+    navigator.serviceWorker.register("sw.js?v=auth-44").catch(function () { /* offline install optional */ });
   });
 }
 </script>
