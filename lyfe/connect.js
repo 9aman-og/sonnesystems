@@ -787,7 +787,7 @@
   function showPostModal(post) {
     var item = post || { id: "", label: "BUILD LOG", title: "", body: "", tags: [], visual: "flow" };
     openModal([
-      modalHead(item.id ? "Edit your post." : "Share work with context.", "Connect posts are for progress, questions, useful resources, and open calls—not polished personal branding."),
+      modalHead(item.id ? "Edit your post." : "Share work with context.", "Connect posts are for progress, questions, useful resources, and open calls, not polished personal branding."),
       "<form class=\"modal-body\" data-form=\"post\">",
         "<input type=\"hidden\" name=\"postId\" value=\"", esc(item.id), "\">",
         "<label><span>Post type</span><select name=\"label\"><option ", item.label === "BUILD LOG" ? "selected" : "", ">BUILD LOG</option><option ", item.label === "RESEARCH NOTE" ? "selected" : "", ">RESEARCH NOTE</option><option ", item.label === "QUESTION" ? "selected" : "", ">QUESTION</option><option ", item.label === "OPEN CALL" ? "selected" : "", ">OPEN CALL</option><option ", item.label === "RESOURCE" ? "selected" : "", ">RESOURCE</option></select></label>",
@@ -808,7 +808,7 @@
       return "<article class=\"notification-item " + (!item.read ? "unread" : "") + "\"><i aria-hidden=\"true\"></i><div><p>" + esc(item.text) + "</p><span>" + esc(timeAgo(item.createdAt)) + " · " + esc(item.kind || "activity") + "</span></div></article>";
     }).join("") : "<div class=\"notification-empty\"><div class=\"empty-core\"></div><h3>Nothing needs your attention.</h3><p>Saved posts, workspace changes, circles, and private outreach activity will appear here.</p></div>";
     openModal([
-      modalHead("Connect notifications", "A small, chronological inbox for useful activity—without likes, streaks, or urgency theatre."),
+      modalHead("Connect notifications", "A small, chronological inbox for useful activity, without likes, streaks, or urgency theatre."),
       "<div class=\"modal-body notification-list\">", items, "</div>",
       state.notifications.length ? "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"clear-notifications\">Clear activity</button></div>" : ""
     ].join(""), true);
