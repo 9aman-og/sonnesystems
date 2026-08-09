@@ -30,7 +30,7 @@ const VIEWS = [
 ];
 
 const TRACKING_VIEWS = ["tasks", "projects", "goals", "work"];
-const LIBRARY_VIEWS = ["notes", "docs"];
+const LIBRARY_VIEWS = ["notes", "docs", "saved"];
 const PROFILE_VIEWS = ["profile", "education"];
 const ROUTE_VIEWS = ["today", "sol", "tracking", "library", "profile", "wander"]
   .concat(TRACKING_VIEWS, LIBRARY_VIEWS, PROFILE_VIEWS);
@@ -421,6 +421,7 @@ function defaultData() {
     worklog: [],
     notes: [],
     docs: [],
+    saved: [],
     chat: [],
   };
 }
@@ -432,7 +433,7 @@ function firstRunData() {
     id: uid(),
     title: "Welcome to Lyfe",
     body:
-`Lyfe keeps everything in one calm place - and EOS keeps you company.
+`Lyfe keeps what matters close, and EOS helps you find your next step.
 
 THE SHORT TOUR
 
@@ -444,8 +445,8 @@ Profile - your identity, learning, and the details you choose to share with Conn
 
 GOOD TO KNOW
 
-Everything lives in this browser only (localStorage). Export a backup from the sidebar now and then.
-EOS works fully offline. Add an Anthropic API key in Settings and EOS becomes a real AI who understands anything - including things you paste from other AI chats.`,
+You can use Lyfe privately on this device or sign in to sync it. Gmail connects only when you choose it, and messages enter your Library only when you save them.
+EOS can handle simple organizing offline. Choose a local or connected language model in Settings for longer conversations.`,
     pinned: true,
     createdAt: now,
     updatedAt: now,
@@ -472,7 +473,7 @@ function migrateLegacyCompanionText(value) {
 function normalize(raw) {
   const base = defaultData();
   if (!raw || typeof raw !== "object") return base;
-  for (const k of ["tasks", "projects", "goals", "education", "worklog", "notes", "docs", "chat"]) {
+  for (const k of ["tasks", "projects", "goals", "education", "worklog", "notes", "docs", "saved", "chat"]) {
     base[k] = Array.isArray(raw[k]) ? raw[k].filter(x => x && typeof x === "object") : [];
   }
   base.chat = base.chat.map(message => Object.assign({}, message, {
@@ -585,6 +586,89 @@ const state = {
   wanderIndex: Math.floor(Math.random() * PLACES.length),
   factIndex: Math.floor(Math.random() * FACTS.length),
 };
+
+let gmailMessages = [];
+let gmailLoading = false;
+let gmailLoaded = false;
+let gmailError = "";
+
+function gmailHeader(message, name) {
+  const headers = message && message.payload && Array.isArray(message.payload.headers)
+    ? message.payload.headers : [];
+  const hit = headers.find(header => String(header.name || "").toLowerCase() === name.toLowerCase());
+  return hit ? String(hit.value || "") : "";
+}
+
+function gmailSender(value) {
+  const raw = String(value || "").trim();
+  const named = raw.match(/^\s*"?([^"<]+?)"?\s*</);
+  return (named ? named[1] : raw.replace(/<[^>]+>/g, "")).trim() || "Unknown sender";
+}
+
+function gmailRailHtml() {
+  const token = !!(window.LyfeCloud && LyfeCloud.gmailToken);
+  let body = "";
+  if (!token) {
+    body = `<div class="gmail-empty"><span class="gmail-g">G</span><div><strong>Bring your inbox into Today</strong><small>Read-only. Nothing is saved to Lyfe unless you choose Save.</small></div><button class="btn btn-primary" type="button" data-action="gmail-connect">Connect Gmail</button></div>`;
+  } else if (gmailLoading) {
+    body = `<div class="gmail-empty"><span class="gmail-g">G</span><div><strong>Opening your inbox...</strong><small>Fetching the latest messages.</small></div></div>`;
+  } else if (gmailError) {
+    body = `<div class="gmail-empty"><span class="gmail-g">G</span><div><strong>Gmail needs permission again</strong><small>${esc(gmailError)}</small></div><button class="btn" type="button" data-action="gmail-connect">Reconnect</button></div>`;
+  } else if (!gmailMessages.length && gmailLoaded) {
+    body = `<div class="gmail-empty"><span class="gmail-g">G</span><div><strong>Your inbox is clear</strong><small>No recent inbox messages to show.</small></div><button class="btn" type="button" data-action="gmail-refresh">Refresh</button></div>`;
+  } else {
+    body = `<div class="gmail-track" id="gmail-track">${gmailMessages.map(message => {
+      const alreadySaved = state.data.saved.some(item => item.source === "Gmail" && item.sourceId === message.id);
+      return `<article class="gmail-card"><header><span>${esc(message.sender)}</span><time>${esc(message.date)}</time></header><h3>${esc(message.subject || "(no subject)")}</h3><p>${esc(message.snippet)}</p><button type="button" data-action="gmail-save" data-id="${esc(message.id)}" ${alreadySaved ? "disabled" : ""}>${alreadySaved ? "Saved" : "Save to Library"}</button></article>`;
+    }).join("")}</div>`;
+  }
+  return `<section class="home-gmail panel" id="gmail-home"><header><div><span class="eyebrow">GMAIL</span><h2>Inbox</h2></div><div class="gmail-controls">${token ? `<button type="button" data-action="gmail-refresh" aria-label="Refresh Gmail">Refresh</button>` : ""}<button type="button" data-action="gmail-scroll" data-dir="-1" aria-label="Scroll inbox left">←</button><button type="button" data-action="gmail-scroll" data-dir="1" aria-label="Scroll inbox right">→</button></div></header>${body}</section>`;
+}
+
+function refreshGmailRail() {
+  const current = document.getElementById("gmail-home");
+  if (current) current.outerHTML = gmailRailHtml();
+}
+
+async function loadGmailInbox(force) {
+  const token = window.LyfeCloud && LyfeCloud.gmailToken;
+  if (!token || gmailLoading || (gmailLoaded && !force)) return;
+  gmailLoading = true;
+  gmailError = "";
+  refreshGmailRail();
+  try {
+    const listResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages?labelIds=INBOX&maxResults=10", {
+      headers: { Authorization: "Bearer " + token }
+    });
+    if (!listResponse.ok) throw new Error(listResponse.status === 401 || listResponse.status === 403 ? "Reconnect Gmail to continue." : "Gmail is unavailable right now.");
+    const list = await listResponse.json();
+    const ids = Array.isArray(list.messages) ? list.messages.slice(0, 10) : [];
+    const details = await Promise.all(ids.map(async item => {
+      const response = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/" + encodeURIComponent(item.id) + "?format=metadata&metadataHeaders=From&metadataHeaders=Subject&metadataHeaders=Date", {
+        headers: { Authorization: "Bearer " + token }
+      });
+      if (!response.ok) return null;
+      const message = await response.json();
+      const rawDate = gmailHeader(message, "Date");
+      const parsedDate = rawDate ? new Date(rawDate) : null;
+      return {
+        id: String(message.id || item.id),
+        sender: gmailSender(gmailHeader(message, "From")),
+        subject: gmailHeader(message, "Subject"),
+        snippet: String(message.snippet || "").slice(0, 240),
+        date: parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate.toLocaleDateString(undefined, { month: "short", day: "numeric" }) : ""
+      };
+    }));
+    gmailMessages = details.filter(Boolean);
+    gmailLoaded = true;
+  } catch (error) {
+    gmailError = error && error.message ? error.message : "Gmail is unavailable right now.";
+    gmailLoaded = false;
+  } finally {
+    gmailLoading = false;
+    refreshGmailRail();
+  }
+}
 
 /* light = CRYSTAL, dark = ORBIT, auto = by the clock.
    ("day"/"night" still resolve for any backup written before the rename.) */
@@ -1081,6 +1165,63 @@ function viewToday() {
   const name = (d.settings.name || "").trim();
   const who = name || "Human";   // greeting knows their name once onboarded
 
+  /* Today is intentionally compact: private work first, then the connected
+     things a person explicitly chose to bring close. */
+  {
+    const openNow = d.tasks.filter(item => item.status !== "done");
+    const overdueNow = openNow.filter(item => item.due && item.due < t).sort(taskCmp);
+    const dueNow = openNow.filter(item => item.due === t).sort(taskCmp);
+    const doneNow = d.tasks.filter(item => item.status === "done" && item.completedAt && isoOf(new Date(item.completedAt)) === t)
+      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+    const projects = d.projects.filter(project => project.status === "active").sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    const saved = d.saved.slice().sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+    const suite = readConnectSuiteState();
+    const workspacePins = (suite.savedReels || []).length + (suite.savedOpportunities || []).length + (suite.pinnedMessages || []).length;
+    const connect = connectSummary();
+    const fact = FACTS[state.factIndex % FACTS.length];
+
+    const quickTabs = `<nav class="home-tabs home-tabs-clean" aria-label="Quick views">
+      <button class="home-tab" type="button" data-action="home-tab" data-home-tab="pins"><span>Pins</span><b>${workspacePins}</b></button>
+      <button class="home-tab" type="button" data-action="home-tab" data-home-tab="projects"><span>Projects</span><b>${projects.length}</b></button>
+      <button class="home-tab" type="button" data-action="home-tab" data-home-tab="pending"><span>Pending</span><b>${openNow.length}</b></button>
+    </nav>`;
+    const queue = (overdueNow.length || dueNow.length || doneNow.length)
+      ? `<ul class="task-list">${overdueNow.map(item => taskRow(item)).join("")}${dueNow.map(item => taskRow(item, { hideDue: true })).join("")}${doneNow.map(item => taskRow(item, { hideDue: true })).join("")}</ul>`
+      : emptyState("Nothing needs you today.");
+    const projectRows = projects.slice(0, 4).map(project => `<button class="home-project-row" type="button" data-action="nav" data-view="projects"><span><strong>${esc(project.name)}</strong><small>${esc(project.area || "Project")}</small></span>${bar(project.progress || 0)}</button>`).join("") || emptyState("No active projects.");
+    const savedRows = saved.slice(0, 4).map(item => `<button class="home-saved-row" type="button" data-action="nav" data-view="saved"><span>${esc(item.source || "Saved")}</span><strong>${esc(item.title || "Untitled")}</strong></button>`).join("") || emptyState("Save mail or Connect items here.");
+
+    return `<div class="lyfe-home">
+      <section class="lyfe-home-hero" data-reveal>
+        <div class="lyfe-home-copy"><span class="home-index">${esc(fmtLongISO(t))}</span><h1>Good ${partCap},<br>${esc(who)}<span class="blink-dot">.</span></h1><p>${openNow.length ? `${openNow.length} thing${openNow.length === 1 ? "" : "s"} still open.` : "Your slate is clear."}</p><div><button class="btn btn-primary" type="button" data-action="new-task">+ Capture</button><button class="btn" type="button" data-action="nav" data-view="sol">${icon("sol")} Ask EOS</button></div></div>
+        <div class="lyfe-home-blob">${eosBlob(124, "eos-blob-home", solMoodNow())}<span>EOS</span></div>
+        <div class="lyfe-home-stats">
+          <button type="button" data-action="nav" data-view="tasks"><b>${overdueNow.length + dueNow.length}</b><span>due now</span></button>
+          <button type="button" data-action="nav" data-view="projects"><b>${projects.length}</b><span>projects</span></button>
+          <button type="button" data-action="home-tab" data-home-tab="pins"><b>${workspacePins}</b><span>workspace pins</span></button>
+          <button type="button" data-action="nav" data-view="saved"><b>${saved.length}</b><span>saved</span></button>
+        </div>
+      </section>
+
+      ${quickTabs}
+
+      <section class="home-primary-grid">
+        <section class="panel home-queue-card"><header><div><span class="eyebrow">TODAY</span><h2>What needs doing</h2></div><span class="queue-count">${overdueNow.length + dueNow.length} live</span></header><form class="quick-add command-add" data-form="quick-task-today"><span>+</span><input type="text" id="qa-title" name="title" maxlength="200" placeholder="Add something for today" autocomplete="off"><button class="btn btn-primary btn-sm" type="submit">Add</button></form>${queue}</section>
+        <aside class="home-eos-card panel"><div>${eosBlob(58, "eos-blob-status", solMoodNow())}<span class="eyebrow">EOS</span></div><h2>${overdueNow.length ? "Start with the smallest overdue thing." : "You have room to choose well."}</h2><button class="btn" type="button" data-action="nav" data-view="sol">Talk to EOS</button></aside>
+      </section>
+
+      ${gmailRailHtml()}
+
+      <section class="home-useful-grid">
+        <section class="panel home-projects-card"><header><div><span class="eyebrow">TRACKING</span><h2>Projects</h2></div><button class="linklike" type="button" data-action="nav" data-view="projects">All projects →</button></header><div>${projectRows}</div></section>
+        <section class="panel home-library-card"><header><div><span class="eyebrow">LIBRARY</span><h2>Saved</h2></div><button class="linklike" type="button" data-action="nav" data-view="saved">Open →</button></header><div>${savedRows}</div></section>
+        <a class="panel home-connect-card" href="connect.html"><img src="../assets/lyfe_connect_logo.png" alt=""><span class="eyebrow">LYFE CONNECT</span><h2>${connect.unread ? connect.unread + " new update" + (connect.unread === 1 ? "" : "s") : "Your network is quiet"}</h2><p>${esc(connect.latest)}</p><span>Open Connect →</span></a>
+      </section>
+
+      <section class="home-fact-strip panel"><div><span class="eyebrow">STRANGE BUT TRUE</span><p>${esc(fact)}</p></div><button class="btn" type="button" data-action="new-fact">Another fact ↻</button></section>
+    </div>`;
+  }
+
   const open = d.tasks.filter(x => x.status !== "done");
   const overdue = open.filter(x => x.due && x.due < t).sort(taskCmp);
   const dueToday = open.filter(x => x.due === t).sort(taskCmp);
@@ -1118,7 +1259,7 @@ function viewToday() {
 
   const connectActivity = connectSummary();
   const connectInbox = `<a class="connect-inbox-card" href="connect.html#notifications">
-    <span class="connect-inbox-icon"><img src="../assets/lyfe_connect_mark_v2.png" alt=""></span>
+    <span class="connect-inbox-icon"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
     <span class="connect-inbox-copy"><span class="eyebrow">CONNECT NOTIFICATIONS</span><strong>${connectActivity.unread ? connectActivity.unread + " unread update" + (connectActivity.unread === 1 ? "" : "s") : "Your Connect inbox is quiet."}</strong><small>${esc(connectActivity.latest)}</small></span>
     <span class="connect-inbox-meta"><b>${connectActivity.threads}</b> drafts · <b>${connectActivity.saved}</b> saved</span>
   </a>`;
@@ -1199,7 +1340,7 @@ function viewToday() {
       <div class="cx-stats">
         <button class="cx-stat" data-action="nav" data-view="tasks"><b>${overdue.length + dueToday.length}</b><span>due now</span></button>
         <button class="cx-stat" data-action="nav" data-view="projects"><b>${activeProjects.length}</b><span>projects live</span></button>
-        <button class="cx-stat" data-action="nav" data-view="work"><b>${fmtHours(wh)}h</b><span>deep work</span></button>
+        <button class="cx-stat" data-action="nav" data-view="work"><b>${fmtHours(wh)}h</b><span>work logged</span></button>
         <button class="cx-stat" data-action="nav" data-view="education"><b>${learning}</b><span>learning</span></button>
         <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${eosBlob(30, "eos-blob-status", solMoodNow())}<span>eos</span></button>
       </div>
@@ -1256,7 +1397,7 @@ function viewToday() {
       </section>
 
       <a class="cx-connect-card" href="connect.html">
-        <span class="cx-connect-mark"><img src="../assets/lyfe_connect_mark_v2.png" alt=""></span>
+        <span class="cx-connect-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
         <span class="cx-connect-copy"><span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span><strong>Find the people and rooms your work needs.</strong><span>A calmer network for collaborators, work posts, focused Circles, and shared project pages.</span></span>
         <span class="cx-connect-link">OPEN CONNECT <span aria-hidden="true">↗</span></span>
       </a>
@@ -1311,7 +1452,7 @@ function viewToday() {
       <div class="orbit-dock">
         <button data-action="nav" data-view="tasks"><b>${overdue.length + dueToday.length}</b><span>due now</span></button>
         <button data-action="nav" data-view="projects"><b>${activeProjects.length}</b><span>projects</span></button>
-        <button data-action="nav" data-view="work"><b>${fmtHours(wh)}h</b><span>deep work</span></button>
+        <button data-action="nav" data-view="work"><b>${fmtHours(wh)}h</b><span>work logged</span></button>
         <button data-action="nav" data-view="education"><b>${d.education.filter(x => x.status === "in-progress").length}</b><span>learning</span></button>
       </div>
       <div class="scroll-cue">SCROLL <i></i></div>
@@ -1370,7 +1511,7 @@ function viewToday() {
           <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
         </section>
         <a class="panel tilt connect-card" href="connect.html">
-          <span class="connect-card-mark"><img src="../assets/lyfe_connect_mark_v2.png" alt=""></span>
+          <span class="connect-card-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
           <span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span>
           <strong>Find the people and rooms your work needs.</strong>
           <span>Discover collaborators, share work in context, and turn a useful thread into organized action.</span>
@@ -1451,7 +1592,7 @@ async function loadWanderPhoto() {
 function sectionTabs(group, current) {
   const sets = {
     tracking: [["tasks", "Tasks"], ["projects", "Projects"], ["goals", "Goals"], ["work", "Work log"]],
-    library: [["notes", "Notes"], ["docs", "Docs"]],
+    library: [["notes", "Notes"], ["docs", "Docs"], ["saved", "Saved"]],
     profile: [["profile", "Profile"], ["education", "Learning"]],
   };
   const tabs = sets[group] || [];
@@ -1466,6 +1607,15 @@ function readConnectState() {
     return raw && typeof raw === "object" ? raw : null;
   } catch (e) {
     return null;
+  }
+}
+
+function readConnectSuiteState() {
+  try {
+    const raw = JSON.parse(localStorage.getItem("lyfe.connect.suite.v1") || "null");
+    return raw && typeof raw === "object" ? raw : {};
+  } catch (e) {
+    return {};
   }
 }
 
@@ -1549,7 +1699,7 @@ function viewProfile() {
       </form>
 
       <aside class="panel profile-connect-card">
-        <img src="../assets/lyfe_connect_mark_v2.png" alt="">
+        <img src="../assets/lyfe_connect_logo.png" alt="">
         <span class="eyebrow">LYFE CONNECT</span>
         <h2>One profile, two useful contexts.</h2>
         <p>Connect uses the identity you approve here, then keeps social posts, outreach, and circles separate from your private Lyfe workspace.</p>
@@ -2786,7 +2936,7 @@ function accountRowHtml() {
 function settingsModal() {
   const s = state.data.settings;
   openModal(
-    `<div class="modal-head settings-head"><div><span class="settings-kicker">LYFE PREFERENCES</span><h3>Settings</h3><p>Comfort, privacy and backups live here. Nothing important is hidden in the top bar.</p></div></div>
+    `<div class="modal-head settings-head"><div><span class="settings-kicker">LYFE</span><h3>Settings</h3></div></div>
      <form data-form="settings" class="settings-form">
        <section class="settings-section settings-account">
          <div class="settings-section-copy"><span>01</span><div><h4>Account</h4><p>Choose how Lyfe knows you and where your information is kept.</p></div></div>
@@ -2806,12 +2956,16 @@ function settingsModal() {
            </div>
          </div>
        </section>
+       <section class="settings-section settings-gmail">
+         <div class="settings-section-copy"><span>03</span><div><h4>Gmail</h4><p>Show recent mail on Today and save selected messages to your Library.</p></div></div>
+         <div class="settings-integration-row"><span class="gmail-g">G</span><div><b>${window.LyfeCloud && LyfeCloud.gmailToken ? "Gmail connected" : "Gmail not connected"}</b><small>Read-only access. Lyfe does not store your Google access token.</small></div><button type="button" class="btn" data-action="gmail-connect">${window.LyfeCloud && LyfeCloud.gmailToken ? "Reconnect" : "Connect Gmail"}</button></div>
+       </section>
        <section class="settings-section settings-data">
-         <div class="settings-section-copy"><span>03</span><div><h4>Data & backups</h4><p>Download a readable backup or restore one you already made.</p></div></div>
+         <div class="settings-section-copy"><span>04</span><div><h4>Data & backups</h4><p>Download a readable backup or restore one you already made.</p></div></div>
          <div><p class="settings-data-note">${CLOUD_MODE ? "Your account is synced and also cached on this device for offline use." : "You are using Lyfe on this device. A backup is the easiest way to move or protect it."}</p><div class="settings-data-actions"><button type="button" class="btn" data-action="export">Download backup</button><button type="button" class="btn" data-action="import">Restore backup</button></div></div>
        </section>
        <details class="settings-advanced">
-         <summary><span>04</span><div><h4>EOS intelligence</h4><p>Optional advanced controls for local or connected language models.</p></div></summary>
+         <summary><span>05</span><div><h4>EOS intelligence</h4><p>Optional controls for local or connected language models.</p></div></summary>
          <div class="settings-advanced-body">
            ${fld("EOS brain", selectHtml("provider", [["ollama", "Qwen through Ollama (local and private)"], ["claude", "Anthropic API (requires your key)"], ["offline", "Built-in offline tools only"]], s.provider || "ollama"))}
            <div class="fld-row">
@@ -2826,6 +2980,18 @@ function settingsModal() {
        ${modalActions("Save settings")}
      </form>`
   );
+}
+
+function viewSaved() {
+  const items = state.data.saved.slice().sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  const body = items.length ? `<div class="saved-library-grid">${items.map(item => `
+    <article class="saved-library-card panel">
+      <header><span>${esc(item.source || "Saved")}</span><time>${esc(timeAgo(item.savedAt))}</time></header>
+      <h2>${esc(item.title || "Untitled")}</h2>
+      ${item.body ? `<p>${esc(String(item.body).slice(0, 360))}</p>` : ""}
+      <footer><span>${esc(item.kind || "item")}</span><button class="linklike danger" type="button" data-action="delete-saved" data-id="${esc(item.id)}">Remove</button></footer>
+    </article>`).join("")}</div>` : `<section class="panel saved-library-empty"><span class="eyebrow">SAVED</span><h2>Keep useful things without turning them into tasks.</h2><p>Save an email here, or send a reel, opportunity, post, file, or message over from Lyfe Connect.</p><a class="btn" href="connect.html#plans">Open Connect Workspace →</a></section>`;
+  return pageHead("Saved", `<a class="btn" href="connect.html#plans">Connect Workspace →</a>`) + body;
 }
 
 /* ---------------- export / import ---------------- */
@@ -2850,7 +3016,7 @@ function handleImportFile(input) {
   reader.onload = () => {
     let obj = null;
     try { obj = JSON.parse(String(reader.result)); } catch (e) { /* handled below */ }
-    const keys = ["tasks", "projects", "goals", "education", "worklog", "notes", "docs", "chat"];
+    const keys = ["tasks", "projects", "goals", "education", "worklog", "notes", "docs", "saved", "chat"];
     if (!obj || typeof obj !== "object" || !keys.some(k => Array.isArray(obj[k]))) {
       toast("That's not a Lyfe backup file");
       return;
@@ -2922,7 +3088,7 @@ function renderNav() {
   const openCt = state.data.tasks.filter(x => x.status !== "done").length;
   const connectActivity = connectSummary();
   const connectNav = `<a class="nav-item nav-connect" href="connect.html" aria-label="Open Lyfe Connect">
-    <span class="nav-connect-mark"><img src="../assets/lyfe_connect_mark_v2.png" alt=""></span>
+    <span class="nav-connect-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
     <span>Connect</span>
     ${connectActivity.unread ? `<span class="nav-count">${connectActivity.unread}</span>` : `<span class="nav-connect-pulse" aria-hidden="true"></span>`}
   </a>`;
@@ -3200,6 +3366,7 @@ function render() {
     case "work":      html = viewWork(); break;
     case "notes":     html = viewPad("notes"); break;
     case "docs":      html = viewPad("docs"); break;
+    case "saved":     html = viewSaved(); break;
     case "profile":   html = viewProfile(); break;
     default:          html = viewToday();
   }
@@ -3216,7 +3383,10 @@ function render() {
   initReveal(main);
   syncScrollProgress();
   tickSky();
-  if (state.view === "today") loadWanderPhoto();
+  if (state.view === "today") {
+    loadGmailInbox(false);
+    loadWanderPhoto();
+  }
 
   const det = document.getElementById("done-details");
   if (det) det.addEventListener("toggle", () => { state.doneOpen = det.open; });
@@ -3310,9 +3480,12 @@ document.addEventListener("click", (e) => {
     case "home-tab": {
       const tab = el.dataset.homeTab;
       if (tab === "pins") {
-        const pinned = d.notes.filter(n => n.pinned).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-        if (pinned[0]) state.noteId = pinned[0].id;
-        setView("notes");
+        try {
+          const suite = readConnectSuiteState();
+          suite.workspaceTab = "saved";
+          localStorage.setItem("lyfe.connect.suite.v1", JSON.stringify(suite));
+        } catch (error) { /* Connect still opens with its normal workspace state */ }
+        location.href = "connect.html#plans";
       } else if (tab === "projects") {
         setView("projects");
       } else if (tab === "pending") {
@@ -3563,7 +3736,7 @@ document.addEventListener("click", (e) => {
 
     /* accounts */
     case "auth-google":
-      if (window.LyfeCloud && LyfeCloud.configured) { LyfeCloud.signInGoogle().catch(() => toast("Could not reach sign-in - try again")); }
+      if (window.LyfeCloud && LyfeCloud.configured && LyfeCloud.googleEnabled) { LyfeCloud.signInGoogle().catch((error) => toast(error.message || "Could not reach sign-in - try again")); }
       else { toast("Google sign-in is being set up - continue as guest for now"); }
       break;
     case "auth-guest": enterGuest(); break;
@@ -3604,6 +3777,21 @@ document.addEventListener("submit", (e) => {
   const d = state.data;
 
   switch (kind) {
+    case "auth-email": {
+      const email = val("email");
+      if (!(window.LyfeCloud && LyfeCloud.configured)) { toast("Email sign-in is not configured yet"); break; }
+      const button = f.querySelector("button[type=submit]");
+      if (button) { button.disabled = true; button.textContent = "Sending..."; }
+      LyfeCloud.signInEmail(email).then(() => {
+        toast("Check your email for the sign-in link");
+        if (button) button.textContent = "Link sent";
+      }).catch(error => {
+        toast(error && error.message ? error.message : "Could not send the sign-in link");
+        if (button) { button.disabled = false; button.textContent = "Email me a sign-in link"; }
+      });
+      break;
+    }
+
     case "sol": {
       const inp = document.getElementById("sol-input");
       const text = (inp ? inp.value : "").trim();
@@ -3751,6 +3939,37 @@ document.addEventListener("submit", (e) => {
       save(); render(); toast("Logged");
       break;
     }
+    case "gmail-connect":
+      if (window.LyfeCloud && LyfeCloud.configured) LyfeCloud.connectGmail().catch(() => toast("Gmail could not connect - try again"));
+      else toast("Sign-in needs to be configured before Gmail can connect");
+      break;
+    case "gmail-refresh":
+      gmailLoaded = false;
+      gmailError = "";
+      loadGmailInbox(true);
+      break;
+    case "gmail-scroll": {
+      const track = document.getElementById("gmail-track");
+      if (track) track.scrollBy({ left: Number(el.dataset.dir || 1) * Math.min(420, track.clientWidth * .82), behavior: "smooth" });
+      break;
+    }
+    case "gmail-save": {
+      const message = gmailMessages.find(item => item.id === id);
+      if (!message) break;
+      if (!d.saved.some(item => item.source === "Gmail" && item.sourceId === message.id)) {
+        d.saved.unshift({ id: uid(), source: "Gmail", sourceId: message.id, kind: "email", title: message.subject || "(no subject)", body: message.sender + "\n\n" + message.snippet, savedAt: Date.now() });
+        save();
+        refreshGmailRail();
+        toast("Email saved to Library");
+      }
+      break;
+    }
+    case "delete-saved":
+      confirmDialog("Remove this saved item from your Library?", () => {
+        d.saved = d.saved.filter(item => item.id !== id);
+        save(); render(); toast("Saved item removed");
+      }, "Remove");
+      break;
 
     case "profile": {
       d.settings.name = val("name").slice(0, 60);
@@ -4116,6 +4335,11 @@ function showAuthGate() {
   const el = document.getElementById("auth-gate");
   gateReturnFocus = document.activeElement;
   if (el) {
+    const google = el.querySelector('[data-action="auth-google"]');
+    const divider = el.querySelector(".auth-or");
+    const googleReady = !!(window.LyfeCloud && LyfeCloud.googleEnabled);
+    if (google) google.hidden = !googleReady;
+    if (divider) divider.hidden = !googleReady;
     el.hidden = false;
     setTimeout(() => {
       const first = el.querySelector("button:not([disabled])");

@@ -15,6 +15,9 @@
    Setup steps live in SETUP.md.
    ============================================================ */
 window.LYFE_SUPABASE = {
-  url: "",      // e.g. https://abcdefgh.supabase.co
-  anonKey: ""   // the publishable key (preferred) or legacy anon key
+  url: "https://rfjqqixgevlgjeybeedw.supabase.co",
+  anonKey: "sb_publishable_VsN4Zi5m-oCca-2ZVJ9Ung_r6vv9wHa",
+  // Turn this on only after the Google provider and OAuth consent screen are
+  // configured in Supabase. Email-link sign-in remains fully available.
+  googleEnabled: false
 };

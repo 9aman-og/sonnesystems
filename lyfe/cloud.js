@@ -6,7 +6,8 @@
    as before. Nothing here can break the offline app: every network
    path fails soft back to local.
 
-   When configured, it adds Google sign-in and per-user cloud sync.
+   When configured, it adds email sign-in and per-user cloud sync. Google and
+   Gmail are exposed only when the deployment explicitly enables that provider.
    Security is enforced server-side by Postgres row-level security
    (see schema.sql). The anon key is public by design.
 
@@ -15,11 +16,15 @@
      .user                            {id,email,name} | null
      await .init()  -> "cloud" | "gate" | "unconfigured"
      await .signInGoogle()
+     await .signInEmail(email)
      await .signOut()
      await .pull()  -> {data,rev} | null
      await .push(data, rev)
      .pushDebounced(data, rev)
      .subscribe(onRemote)             onRemote({data,rev})
+     await .pullConnect()             -> {data,rev} | null
+     await .pushConnect(data, rev)
+     .pushConnectDebounced(data, rev)
    ============================================================ */
 (function () {
   "use strict";
@@ -28,14 +33,18 @@
   var SB_URL = String(CFG.url || "").trim();
   var SB_ANON = String(CFG.anonKey || "").trim();
   var configured = /^https:\/\/.+\.supabase\.co\/?$/.test(SB_URL) && SB_ANON.length > 20;
+  var googleEnabled = CFG.googleEnabled === true;
 
   // Exact pin keeps an upstream release from changing the app between deploys.
   var SDK_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.2";
   var TABLE = "lyfe_states";
+  var CONNECT_TABLE = "lyfe_connect_states";
 
   var sb = null;        // supabase client (created lazily)
   var current = null;   // { id, email, name }
+  var googleProviderToken = ""; // memory-only: never copied into Lyfe data
   var pushTimer = null;
+  var connectPushTimer = null;
 
   function loadScript(src) {
     return new Promise(function (resolve, reject) {
@@ -86,6 +95,7 @@
 
   var LyfeCloud = {
     configured: configured,
+    googleEnabled: googleEnabled,
     get user() { return current; },
 
     /* Resolve auth on boot. Never throws.
@@ -100,6 +110,7 @@
         var session = res && res.data ? res.data.session : null;
         if (session) {
           current = userFrom(session);
+          googleProviderToken = String(session.provider_token || "");
           cleanUrl();
           return "cloud";
         }
@@ -110,6 +121,7 @@
     },
 
     async signInGoogle() {
+      if (!googleEnabled) throw new Error("Google sign-in needs its OAuth provider configured first.");
       await ensureClient();
       var result = await sb.auth.signInWithOAuth({
         provider: "google",
@@ -119,9 +131,42 @@
       return result;
     },
 
+    async connectGmail() {
+      if (!googleEnabled) throw new Error("Gmail needs Google OAuth configured first.");
+      await ensureClient();
+      var result = await sb.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: location.origin + location.pathname,
+          scopes: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+          queryParams: { access_type: "offline", prompt: "consent" }
+        }
+      });
+      if (result && result.error) throw result.error;
+      return result;
+    },
+
+    get gmailToken() { return googleProviderToken; },
+
+    async signInEmail(email) {
+      await ensureClient();
+      var cleanEmail = String(email || "").trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) throw new Error("Enter a valid email address");
+      var result = await sb.auth.signInWithOtp({
+        email: cleanEmail,
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: location.origin + location.pathname
+        }
+      });
+      if (result && result.error) throw result.error;
+      return result;
+    },
+
     async signOut() {
       try { if (sb) await sb.auth.signOut(); } catch (e) {}
       current = null;
+      googleProviderToken = "";
     },
 
     async pull() {
@@ -166,6 +211,49 @@
             })
           .subscribe();
       } catch (e) { /* realtime is a bonus, never a blocker */ }
+    },
+
+    async pullConnect() {
+      if (!sb || !current) return null;
+      var r = await sb.from(CONNECT_TABLE).select("data, rev").eq("user_id", current.id).maybeSingle();
+      if (r.error) throw r.error;
+      if (!r.data) return null;
+      return { data: r.data.data, rev: r.data.rev || 0 };
+    },
+
+    async pushConnect(data, rev) {
+      if (!sb || !current) return false;
+      var r = await sb.from(CONNECT_TABLE).upsert({
+        user_id: current.id,
+        data: sanitize(data),
+        rev: Number(rev || 0),
+        updated_at: new Date().toISOString()
+      }, { onConflict: "user_id" });
+      if (r.error) throw r.error;
+      return true;
+    },
+
+    pushConnectDebounced: function (data, rev) {
+      clearTimeout(connectPushTimer);
+      connectPushTimer = setTimeout(function () {
+        LyfeCloud.pushConnect(data, rev).catch(function () {
+          /* The local copy remains available and will retry after the next edit. */
+        });
+      }, 800);
+    },
+
+    subscribeConnect: function (onRemote) {
+      if (!sb || !current) return;
+      try {
+        sb.channel("lyfe-connect-" + current.id)
+          .on("postgres_changes",
+            { event: "*", schema: "public", table: CONNECT_TABLE, filter: "user_id=eq." + current.id },
+            function (payload) {
+              var n = payload && payload.new;
+              if (n && typeof n.rev === "number") onRemote({ data: n.data, rev: n.rev });
+            })
+          .subscribe();
+      } catch (e) { /* realtime is optional */ }
     }
   };
 

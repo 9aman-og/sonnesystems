@@ -1,0 +1,33 @@
+{
+  "name": "Lyfe Connect",
+  "short_name": "Connect",
+  "description": "A social and collaborative network organized around useful work.",
+  "start_url": "./connect.html",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#edf5ff",
+  "theme_color": "#2b5cf0",
+  "orientation": "any",
+  "categories": ["social", "productivity", "business"],
+  "icons": [
+    {
+      "src": "../assets/lyfe_connect_logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../assets/lyfe_connect_logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Home", "url": "./connect.html#discover" },
+    { "name": "Reels", "url": "./connect.html#reels" },
+    { "name": "Messages", "url": "./connect.html#connections" },
+    { "name": "Workspace", "url": "./connect.html#plans" }
+  ]
+}

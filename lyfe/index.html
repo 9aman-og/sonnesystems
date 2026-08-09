@@ -44,7 +44,7 @@
 <link rel="dns-prefetch" href="https://upload.wikimedia.org">
 <link rel="dns-prefetch" href="https://picsum.photos">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Unbounded:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=crystal-36">
+<link rel="stylesheet" href="styles.css?v=crystal-38">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -84,6 +84,11 @@
       </svg>
       Continue with Google
     </button>
+    <div class="auth-or"><span>or</span></div>
+    <form class="auth-email-form" data-form="auth-email">
+      <label for="auth-email">Email address</label>
+      <div><input id="auth-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com"><button class="auth-btn" type="submit">Email me a sign-in link</button></div>
+    </form>
     <button class="auth-btn auth-guest" data-action="auth-guest" type="button">Continue as guest</button>
     <p class="auth-fine">Guest keeps everything on this device. Sign in to sync privately across your devices.</p>
   </div>
@@ -94,8 +99,8 @@
 <div id="modal-root"></div>
 <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
 <script src="supabase-config.js?v=crystal-33"></script>
-<script src="cloud.js?v=crystal-33"></script>
-<script src="app.js?v=crystal-36"></script>
+<script src="cloud.js?v=crystal-39"></script>
+<script src="app.js?v=crystal-39"></script>
 <script>
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */

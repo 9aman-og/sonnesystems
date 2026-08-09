@@ -13,7 +13,7 @@
   <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Research | Sonne Systems"><meta name="twitter:description" content="Controlled experiments for adaptive, sparse, and trustworthy AI."><meta name="twitter:image" content="https://sonnesystems.com/assets/og.png?v=brand4"><meta name="twitter:image:alt" content="Sonne Systems radial mark and wordmark">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","@id":"https://sonnesystems.com/research.html#webpage","url":"https://sonnesystems.com/research.html","name":"Research | Sonne Systems","description":"Sonne Systems research into AI that learns over time, brain-inspired computing, and carefully limited robustness guarantees.","isPartOf":{"@id":"https://sonnesystems.com/#website"},"about":{"@id":"https://sonnesystems.com/#organization"},"primaryImageOfPage":{"@type":"ImageObject","url":"https://sonnesystems.com/assets/og.png","width":1200,"height":630},"inLanguage":"en"}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=clear8"><script defer src="js/site.js?v=clear2"></script>
+  <link rel="stylesheet" href="css/styles.css?v=clear9"><script defer src="js/site.js?v=clear2"></script>
 </head>
 <body>
   <div data-site-header></div>
@@ -21,7 +21,7 @@
     <header class="page-hero page-hero-research">
       <div class="shell page-hero-grid">
         <div><p class="signal-label" data-reveal>Research</p><h1 data-reveal>Claims should earn their confidence.</h1></div>
-        <p data-reveal="soft">We study adaptive AI through controlled experiments, matched comparisons, and explicit failure cases. The goal is not to make every idea look successful. It is to learn which ideas remain useful after a fair test.</p>
+        <p data-reveal="soft">We ask a simple question: what survives a fair test? That means matched comparisons, fresh data, saved failures, and plain limits on every result.</p>
       </div>
     </header>
 
@@ -42,9 +42,22 @@
         <div class="research-entry-title" data-reveal><span class="topic-chip">Continual learning</span><h2>When should a model reuse, repair, or grow?</h2></div>
         <div class="research-entry-body" data-reveal="soft">
           <p class="lead">A system that keeps learning needs a way to decide whether a surprise is truly new.</p>
-          <p>EOS is our name for the rules around that decision. In the Project SOL papers, we compare reuse, combination, refinement, recalibration, repair, abstention, and growth. The system has to predict before it updates. A candidate stays separate until its crossing state and evidence have been recorded and checked.</p>
+          <p>Project SOL is the earlier research program; EOS is the current system built from it. The controller can ask whether to reuse, combine, refine, recalibrate, repair, wait, or investigate a genuinely new mechanism. It must predict before learning from each confirmation observation, and a candidate stays quarantined until the exact evidence-earning state is recorded.</p>
           <div class="boundary"><strong>What this does not show</strong><p>The results support a carefully scoped protocol for controlled adaptation. They do not prove a generally intelligent agent, unlimited lifelong growth, or a measured neuromorphic energy advantage.</p></div>
           <a class="text-link" href="papers.html">Access the EOS / Project SOL papers</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="research-entry section-lime" id="eos-f1">
+      <div class="shell research-entry-grid">
+        <div class="research-entry-title" data-reveal><span class="topic-chip">EOS-F1</span><h2>Can the research system fail safely while it is still learning?</h2></div>
+        <div class="research-entry-body" data-reveal="soft">
+          <p class="lead">EOS-F1 is an ongoing small-model and systems track, not a finished general-purpose model.</p>
+          <p>The grounded interface can retrieve hash-bound evidence, refuse unsupported claims, abstain when its catalogue has no answer, replay a typed simulation, and withhold generation when a model has not earned release. A 0.6B pilot trained and reloaded correctly, but passed only 7 of 12 fixed boundary probes, so generation remained withheld.</p>
+          <p>A separate dense continued-pretraining baseline improved held-out next-token loss and retained two small task subsets. A matched sparse-specialist design then lost to the dense control, and even an oracle could not rescue those experts. That specialist lane is closed rather than being presented as a win.</p>
+          <div class="boundary"><strong>What this does not show</strong><p>EOS-F1 is not ready for a public model release. It does not establish broad reasoning, 3D cognition, hardware efficiency, autonomous research, or general intelligence.</p></div>
+          <a class="text-link" href="papers.html">Read the selected EOS papers</a>
         </div>
       </div>
     </section>

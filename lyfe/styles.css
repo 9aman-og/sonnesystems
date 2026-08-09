@@ -2744,7 +2744,7 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
   z-index: 50;
   height: auto;
   min-height: 62px;
-  width: min(1500px, calc(100% - 32px));
+  width: min(1360px, calc(100% - 32px));
   margin: 12px auto 4px;
   padding: 8px 10px;
   display: flex;
@@ -2784,6 +2784,10 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  display: inline-block;
+  min-width: max-content;
+  padding-right: 5px;
+  overflow: visible;
 }
 
 :root[data-theme="light"] #nav {
@@ -4117,4 +4121,145 @@ body.signed-in #signin-sep { display: none; }
   .home-wander-head .btn { flex: 1; }
   .home-wander-hero { min-height: 480px; }
   .home-wander .wander-copy h3 { font-size: 55px; }
+}
+
+/* ---------------- Today: useful, bright, and compact ---------------- */
+.lyfe-home { display: grid; gap: 18px; }
+.lyfe-home-hero {
+  position: relative;
+  min-height: 430px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  align-items: center;
+  gap: 28px;
+  overflow: hidden;
+  padding: clamp(34px, 6vw, 72px);
+  border: 1px solid var(--hair);
+  border-radius: 36px;
+  background:
+    radial-gradient(circle at 76% 26%, color-mix(in srgb, var(--accent-2) 33%, transparent), transparent 26%),
+    radial-gradient(circle at 15% 95%, color-mix(in srgb, #55d6a9 25%, transparent), transparent 33%),
+    linear-gradient(145deg, var(--panel), var(--panel-2));
+  box-shadow: var(--shadow);
+}
+.lyfe-home-hero::before,
+.lyfe-home-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+.lyfe-home-hero::before { width: 340px; height: 96px; right: -48px; top: 36px; background: rgba(255,255,255,.36); filter: blur(14px); transform: rotate(-12deg); }
+.lyfe-home-hero::after { width: 190px; height: 190px; right: 110px; bottom: -104px; border: 28px solid rgba(77,128,255,.12); }
+.lyfe-home-copy { position: relative; z-index: 2; }
+.lyfe-home-copy h1 { max-width: 720px; margin: 12px 0 10px; font-family: var(--display, var(--serif)); font-size: clamp(52px, 7vw, 94px); font-weight: 600; line-height: .91; letter-spacing: -.065em; }
+.lyfe-home-copy > p { margin: 0 0 24px; color: var(--ink-2); font-size: 17px; }
+.lyfe-home-copy > div:last-child { display: flex; flex-wrap: wrap; gap: 9px; }
+.lyfe-home-blob { position: relative; z-index: 2; display: grid; place-items: center; gap: 16px; color: var(--ink-3); font-family: var(--mono); font-size: 10px; letter-spacing: .18em; }
+.lyfe-home-blob .eos-blob { filter: drop-shadow(0 18px 34px color-mix(in srgb, var(--accent) 28%, transparent)); }
+.lyfe-home-stats { position: absolute; z-index: 3; left: clamp(34px, 6vw, 72px); right: clamp(34px, 6vw, 72px); bottom: 20px; display: grid; grid-template-columns: repeat(4, 1fr); overflow: hidden; border: 1px solid color-mix(in srgb, var(--hair) 78%, white); border-radius: 17px; background: color-mix(in srgb, var(--panel) 76%, transparent); backdrop-filter: blur(14px); }
+.lyfe-home-stats button { min-width: 0; display: flex; align-items: baseline; gap: 8px; padding: 12px 16px; border: 0; border-right: 1px solid var(--hair); background: none; color: var(--ink); text-align: left; cursor: pointer; }
+.lyfe-home-stats button:last-child { border-right: 0; }
+.lyfe-home-stats b { font-size: 21px; }
+.lyfe-home-stats span { overflow: hidden; color: var(--ink-3); font-family: var(--mono); font-size: 9px; letter-spacing: .06em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.home-tabs-clean { margin: 0; }
+
+.home-primary-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(240px, .7fr); gap: 16px; }
+.home-queue-card, .home-eos-card, .home-gmail, .home-useful-grid > * { border-radius: 24px; }
+.home-queue-card { padding: 24px; }
+.home-queue-card > header, .home-gmail > header, .home-projects-card > header, .home-library-card > header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 16px; }
+.home-queue-card h2, .home-gmail h2, .home-projects-card h2, .home-library-card h2 { margin: 3px 0 0; font-family: var(--display, var(--serif)); font-size: 25px; letter-spacing: -.035em; }
+.home-eos-card { min-height: 290px; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; background: radial-gradient(circle at 80% 15%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 32%), var(--panel); }
+.home-eos-card > div { display: flex; align-items: center; justify-content: space-between; }
+.home-eos-card h2 { margin: 36px 0 24px; font-family: var(--display, var(--serif)); font-size: clamp(24px, 3vw, 35px); line-height: 1.04; letter-spacing: -.045em; }
+.home-eos-card .btn { align-self: flex-start; }
+
+.home-gmail { padding: 21px 22px 22px; overflow: hidden; }
+.gmail-controls { display: flex; gap: 6px; }
+.gmail-controls button, .gmail-card button { border: 1px solid var(--hair); border-radius: 999px; background: var(--panel-2); color: var(--ink-2); cursor: pointer; }
+.gmail-controls button { min-width: 34px; min-height: 34px; padding: 0 11px; }
+.gmail-track { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 30%); gap: 10px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: inline mandatory; scrollbar-width: none; }
+.gmail-track::-webkit-scrollbar { display: none; }
+.gmail-card { min-height: 184px; display: flex; flex-direction: column; scroll-snap-align: start; padding: 16px; border: 1px solid var(--hair); border-radius: 18px; background: var(--panel-2); }
+.gmail-card header { display: flex; justify-content: space-between; gap: 10px; color: var(--ink-3); font-family: var(--mono); font-size: 9px; text-transform: uppercase; }
+.gmail-card header span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gmail-card h3 { margin: 13px 0 6px; overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.gmail-card p { display: -webkit-box; flex: 1; margin: 0 0 14px; overflow: hidden; color: var(--ink-2); font-size: 12px; line-height: 1.5; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.gmail-card button { align-self: flex-start; padding: 7px 10px; font-size: 11px; }
+.gmail-card button:disabled { opacity: .6; cursor: default; }
+.gmail-empty { min-height: 132px; display: flex; align-items: center; gap: 15px; padding: 17px; border: 1px dashed var(--hair); border-radius: 18px; background: var(--panel-2); }
+.gmail-empty > div { flex: 1; }
+.gmail-empty strong, .gmail-empty small { display: block; }
+.gmail-empty small { margin-top: 4px; color: var(--ink-3); line-height: 1.4; }
+.gmail-g { width: 40px; height: 40px; flex: 0 0 auto; display: grid; place-items: center; border: 1px solid rgba(66,133,244,.25); border-radius: 12px; background: linear-gradient(135deg, #fff, #eaf1ff); color: #4285f4; font-family: Arial, sans-serif; font-size: 21px; font-weight: 700; box-shadow: 0 8px 20px rgba(66,133,244,.14); }
+
+.home-useful-grid { display: grid; grid-template-columns: 1fr 1fr .92fr; gap: 16px; }
+.home-projects-card, .home-library-card, .home-connect-card { min-height: 300px; padding: 22px; }
+.home-project-row { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 36%; align-items: center; gap: 14px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--hair); background: none; color: var(--ink); text-align: left; cursor: pointer; }
+.home-project-row span:first-child, .home-project-row strong, .home-project-row small { display: block; }
+.home-project-row small { margin-top: 3px; color: var(--ink-3); font-size: 10px; }
+.home-saved-row { width: 100%; display: flex; flex-direction: column; gap: 5px; padding: 12px 0; border: 0; border-bottom: 1px solid var(--hair); background: none; color: var(--ink); text-align: left; cursor: pointer; }
+.home-saved-row span { color: var(--ink-3); font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; }
+.home-saved-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-connect-card { display: flex; flex-direction: column; color: var(--ink); text-decoration: none; background: radial-gradient(circle at 80% 0%, color-mix(in srgb, #745cf5 34%, transparent), transparent 32%), linear-gradient(150deg, var(--panel), var(--panel-2)); transition: transform .18s ease, border-color .18s ease; }
+.home-connect-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+.home-connect-card img { width: 54px; height: 54px; margin-bottom: 24px; object-fit: contain; filter: drop-shadow(0 10px 20px rgba(64,70,200,.25)); }
+.home-connect-card h2 { margin: 7px 0 8px; font-family: var(--display, var(--serif)); font-size: 28px; letter-spacing: -.045em; }
+.home-connect-card p { flex: 1; margin: 0 0 16px; color: var(--ink-2); font-size: 13px; line-height: 1.5; }
+.home-connect-card > span:last-child { font-size: 12px; font-weight: 700; }
+.home-fact-strip { min-height: 130px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 23px 28px; background: linear-gradient(110deg, color-mix(in srgb, #ffd55a 24%, var(--panel)), color-mix(in srgb, #ff7cc7 20%, var(--panel)), color-mix(in srgb, #67d8ff 20%, var(--panel))); }
+.home-fact-strip p { margin: 7px 0 0; font-family: var(--display, var(--serif)); font-size: clamp(20px, 3vw, 34px); font-weight: 600; line-height: 1.05; letter-spacing: -.04em; }
+.home-fact-strip .btn { flex: 0 0 auto; }
+
+.saved-library-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.saved-library-card { min-height: 240px; display: flex; flex-direction: column; padding: 20px; }
+.saved-library-card header, .saved-library-card footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--ink-3); font-family: var(--mono); font-size: 9px; letter-spacing: .07em; text-transform: uppercase; }
+.saved-library-card h2 { margin: 22px 0 10px; font-family: var(--display, var(--serif)); font-size: 23px; letter-spacing: -.035em; }
+.saved-library-card p { flex: 1; color: var(--ink-2); line-height: 1.55; white-space: pre-line; }
+.saved-library-card footer { margin-top: 18px; }
+.saved-library-empty { max-width: 760px; min-height: 330px; display: flex; flex-direction: column; justify-content: center; padding: 42px; }
+.saved-library-empty h2 { max-width: 600px; margin: 10px 0; font-family: var(--display, var(--serif)); font-size: clamp(30px, 5vw, 54px); letter-spacing: -.05em; }
+.saved-library-empty p { max-width: 580px; color: var(--ink-2); line-height: 1.6; }
+.saved-library-empty .btn { align-self: flex-start; margin-top: 12px; }
+
+.settings-integration-row { display: flex; align-items: center; gap: 13px; padding: 14px; border: 1px solid var(--hair); border-radius: 15px; background: var(--panel-2); }
+.settings-integration-row > div { flex: 1; }
+.settings-integration-row b, .settings-integration-row small { display: block; }
+.settings-integration-row small { margin-top: 4px; color: var(--ink-3); line-height: 1.4; }
+.auth-or { display: flex; align-items: center; gap: 10px; color: var(--ink-3); font-size: 11px; }
+.auth-or::before, .auth-or::after { content: ""; height: 1px; flex: 1; background: var(--hair); }
+.auth-email-form { display: grid; gap: 7px; }
+.auth-email-form label { color: var(--ink-3); font-size: 11px; }
+.auth-email-form > div { display: grid; gap: 8px; }
+.auth-email-form input { width: 100%; min-height: 46px; padding: 0 13px; border: 1px solid var(--hair); border-radius: 12px; background: var(--panel-2); color: var(--ink); }
+
+:root[data-theme="light"] .lyfe-home-hero { box-shadow: 0 24px 70px rgba(44,84,154,.15), inset 0 1px 0 rgba(255,255,255,.9); }
+:root[data-theme="light"] .home-gmail,
+:root[data-theme="light"] .home-queue-card,
+:root[data-theme="light"] .home-eos-card,
+:root[data-theme="light"] .home-useful-grid > *,
+:root[data-theme="light"] .home-fact-strip { box-shadow: 0 15px 38px rgba(43,74,137,.09), inset 0 1px 0 rgba(255,255,255,.9); }
+
+@media (max-width: 980px) {
+  .lyfe-home-hero { grid-template-columns: 1fr 180px; min-height: 410px; }
+  .home-useful-grid { grid-template-columns: 1fr 1fr; }
+  .home-connect-card { grid-column: 1 / -1; min-height: 230px; }
+  .gmail-track { grid-auto-columns: minmax(260px, 48%); }
+  .saved-library-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .lyfe-home-hero { min-height: 500px; grid-template-columns: 1fr; align-items: start; padding: 30px 24px 108px; }
+  .lyfe-home-copy h1 { font-size: clamp(47px, 15vw, 70px); }
+  .lyfe-home-blob { display: none; }
+  .lyfe-home-stats { left: 20px; right: 20px; bottom: 18px; grid-template-columns: repeat(2, 1fr); }
+  .lyfe-home-stats button:nth-child(2) { border-right: 0; }
+  .lyfe-home-stats button:nth-child(-n+2) { border-bottom: 1px solid var(--hair); }
+  .home-primary-grid, .home-useful-grid, .saved-library-grid { grid-template-columns: 1fr; }
+  .home-connect-card { grid-column: auto; }
+  .gmail-track { grid-auto-columns: 86%; }
+  .gmail-empty { align-items: flex-start; flex-wrap: wrap; }
+  .gmail-empty .btn { width: 100%; }
+  .home-fact-strip { align-items: flex-start; flex-direction: column; }
+  .settings-integration-row { align-items: flex-start; flex-wrap: wrap; }
+  .settings-integration-row .btn { width: 100%; }
 }

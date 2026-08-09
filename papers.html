@@ -3,21 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex, nofollow">
-  <title>Private paper archive | Sonne Systems</title>
-  <meta name="description" content="Password-protected research paper archive for Sonne Systems collaborators.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <title>Research paper archive | Sonne Systems</title>
+  <meta name="description" content="Selected EOS and Sonne Systems working papers, with a protected archive for collaborator material.">
+  <link rel="canonical" href="https://sonnesystems.com/papers.html">
   <meta name="theme-color" content="#08090d">
   <meta name="application-name" content="Sonne Systems"><meta name="apple-mobile-web-app-title" content="Sonne Systems">
   <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png"><link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"><link rel="shortcut icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"><link rel="mask-icon" href="/assets/SonneSystemsCompanyLogo.svg" color="#08090d"><link rel="manifest" href="/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=clear8"><script defer src="js/site.js?v=clear2"></script><script defer src="js/papers.js?v=clear1"></script>
+  <link rel="stylesheet" href="css/styles.css?v=clear9"><script defer src="js/site.js?v=clear2"></script><script defer src="js/papers.js?v=clear1"></script>
 </head>
 <body class="vault-page">
   <div data-site-header></div>
   <main id="main-content">
     <header class="vault-hero">
       <div class="shell vault-hero-grid">
-        <div><p class="signal-label" data-reveal>Private archive</p><h1 data-reveal>The papers behind the work.</h1><p class="vault-intro" data-reveal="soft">You do not need a technical background to start. Each paper explains a question, a test, a result, and the point where that result stops.</p></div>
+        <div><p class="signal-label" data-reveal>Paper archive</p><h1 data-reveal>The papers behind the work.</h1><p class="vault-intro" data-reveal="soft">Start with the question, then the result, then the limit. No technical background is assumed.</p></div>
         <div class="vault-unlock" data-reveal="soft">
           <label for="paperPassword">Shared passphrase</label>
           <div class="password-field"><input id="paperPassword" type="password" autocomplete="current-password" spellcheck="false" placeholder="Enter passphrase"><button type="button" data-toggle-password>Show</button></div>
@@ -27,7 +28,13 @@
     </header>
 
     <section class="vault-list shell" aria-label="Available papers">
-      <div class="vault-selection-note"><span>Selected set</span><p>These five documents are the most useful route into the current work. Older engineering material remains preserved in the repository, but it is not presented as a central research contribution.</p></div>
+      <div class="vault-selection-note"><span>Public working papers</span><p>Four useful views of the current EOS research program. Each one states the boundary of its evidence.</p></div>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Architecture hypothesis</span><h2>Evidence-gated causal world models</h2><p>A proposed split between a high-capacity predictor and an epistemic governor that controls persistent change. This is a research architecture, not evidence that general intelligence has been achieved.</p></div><a class="button button-light" href="papers/public/eos-evidence-gated-architecture.pdf" target="_blank" rel="noopener">Read paper</a></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Governance study</span><h2>Dual governance for continual agents</h2><p>Why buying information and changing a model permanently should not inherit authority from the same evidence. The experiments are narrow supplied-mechanism studies.</p></div><a class="button button-light" href="papers/public/eos-dual-governance.pdf" target="_blank" rel="noopener">Read paper</a></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Component study</span><h2>Typed predictive-law operators</h2><p>A controlled study of learning reusable mechanism operators, composing them into unseen joint laws, and using residual channels to decide what kind of investigation is needed.</p></div><a class="button button-light" href="papers/public/eos-typed-predictive-law-operators.pdf" target="_blank" rel="noopener">Read paper</a></article>
+      <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">World-model methods</span><h2>Consequence-certified state refinement</h2><p>A formal account of when a partially observed model may merge histories, refine its predictive state, or admit new structure, together with bounded component evidence and explicit non-claims.</p></div><a class="button button-light" href="papers/public/eos-consequence-certified-refinement.pdf" target="_blank" rel="noopener">Read paper</a></article>
+
+      <div class="vault-selection-note vault-protected-note"><span>Protected research record</span><p>These five documents remain encrypted for collaborators. The passphrase is processed only in your browser.</p></div>
       <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Research paper</span><h2>When do spiking-convolutional hybrids help?</h2><p>Some neural networks work in bursts. This paper asks when that helps under a fair comparison, and records the cases where the apparent advantage disappears.</p></div><button class="button button-light" type="button" data-paper="papers/calif.pdf.enc" data-filename="Sonne-CA-LIF.pdf">Open paper</button></article>
       <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Research paper</span><h2>What can an illumination guarantee cover?</h2><p>A careful study of brightness changes that preserve the ordering of image values, with ties and ordinary pixel-space limits kept visible.</p></div><button class="button button-light" type="button" data-paper="papers/nnn.pdf.enc" data-filename="Sonne-Illumination-Robustness.pdf">Open paper</button></article>
       <article class="paper-entry" data-reveal="soft"><div><span class="paper-type">Research program</span><h2>Project SOL: when should a system change?</h2><p>The main EOS line: a system predicts first, tests whether the surprise is real, and keeps a possible new mechanism separate until the evidence is checked.</p></div><button class="button button-light" type="button" data-paper="papers/project-sol.pdf.enc" data-filename="Sonne-Project-SOL.pdf">Open paper</button></article>

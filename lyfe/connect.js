@@ -584,7 +584,7 @@
           "<div class=\"interest-tags\">", post.tags.map(function (tag) { return "<span>" + esc(tag) + "</span>"; }).join(""), "</div></div>",
           "<footer class=\"feed-actions\">",
             post.mine
-              ? "<button type=\"button\" data-action=\"edit-post\" data-id=\"" + esc(post.id) + "\">Edit</button><button type=\"button\" data-action=\"delete-post\" data-id=\"" + esc(post.id) + "\">Delete</button><span class=\"local-post-note\">LOCAL PREVIEW</span>"
+              ? "<button type=\"button\" data-action=\"edit-post\" data-id=\"" + esc(post.id) + "\">Edit</button><button type=\"button\" data-action=\"delete-post\" data-id=\"" + esc(post.id) + "\">Delete</button><span class=\"local-post-note\">PRIVATE DRAFT</span>"
               : "<button type=\"button\" data-action=\"useful-post\" data-id=\"" + esc(post.id) + "\" class=\"" + (useful ? "active" : "") + "\">" + (useful ? "Marked useful" : "Useful") + "</button><button type=\"button\" data-action=\"save-post\" data-id=\"" + esc(post.id) + "\" class=\"" + (saved ? "active" : "") + "\">" + (saved ? "Saved" : "Save") + "</button><button type=\"button\" data-action=\"post-reply\" data-id=\"" + esc(post.id) + "\">Respond privately ↗</button>",
           "</footer>",
         "</article>"
@@ -609,7 +609,7 @@
           "<h2>", esc(circle.name), "</h2>",
           "<p>", esc(circle.description), "</p>",
           "<blockquote>“", esc(circle.prompt), "”</blockquote>",
-          "<div class=\"circle-status\">", joined ? "Joined in this preview" : "Focused, small, and topic-led", drafts ? " · " + drafts + " private draft" + (drafts === 1 ? "" : "s") : "", "</div>",
+          "<div class=\"circle-status\">", joined ? "Joined" : "Focused, small, and topic-led", drafts ? " · " + drafts + " private draft" + (drafts === 1 ? "" : "s") : "", "</div>",
           "<div class=\"circle-actions\">",
             "<button type=\"button\" data-action=\"join-circle\" data-id=\"", esc(circle.id), "\" class=\"", joined ? "active" : "", "\">", joined ? "Leave circle" : "Join circle", "</button>",
             "<button type=\"button\" data-action=\"open-circle\" data-id=\"", esc(circle.id), "\">Open channel ↗</button>",
@@ -655,7 +655,7 @@
     var root = document.getElementById("conversation-panel");
     var thread = activeThread();
     if (!thread) {
-      root.innerHTML = "<div class=\"empty-panel\"><div><h2>Begin with a detail.</h2><p>Choose a fictional preview profile in Discover and respond to something specific they wrote.</p><button class=\"primary-button\" type=\"button\" data-action=\"view\" data-view=\"discover\">Go to Discover</button></div></div>";
+      root.innerHTML = "<div class=\"empty-panel\"><div><h2>Begin with a detail.</h2><p>Choose a suggested profile in Home and respond to something specific they wrote.</p><button class=\"primary-button\" type=\"button\" data-action=\"view\" data-view=\"discover\">Go home</button></div></div>";
       return;
     }
     ui.activeConversation = thread.id;
@@ -665,7 +665,7 @@
     root.innerHTML = [
       "<header class=\"chat-head\">",
         "<div class=\"chat-person\"><span class=\"thread-avatar\" style=\"--thread-color:", esc(profile.color), "\">", esc(profile.initials),
-        "</span><div><strong>", esc(profile.name), "</strong><span>Fictional preview · drafts only</span></div></div>",
+        "</span><div><strong>", esc(profile.name), "</strong><span>Suggested profile · private drafts</span></div></div>",
         "<button type=\"button\" data-action=\"profile-menu\" data-profile=\"", esc(profile.id), "\">Safety ···</button>",
       "</header>",
       "<div class=\"chat-log\">",
@@ -710,7 +710,7 @@
           "<div class=\"plan-card-top\"><span>PAGE ", String(index + 1).padStart(2, "0"), "</span><span>", esc(plan.when || "NO NEXT DECISION YET"), "</span></div>",
           "<h2>", esc(plan.title), "</h2>",
           "<p>", esc(plan.note || "No note yet."), "</p>",
-          "<span class=\"plan-with\">", profile ? "Collaborating with " + esc(profile.name) + " · preview page" : "Personal workspace page", "</span>",
+          "<span class=\"plan-with\">", profile ? "Collaborating with " + esc(profile.name) + " · private page" : "Personal workspace page", "</span>",
           "<div class=\"plan-actions\"><button type=\"button\" data-action=\"edit-plan\" data-id=\"", esc(plan.id), "\">Open page</button><a href=\"", esc(lyfeUrl(plan)), "\">Send action to Lyfe ↗</a>",
           "<button type=\"button\" data-action=\"delete-plan\" data-id=\"", esc(plan.id), "\">Remove</button></div>",
         "</article>"
@@ -739,7 +739,7 @@
     root.innerHTML = [
       "<article class=\"profile-preview-card\">",
         "<div class=\"profile-preview-avatar\">", esc(profile.initials), "</div>",
-        "<div class=\"profile-preview-main\"><p class=\"eyebrow\">YOUR PUBLIC-FACING PREVIEW</p><h2>", esc(profile.name), "</h2><span>", esc(handle), " · ", esc(profile.city), "</span>",
+        "<div class=\"profile-preview-main\"><p class=\"eyebrow\">YOUR PUBLIC PROFILE</p><h2>", esc(profile.name), "</h2><span>", esc(handle), " · ", esc(profile.city), "</span>",
         "<h3>", esc(state.profile.headline || "Add a headline that gives people a place to begin."), "</h3><p>", esc(state.profile.bio || state.profile.prompt || "Your profile can explain what you care about, what you are working on, and where another person could genuinely help."), "</p>",
         "<div class=\"interest-tags\">", state.profile.sparks.map(function (spark) { return "<span>" + esc(spark) + "</span>"; }).join(""), "</div>",
         site ? "<a href=\"" + esc(site) + "\" target=\"_blank\" rel=\"noopener noreferrer\">Visit your website ↗</a>" : "", "</div>",
@@ -855,8 +855,8 @@
         item.image ? "<div class=\"post-image-current\"><img src=\"" + esc(item.image) + "\" alt=\"Current post image\"><label class=\"inline-check\"><input type=\"checkbox\" name=\"removeImage\" value=\"yes\"><span>Remove this image</span></label></div>" : "",
         "<label><span>", item.image ? "Replace image (optional)" : "Add an image (optional)", "</span><input type=\"file\" name=\"image\" accept=\"image/*\"></label>",
         "<label><span>Visual language when there is no image</span><select name=\"visual\"><option value=\"flow\" ", item.visual === "flow" ? "selected" : "", ">Flow</option><option value=\"map\" ", item.visual === "map" ? "selected" : "", ">Map</option><option value=\"branches\" ", item.visual === "branches" ? "selected" : "", ">Branches</option></select></label>",
-        "<p class=\"form-note\">This saves a post inside the private preview on this device. It is not published to a live network.</p>",
-        "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"modal-close\">Cancel</button><button class=\"primary-button\" type=\"submit\">", item.id ? "Save changes" : "Save post to preview", "</button></div>",
+        "<p class=\"form-note\">This saves a private draft to your Connect state. Publishing to other accounts requires the live network service.</p>",
+        "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"modal-close\">Cancel</button><button class=\"primary-button\" type=\"submit\">", item.id ? "Save changes" : "Save draft", "</button></div>",
       "</form>"
     ].join(""), true);
   }
@@ -881,7 +881,7 @@
       "<div class=\"modal-body signal-profile-modal\"><div class=\"signal-profile-lead\"><span class=\"signal-avatar large\" style=\"--signal-color:", esc(profile.color), "\">", esc(profile.initials), "</span><div><p>", esc(profile.thought), "</p><strong>", esc(profile.availability), "</strong></div></div>",
       "<div class=\"context-card\"><span>A USEFUL PLACE TO BEGIN</span><p>“", esc(profile.prompt), "”</p></div>",
       "<div class=\"interest-tags\">", profile.interests.map(function (interest) { return "<span>" + esc(interest) + "</span>"; }).join(""), "</div>",
-      "<p class=\"form-note\">This is a clearly labelled fictional profile used to demonstrate the private preview.</p></div>",
+      "<p class=\"form-note\">Sample profile. Any message you write here remains a private draft.</p></div>",
       "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"modal-close\">Close</button><button class=\"primary-button\" type=\"button\" data-action=\"signal-respond\" data-id=\"", esc(profile.id), "\">Respond to their work</button></div>"
     ].join(""), true);
   }
@@ -969,7 +969,7 @@
           "<label class=\"settings-check\"><input type=\"checkbox\" name=\"quietNotifications\" ", state.settings.quietNotifications ? "checked" : "", "><span><strong>Quiet notification badge</strong><small>Keep activity available without a number on the top bar.</small></span></label>",
           "<button class=\"quiet-button\" type=\"button\" data-action=\"pause-from-modal\">", state.paused ? "Resume introductions" : "Pause introductions", "</button>",
         "</div></section>",
-        "<section class=\"connect-settings-section\"><div><span>03</span><h3>Data & privacy</h3><p>This preview is local-first. You can move it, inspect it, or erase it.</p></div><div><p class=\"settings-status\"><strong>Stored in this browser</strong><span>Profile, drafts, posts, circles, notifications, and workspace pages.</span></p><div class=\"settings-data-buttons\"><button class=\"quiet-button\" type=\"button\" data-action=\"export-connect\">Download backup</button><button class=\"quiet-button\" type=\"button\" data-action=\"import-connect\">Restore backup</button><button class=\"quiet-button danger-text\" type=\"button\" data-action=\"reset\">Erase preview</button></div></div></section>",
+        "<section class=\"connect-settings-section\"><div><span>03</span><h3>Data & privacy</h3><p>Move, inspect, or erase your Connect data.</p></div><div><p class=\"settings-status\"><strong>Your Connect space</strong><span>Profile, drafts, posts, circles, notifications, and workspace pages.</span></p><div class=\"settings-data-buttons\"><button class=\"quiet-button\" type=\"button\" data-action=\"export-connect\">Download backup</button><button class=\"quiet-button\" type=\"button\" data-action=\"import-connect\">Restore backup</button><button class=\"quiet-button danger-text\" type=\"button\" data-action=\"reset\">Erase Connect data</button></div></div></section>",
         "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"modal-close\">Cancel</button><button class=\"primary-button\" type=\"submit\">Save settings</button></div>",
       "</form>"
     ].join(""), true);
@@ -977,7 +977,7 @@
 
   function showDeletePostConfirm(post) {
     openModal([
-      modalHead("Remove this post?", "It will be removed from this local preview. Your profile and other Connect data stay unchanged."),
+      modalHead("Remove this post?", "Your profile and other Connect data stay unchanged."),
       "<div class=\"context-card modal-body\"><span>YOUR POST</span><p>", esc(post.title), "</p></div>",
       "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"modal-close\">Keep post</button><button class=\"primary-button\" type=\"button\" data-action=\"delete-post-confirm\" data-id=\"", esc(post.id), "\">Remove post</button></div>"
     ].join(""));
@@ -992,15 +992,14 @@
         "\" aria-pressed=\"" + (active ? "true" : "false") + "\">" + esc(spark) + "</button>";
     }).join("");
     openModal([
-      "<img class=\"onboard-mark\" src=\"../assets/lyfe_connect_mark_v2.png\" alt=\"\">",
-      modalHead("Build a network around your work.", "Choose a few fields so the private preview can show useful people, posts, projects, and circles."),
-      "<div class=\"onboard-steps\"><i class=\"active\"></i><i class=\"active\"></i><i></i></div>",
+      "<img class=\"onboard-mark\" src=\"../assets/lyfe_connect_logo.png\" alt=\"\">",
+      modalHead("Build a network around your work.", "Choose a few interests to shape your home feed, opportunities, and communities."),
       "<form class=\"modal-body\" data-form=\"onboarding\">",
         "<label><span>What should we call you?</span><input name=\"name\" maxlength=\"40\" autocomplete=\"name\" placeholder=\"First name\" value=\"", esc(state.profile.name), "\"></label>",
         "<label><span>Your city or time zone (optional)</span><input name=\"city\" maxlength=\"60\" autocomplete=\"address-level2\" placeholder=\"City, region, or UTC offset\" value=\"", esc(state.profile.city), "\"></label>",
         "<label><span>Choose a few fields</span><div class=\"profile-sparks\">", chips, "</div></label>",
-        "<p class=\"form-note\">This preview stores your choices in this browser. It does not create an account, publish a profile, or contact anyone.</p>",
-        "<div class=\"modal-actions\"><button class=\"primary-button\" type=\"submit\">Enter the private preview</button></div>",
+        "<p class=\"form-note\">You can edit this later. Nothing is published until you choose to publish it.</p>",
+        "<div class=\"modal-actions\"><button class=\"primary-button\" type=\"submit\">Enter Connect</button></div>",
       "</form>"
     ].join(""), true);
   }
@@ -1040,10 +1039,10 @@
       modalHead("Safety is part of the product.", "The preview keeps control close and makes its current limits explicit."),
       "<div class=\"modal-body safety-list\">",
         "<div class=\"safety-item\"><span>1</span><div><h3>Nothing is published or sent from this preview.</h3><p>Sample profiles, sample posts, and sample circles are fictional. Your own posts, outreach drafts, workspace pages, circle notes, and profile details stay in this browser unless you deliberately add a task to Lyfe.</p></div></div>",
-        "<div class=\"safety-item\"><span>2</span><div><h3>Pause, hide, and erase are always available.</h3><p>There is no penalty for taking a break. Hidden profiles stay hidden, and erasing removes the local preview record.</p></div></div>",
+        "<div class=\"safety-item\"><span>2</span><div><h3>Pause, hide, and erase are always available.</h3><p>There is no penalty for taking a break. Hidden profiles stay hidden, and erasing removes your Connect data.</p></div></div>",
         "<div class=\"safety-item\"><span>3</span><div><h3>A live network needs real trust operations.</h3><p>Identity and organization checks, trained moderation, scam and spam detection, reporting operations, and appeal paths must exist before public accounts launch.</p></div></div>",
         "<div class=\"safety-item\"><span>4</span><div><h3>This is not an emergency service.</h3><p>If anyone is in immediate danger, contact the appropriate local emergency service or a trusted person nearby.</p></div></div>",
-        "<div class=\"safety-links\"><button class=\"quiet-button\" type=\"button\" data-action=\"pause-from-modal\">Pause introductions</button><button class=\"quiet-button danger-text\" type=\"button\" data-action=\"reset\">Erase preview data</button></div>",
+        "<div class=\"safety-links\"><button class=\"quiet-button\" type=\"button\" data-action=\"pause-from-modal\">Pause introductions</button><button class=\"quiet-button danger-text\" type=\"button\" data-action=\"reset\">Erase Connect data</button></div>",
       "</div>"
     ].join(""), true);
   }
@@ -1104,7 +1103,7 @@
         "<label><span>Circle name</span><input name=\"name\" maxlength=\"80\" required placeholder=\"Accessible data tools\"></label>",
         "<label><span>What is this room for?</span><textarea name=\"description\" rows=\"4\" maxlength=\"360\" required placeholder=\"Describe the work people bring and the kind of help they can expect.\"></textarea></label>",
         "<label><span>Opening question</span><input name=\"prompt\" maxlength=\"200\" required placeholder=\"What are you trying to make clearer this week?\"></label>",
-        "<p class=\"form-note\">This creates a private local preview circle. It does not invite or notify anyone.</p>",
+        "<p class=\"form-note\">This creates a private circle draft. Invite people when the live network service is connected.</p>",
         "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"modal-close\">Cancel</button><button class=\"primary-button\" type=\"submit\">Create circle</button></div>",
       "</form>"
     ].join(""), true);
@@ -1210,7 +1209,7 @@
       saveState();
       closeModal();
       renderFeed();
-      toast("Post removed from the private preview.");
+      toast("Post removed.");
       return;
     }
     if (action === "filter") {
@@ -1337,7 +1336,7 @@
       closeModal();
       renderCircles();
       renderNotificationCount();
-      toast(state.circles.indexOf(el.dataset.id) >= 0 ? "Circle joined in this private preview." : "You left the circle.");
+      toast(state.circles.indexOf(el.dataset.id) >= 0 ? "Circle joined." : "You left the circle.");
       return;
     }
     if (action === "open-circle") {
@@ -1428,7 +1427,7 @@
       renderNotificationCount();
       setView("discover");
       document.getElementById("feed-title").scrollIntoView({ behavior: "smooth", block: "start" });
-      toast(existingPost ? "Post updated in the private preview." : "Post saved to the private preview.");
+      toast(existingPost ? "Post updated." : "Post draft saved.");
       return;
     }
 
@@ -1440,7 +1439,7 @@
       saveState();
       closeModal();
       renderAll();
-      toast("Your private preview is ready.");
+      toast("Your Connect space is ready.");
       return;
     }
 
@@ -1526,7 +1525,7 @@
       closeModal();
       renderCircles();
       setView("circles");
-      toast("Private preview circle created.");
+      toast("Circle draft created.");
       return;
     }
 
