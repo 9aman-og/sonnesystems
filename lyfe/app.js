@@ -24,15 +24,31 @@ function readKey(k) {
 const VIEWS = [
   { id: "today",     label: "Today" },
   { id: "sol",       label: "EOS" },
-  { id: "wander",    label: "Wander" },
-  { id: "tasks",     label: "Tasks" },
-  { id: "projects",  label: "Projects" },
-  { id: "goals",     label: "Goals" },
-  { id: "education", label: "Education" },
-  { id: "work",      label: "Work Log" },
-  { id: "notes",     label: "Notes" },
-  { id: "docs",      label: "Docs" },
+  { id: "tracking",  label: "Tracking" },
+  { id: "library",   label: "Library" },
+  { id: "profile",   label: "Profile" },
 ];
+
+const TRACKING_VIEWS = ["tasks", "projects", "goals", "work"];
+const LIBRARY_VIEWS = ["notes", "docs"];
+const PROFILE_VIEWS = ["profile", "education"];
+const ROUTE_VIEWS = ["today", "sol", "tracking", "library", "profile", "wander"]
+  .concat(TRACKING_VIEWS, LIBRARY_VIEWS, PROFILE_VIEWS);
+
+function topSectionOf(view) {
+  if (TRACKING_VIEWS.includes(view) || view === "tracking") return "tracking";
+  if (LIBRARY_VIEWS.includes(view) || view === "library") return "library";
+  if (PROFILE_VIEWS.includes(view)) return "profile";
+  return view === "wander" ? "today" : view;
+}
+
+function resolvedViewId(view) {
+  if (view === "tracking") return state.trackingView || "tasks";
+  if (view === "library") return state.libraryView || "notes";
+  if (view === "profile") return state.profileView || "profile";
+  if (view === "wander") return "today";
+  return view;
+}
 
 const AREAS = ["Work", "Research", "Education", "Personal", "Health", "Other"];
 const PRIORITIES = ["High", "Medium", "Low"];
@@ -237,56 +253,12 @@ const PADS = {
   },
 };
 
-/* ---- EOS, the pixel puppy ----
-   16x16 pixel map, after the character sheet: cream pup, golden floppy ears,
-   a little sprout on the head, charcoal bandana with a gold sparkle.
-   c body · g gold · k eye · w eye shine · b blush · m mouth · d bandana · s sparkle */
-const SOL_PIXMAP = [
-  "........gg......",
-  ".......gg.......",
-  ".......g........",
-  ".....cccccc.....",
-  "...cccccccccc...",
-  ".gccccccccccccg.",
-  "ggccccccccccccgg",
-  "ggcckwcccckwccgg",
-  "ggcckkcccckkccgg",
-  ".gccbbccccbbccg.",
-  ".gcccccmmcccccg.",
-  "..cccccccccccc..",
-  "..dddddddddddd..",
-  "...ddddsddddd...",
-  ".....dddddd.....",
-  ".......dd.......",
-];
-
-const SOL_COLORS = {
-  c: "#fbf0d4", g: "#f0be4c", k: "#2e2a26", w: "#fffdf8",
-  b: "#f2a08c", m: "#6b4f3a", d: "#4d4757", s: "#f6cf62",
-};
-
-/* moods: default open-eyed, "sleepy" = closed lids (used late at night) */
-function solSprite(px, cls, mood) {
-  let body = "", sprout = "", eyes = "";
-  SOL_PIXMAP.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++) {
-      let ch = row[x];
-      if (ch === ".") continue;
-      const isEye = ch === "k" || ch === "w";
-      if (isEye && mood === "sleepy") ch = (y === 7) ? "c" : "k"; // lids down
-      const rect = `<rect x="${x}" y="${y}" width="1" height="1" fill="${SOL_COLORS[ch]}"/>`;
-      if (y < 3) sprout += rect;
-      else if (isEye && mood !== "sleepy") {
-        body += `<rect x="${x}" y="${y}" width="1" height="1" fill="${SOL_COLORS.c}"/>`; // cream under the eye so blinking closes it
-        eyes += rect;
-      } else body += rect;
-    }
-  });
-  return `<svg class="pixel-sol ${cls || ""}" viewBox="0 0 16 16" width="${px}" height="${px}" shape-rendering="crispEdges" aria-hidden="true">`
-    + body
-    + `<g class="px-sprout">${sprout}</g>`
-    + (eyes ? `<g class="px-eye">${eyes}</g>` : "")
-    + `</svg>`;
+/* ---- EOS, the Lyfe blob ----
+   A small CSS character shared by the dashboard, the companion chip, and chat.
+   It follows Crystal and Orbit through theme variables instead of carrying a
+   separate pixel-art palette. */
+function eosBlob(px, cls, mood) {
+  return `<span class="eos-blob ${cls || ""} ${mood === "sleepy" ? "is-sleepy" : ""}" style="--blob-size:${px}px" aria-hidden="true"><span class="eos-blob-face"><i></i><i></i><b></b></span></span>`;
 }
 
 function solMoodNow() {
@@ -294,7 +266,7 @@ function solMoodNow() {
   return (h >= 23 || h < 6) ? "sleepy" : "";
 }
 
-const SOL_AVATAR = `<span class="sol-avatar-px" aria-hidden="true">${solSprite(26, "px-idle")}</span>`;
+const SOL_AVATAR = `<span class="sol-avatar-px" aria-hidden="true">${eosBlob(26, "eos-blob-small")}</span>`;
 
 /* small stroke icons - inline svg, themed via currentColor.
    Two visual languages: ORBIT (dark, sharp editorial) and CRYSTAL
@@ -302,6 +274,9 @@ const SOL_AVATAR = `<span class="sol-avatar-px" aria-hidden="true">${solSprite(2
 const ICONS_ORBIT = {
   today: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="M8.7 15l2.2 2.2 4.4-4.6"/>',
   sol: '<path d="M21 12a8.5 8.5 0 0 1-8.5 8.5c-1.2 0-2.4-.2-3.4-.7L4 21l1.3-4.4A8.5 8.5 0 1 1 21 12z"/><path d="M8.5 10.5h7M8.5 13.5h4.5"/>',
+  tracking: '<path d="M4 5h16M4 12h16M4 19h16"/><circle cx="8" cy="5" r="2" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="11" cy="19" r="2" fill="currentColor" stroke="none"/>',
+  library: '<path d="M5 4.5h5.5v15H5zM13.5 4.5H19v15h-5.5z"/><path d="M10.5 7.5h3M10.5 16.5h3"/>',
+  profile: '<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-4.2 3.1-6.3 7-6.3s6.2 2.1 7 6.3"/>',
   tasks: '<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12.2l2.4 2.4 4.8-5"/>',
   projects: '<path d="M12 3l8 4.5-8 4.5-8-4.5L12 3z"/><path d="M4 12.5l8 4.5 8-4.5"/><path d="M4 17l8 4.5 8-4.5" opacity=".4"/>',
   goals: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.7"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/>',
@@ -317,6 +292,9 @@ const ICONS_ORBIT = {
 const ICONS_CRYSTAL = {
   today: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="3.1"/><path d="M12 1.8v2M12 20.2v2M1.8 12h2M20.2 12h2"/>',
   sol: '<rect x="3.4" y="4.4" width="17.2" height="12.8" rx="6.4"/><path d="M8.6 17.2L7.4 21l4.6-3.8"/><circle cx="9.3" cy="10.8" r="1" fill="currentColor" stroke="none"/><circle cx="14.7" cy="10.8" r="1" fill="currentColor" stroke="none"/>',
+  tracking: '<rect x="3.6" y="4" width="16.8" height="16" rx="5"/><path d="M7.4 9h9.2M7.4 13h6.4M7.4 17h4"/>',
+  library: '<path d="M4.2 5.2A2.2 2.2 0 0 1 6.4 3h4.1c1 0 1.5.4 1.5 1.4V20c0-1.4-.8-2.2-2.2-2.2H4.2V5.2z"/><path d="M19.8 5.2A2.2 2.2 0 0 0 17.6 3h-4.1c-1 0-1.5.4-1.5 1.4V20c0-1.4.8-2.2 2.2-2.2h5.6V5.2z"/>',
+  profile: '<circle cx="12" cy="8.1" r="3.4"/><path d="M5.2 20c.8-4.1 3-6.2 6.8-6.2s6 2.1 6.8 6.2"/>',
   tasks: '<circle cx="12" cy="12" r="8.6"/><path d="M8.2 12.4l2.6 2.6 5-5.6"/>',
   projects: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="3.4" r="1.7" fill="currentColor" stroke="none"/><circle cx="4.6" cy="16.4" r="1.7" fill="currentColor" stroke="none"/><circle cx="19.4" cy="16.4" r="1.7" fill="currentColor" stroke="none"/>',
   goals: '<path d="M6.5 21V4.2"/><path d="M6.5 5.2c2.6-1.7 5.2-1.7 7.7-.2s5 1.6 6.3.8v7.6c-1.3.8-3.8.7-6.3-.8s-5.1-1.5-7.7.2"/>',
@@ -424,6 +402,13 @@ function defaultData() {
       // profile, collected at onboarding after Google sign-in; EOS uses these
       age: "",
       country: "",
+      username: "",
+      headline: "",
+      city: "",
+      bio: "",
+      website: "",
+      profileInterests: [],
+      connectSync: true,
       focus: [],                     // what they are here to do (goal areas)
       commitment: "",                // how committed: exploring | committed | all-in
       onboarded: false,
@@ -453,8 +438,9 @@ THE SHORT TOUR
 
 Today - what needs you now, nothing more.
 EOS - your companion. Just talk: "remind me to email prof tomorrow", "log 2h on research", "note: read Maass 1997", or plain "hi". EOS files things for you.
-Tasks · Projects · Goals · Education · Work Log - the usual suspects, kept simple.
-Notes - quick thoughts. Docs - longer writing.
+Tracking - tasks, projects, goals and work logs in one place.
+Library - quick notes and longer docs together.
+Profile - your identity, learning, and the details you choose to share with Connect.
 
 GOOD TO KNOW
 
@@ -509,6 +495,10 @@ function normalize(raw) {
   if (raw.settings && typeof raw.settings === "object") {
     base.settings = Object.assign(base.settings, raw.settings);
   }
+  base.settings.profileInterests = Array.isArray(base.settings.profileInterests)
+    ? base.settings.profileInterests.map(String).filter(Boolean).slice(0, 12)
+    : [];
+  base.settings.connectSync = base.settings.connectSync !== false;
   // older builds shipped "Aman" as the default name; clear that leftover so no
   // one ever sees it. `nameSet` is true only once the user actually chooses a
   // name (onboarding or Settings), so a deliberately kept "Aman" survives while
@@ -580,6 +570,9 @@ function save(force) {
 const state = {
   data: loadData(),
   view: "today",
+  trackingView: "tasks",
+  libraryView: "notes",
+  profileView: "profile",
   taskStatusFilter: "open",
   taskAreaFilter: "all",
   eduFilter: "all",
@@ -1095,18 +1088,40 @@ function viewToday() {
     .filter(x => x.status === "done" && x.completedAt && isoOf(new Date(x.completedAt)) === t)
     .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
 
-  const activeProjects = d.projects.filter(p => p.status === "active")
-    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 3);
+  const allActiveProjects = d.projects.filter(p => p.status === "active")
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  const activeProjects = allActiveProjects.slice(0, 3);
   const recentNotes = d.notes.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 3);
+  const pinnedNotes = d.notes.filter(n => n.pinned);
+  const homeTabs = `<nav class="home-tabs" aria-label="Quick views">
+    <button class="home-tab" type="button" data-action="home-tab" data-home-tab="pins"><span>Pins</span><b>${pinnedNotes.length}</b></button>
+    <button class="home-tab" type="button" data-action="home-tab" data-home-tab="projects"><span>Projects</span><b>${allActiveProjects.length}</b></button>
+    <button class="home-tab" type="button" data-action="home-tab" data-home-tab="pending"><span>Pending</span><b>${open.length}</b></button>
+  </nav>`;
 
   const wh = weekHours();
 
-  const calm = `<section class="panel tilt calm-card">
-    <img class="calm-img" alt="today's photograph" loading="lazy"
-      src="https://picsum.photos/seed/lyfe-${t}/640/400"
-      onerror="this.closest('.calm-card').style.display='none'">
-    <div class="calm-cap">a moment of calm · new each day</div>
+  const wanderPlace = PLACES[state.wanderIndex % PLACES.length];
+  const wanderFact = FACTS[state.factIndex % FACTS.length];
+  const [wanderName, wanderCountry, wanderBlurb, wanderWiki] = wanderPlace;
+  const wanderHome = `<section class="home-wander" aria-labelledby="home-wander-title">
+    <div class="home-wander-head"><div><span class="eyebrow">WANDER / A FIVE MINUTE WINDOW</span><h2 id="home-wander-title">Put a little world back into the day.</h2></div><div><button class="btn" data-action="save-wander">Keep this</button><button class="btn btn-primary" data-action="new-wander">Somewhere else ↗</button></div></div>
+    <section class="wander-hero home-wander-hero tilt" data-wiki="${esc(wanderWiki)}">
+      <div class="wander-loading" aria-hidden="true"><i></i><span class="wl-tuning">TUNING SIGNAL..</span><span class="wl-lost">NO SIGNAL · IMAGINE IT..</span></div>
+      <img id="wander-photo" alt="${esc(wanderName)}, ${esc(wanderCountry)}">
+      <div class="wander-scan" aria-hidden="true"></div>
+      <div class="wander-meta"><span>PLACE ${String(state.wanderIndex + 1).padStart(3, "0")} / ${PLACES.length}</span><span>LOOK UP · BREATHE OUT</span></div>
+      <div class="wander-copy"><span>${esc(wanderCountry)}</span><h3>${esc(wanderName)}</h3><p>${esc(wanderBlurb)}</p></div>
+    </section>
+    <section class="fact-panel home-fact"><span class="eyebrow">STRANGE BUT TRUE</span><p>${esc(wanderFact)}</p><button class="linklike" data-action="new-fact">another fact ↻</button></section>
   </section>`;
+
+  const connectActivity = connectSummary();
+  const connectInbox = `<a class="connect-inbox-card" href="connect.html#notifications">
+    <span class="connect-inbox-icon"><img src="../assets/lyfe_connect_logo_v2.png" alt=""></span>
+    <span class="connect-inbox-copy"><span class="eyebrow">CONNECT NOTIFICATIONS</span><strong>${connectActivity.unread ? connectActivity.unread + " unread update" + (connectActivity.unread === 1 ? "" : "s") : "Your Connect inbox is quiet."}</strong><small>${esc(connectActivity.latest)}</small></span>
+    <span class="connect-inbox-meta"><b>${connectActivity.threads}</b> drafts · <b>${connectActivity.saved}</b> saved</span>
+  </a>`;
 
   const dayList = (overdue.length || dueToday.length || doneToday.length)
     ? `<ul class="task-list">${
@@ -1186,13 +1201,11 @@ function viewToday() {
         <button class="cx-stat" data-action="nav" data-view="projects"><b>${activeProjects.length}</b><span>projects live</span></button>
         <button class="cx-stat" data-action="nav" data-view="work"><b>${fmtHours(wh)}h</b><span>deep work</span></button>
         <button class="cx-stat" data-action="nav" data-view="education"><b>${learning}</b><span>learning</span></button>
-        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${solSprite(30, "px-idle", solMoodNow())}<span>${sleepy ? "eos · up late" : "eos · online"}</span></button>
+        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${eosBlob(30, "eos-blob-status", solMoodNow())}<span>${sleepy ? "eos · up late" : "eos · online"}</span></button>
       </div>
     </section>
 
-    <div class="ticker" aria-hidden="true">
-      <div>WELCOME.. ::2K • CAPTURE IT • MOVE IT • LEARN IT • REMEMBER IT • LIVE IT • WELCOME.. ::2K • CAPTURE IT • MOVE IT • LEARN IT • REMEMBER IT • LIVE IT • </div>
-    </div>
+    ${homeTabs}
 
     <section class="cx-bento">
       <section class="panel tilt cx-tile cx-queue">
@@ -1243,24 +1256,20 @@ function viewToday() {
       </section>
 
       <a class="cx-connect-card" href="connect.html">
-        <span class="cx-connect-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
+        <span class="cx-connect-mark"><img src="../assets/lyfe_connect_logo_v2.png" alt=""></span>
         <span class="cx-connect-copy"><span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span><strong>Find the people and rooms your work needs.</strong><span>A calmer network for collaborators, work posts, focused Circles, and shared project pages.</span></span>
         <span class="cx-connect-link">OPEN CONNECT <span aria-hidden="true">↗</span></span>
       </a>
+      ${connectInbox}
     </section>
 
-    <section class="panel tilt calm-card cx-moment">
-      <img class="calm-img" alt="today's photograph" loading="lazy"
-        src="https://picsum.photos/seed/lyfe-${t}/1200/400"
-        onerror="this.closest('.calm-card').style.display='none'">
-      <div class="calm-cap">a moment of calm · new each day</div>
-    </section>
+    ${wanderHome}
 
     <section class="cx-endcap" data-reveal>
       <i class="cx-endcap-disc" aria-hidden="true"></i>
       <span class="cx-endcap-kicker">YOU ARE NOT BEHIND.</span>
       <h2>You are here.<br>That is enough to begin.</h2>
-      <button class="btn btn-primary" data-action="nav" data-view="wander">take a detour ${icon("wander")}</button>
+      <a class="btn btn-primary" href="#home-wander-title">take a detour ${icon("wander")}</a>
     </section>
   </div>`;
   }
@@ -1293,7 +1302,7 @@ function viewToday() {
         <h2>${open.length}<small> open loop${open.length === 1 ? "" : "s"}</small></h2>
       </div>
       <button class="sol-chip" data-action="nav" data-view="sol" aria-label="Open EOS">
-        ${solSprite(42, "px-idle", solMoodNow())}
+        ${eosBlob(42, "eos-blob-status", solMoodNow())}
         <span class="sol-chip-txt">
           <span class="sol-chip-main"><span class="live-dot"></span>EOS · ${solMoodNow() === "sleepy" ? "UP LATE WITH YOU" : "ONLINE"}</span>
           <span class="sol-chip-sub">tap to talk to your companion</span>
@@ -1308,9 +1317,7 @@ function viewToday() {
       <div class="scroll-cue">SCROLL <i></i></div>
     </section>
 
-    <div class="ticker" aria-hidden="true">
-      <div>CAPTURE IT • MOVE IT • LEARN IT • REMEMBER IT • LIVE IT • CAPTURE IT • MOVE IT • LEARN IT • REMEMBER IT • LIVE IT •</div>
-    </div>
+    ${homeTabs}
 
     <section class="home-grid">
       <div class="home-focus">
@@ -1343,7 +1350,6 @@ function viewToday() {
           ${heat30()}
           <p class="heat-cap">brighter = more finished · dot = you showed up</p>
         </section>
-        ${calm}
       </div>
     </section>
 
@@ -1364,19 +1370,22 @@ function viewToday() {
           <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
         </section>
         <a class="panel tilt connect-card" href="connect.html">
-          <span class="connect-card-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
+          <span class="connect-card-mark"><img src="../assets/lyfe_connect_logo_v2.png" alt=""></span>
           <span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span>
           <strong>Find the people and rooms your work needs.</strong>
           <span>Discover collaborators, share work in context, and turn a useful thread into organized action.</span>
           <span class="btn">open connect <span aria-hidden="true">↗</span></span>
         </a>
+        ${connectInbox}
       </div>
     </section>
+
+    ${wanderHome}
 
     <section class="home-endcap">
       <span>YOU ARE NOT BEHIND.</span>
       <h2>You are here.<br>That is enough to begin.</h2>
-      <button class="btn btn-primary" data-action="nav" data-view="wander">take a detour ${icon("wander")}</button>
+      <a class="btn btn-primary" href="#home-wander-title">take a detour ${icon("wander")}</a>
     </section>
   </div>`;
 }
@@ -1437,6 +1446,117 @@ async function loadWanderPhoto() {
   } catch (e) {
     if (hero.isConnected) hero.classList.add("img-fallback");
   }
+}
+
+function sectionTabs(group, current) {
+  const sets = {
+    tracking: [["tasks", "Tasks"], ["projects", "Projects"], ["goals", "Goals"], ["work", "Work log"]],
+    library: [["notes", "Notes"], ["docs", "Docs"]],
+    profile: [["profile", "Profile"], ["education", "Learning"]],
+  };
+  const tabs = sets[group] || [];
+  return `<nav class="section-tabs" aria-label="${esc(group)} sections">${tabs.map(([id, label]) =>
+    `<button type="button" class="section-tab ${current === id ? "active" : ""}" data-action="nav" data-view="${id}" aria-pressed="${current === id}">${esc(label)}</button>`
+  ).join("")}</nav>`;
+}
+
+function readConnectState() {
+  try {
+    const raw = JSON.parse(localStorage.getItem("lyfe.connect.preview.v1") || "null");
+    return raw && typeof raw === "object" ? raw : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function connectSummary() {
+  const connect = readConnectState() || {};
+  const notifications = Array.isArray(connect.notifications) ? connect.notifications : [];
+  const unread = notifications.filter(item => !item.read).length;
+  const latest = notifications[0] && notifications[0].text
+    ? String(notifications[0].text)
+    : "Your Connect activity and conversations will appear here.";
+  return {
+    unread,
+    latest,
+    saved: Array.isArray(connect.saved) ? connect.saved.length : 0,
+    threads: Array.isArray(connect.conversations) ? connect.conversations.length : 0,
+  };
+}
+
+function syncProfileToConnect() {
+  if (!state.data.settings.connectSync) return;
+  try {
+    const connect = readConnectState() || {};
+    const s = state.data.settings;
+    connect.profile = Object.assign({}, connect.profile || {}, {
+      name: s.name || "",
+      city: s.city || s.country || "",
+      headline: s.headline || "",
+      bio: s.bio || "",
+      website: s.website || "",
+      sparks: Array.isArray(s.profileInterests) ? s.profileInterests.slice(0, 8) : [],
+      prompt: s.bio || s.headline || "",
+    });
+    connect.onboarded = connect.onboarded === true || !!s.name;
+    localStorage.setItem("lyfe.connect.preview.v1", JSON.stringify(connect));
+    connectUiDigest = connectDigest();
+  } catch (e) {
+    toast("Profile saved in Lyfe, but Connect could not be updated on this device");
+  }
+}
+
+function viewProfile() {
+  const s = state.data.settings;
+  const name = (s.name || "Your name").trim();
+  const initials = name === "Your name" ? "LY" : name.split(/\s+/).slice(0, 2).map(part => part.charAt(0)).join("").toUpperCase();
+  const interests = Array.isArray(s.profileInterests) ? s.profileInterests : [];
+  const connect = connectSummary();
+  const stats = [
+    [state.data.projects.filter(p => p.status === "active").length, "active projects"],
+    [state.data.tasks.filter(t => t.status !== "done").length, "pending"],
+    [state.data.education.filter(e => e.status === "in-progress").length, "learning"],
+    [(state.data.game && state.data.game.streak) || 0, "day streak"],
+  ];
+
+  return pageHead("Profile", `<a class="btn" href="connect.html#profile">Open Connect profile ↗</a>`, "your identity across Lyfe") + `
+    <section class="profile-hero panel">
+      <div class="profile-avatar" aria-hidden="true"><span>${esc(initials)}</span></div>
+      <div class="profile-identity">
+        <span class="eyebrow">LYFE PROFILE</span>
+        <h2>${esc(name)}</h2>
+        <p>${esc(s.headline || "Add a short line about what you are working toward.")}</p>
+        <div class="profile-tags">${interests.length ? interests.map(tag => `<span>${esc(tag)}</span>`).join("") : `<span>add your interests below</span>`}</div>
+      </div>
+      <div class="profile-stats">${stats.map(([value, label]) => `<div><b>${value}</b><span>${esc(label)}</span></div>`).join("")}</div>
+    </section>
+
+    <div class="profile-layout">
+      <form class="panel profile-editor" data-form="profile">
+        <div class="profile-form-head"><span class="eyebrow">PUBLIC-FACING DETAILS</span><h2>Make your profile useful, not performative.</h2><p>These details stay in Lyfe. When Connect sync is on, the same profile is used in Lyfe Connect on this device.</p></div>
+        <div class="profile-fields">
+          <label><span>Name</span><input name="name" maxlength="60" value="${esc(s.name)}" autocomplete="name" placeholder="Your name"></label>
+          <label><span>Username</span><input name="username" maxlength="32" value="${esc(s.username)}" placeholder="yourname" autocomplete="username"></label>
+          <label class="profile-field-wide"><span>Headline</span><input name="headline" maxlength="100" value="${esc(s.headline)}" placeholder="What are you building, learning, or helping with?"></label>
+          <label><span>City or time zone</span><input name="city" maxlength="70" value="${esc(s.city)}" placeholder="Bengaluru · UTC+5:30"></label>
+          <label><span>Country</span><input name="country" maxlength="70" value="${esc(s.country)}" autocomplete="country-name" placeholder="India"></label>
+          <label class="profile-field-wide"><span>Website</span><input name="website" maxlength="200" value="${esc(s.website)}" inputmode="url" placeholder="https://example.com"></label>
+          <label class="profile-field-wide"><span>About you</span><textarea name="bio" rows="5" maxlength="500" placeholder="Write like a person. Share what you care about, what you are working on, and where someone could help.">${esc(s.bio)}</textarea></label>
+          <label class="profile-field-wide"><span>Interests, separated by commas</span><input name="interests" maxlength="240" value="${esc(interests.join(", "))}" placeholder="Design, research, open source"></label>
+        </div>
+        <label class="profile-sync"><input type="checkbox" name="connectSync" value="yes" ${s.connectSync ? "checked" : ""}><span><b>Use this profile in Lyfe Connect</b><small>Syncs these approved profile fields locally. Tasks, notes, learning, and private Lyfe data are never copied.</small></span></label>
+        <div class="profile-form-actions"><span>Saved with the rest of your Lyfe data.</span><button class="btn btn-primary" type="submit">Save profile</button></div>
+      </form>
+
+      <aside class="panel profile-connect-card">
+        <img src="../assets/lyfe_connect_logo_v2.png" alt="">
+        <span class="eyebrow">LYFE CONNECT</span>
+        <h2>One profile, two useful contexts.</h2>
+        <p>Connect uses the identity you approve here, then keeps social posts, outreach, and circles separate from your private Lyfe workspace.</p>
+        <div class="profile-connect-stats"><span><b>${connect.saved}</b> saved people</span><span><b>${connect.threads}</b> private drafts</span></div>
+        <a class="btn" href="connect.html#profile">Review in Connect ↗</a>
+      </aside>
+    </div>`;
 }
 
 /* ---------------- view: tasks ---------------- */
@@ -1599,12 +1719,12 @@ function viewEducation() {
         ${(e.startDate || e.targetDate) ? `<div class="edu-dates">${[e.startDate ? "since " + fmtShort(e.startDate) : "", e.targetDate ? "aim " + fmtShort(e.targetDate) : ""].filter(Boolean).join(" · ")}</div>` : ""}
       </div>
       <span class="row-actions">
-        <button class="icon-btn" data-action="edit-edu" data-id="${esc(e.id)}" title="Edit" aria-label="Edit education entry: ${esc(e.title)}">✎</button>
-        <button class="icon-btn" data-action="delete-edu" data-id="${esc(e.id)}" title="Delete" aria-label="Delete education entry: ${esc(e.title)}">✕</button>
+        <button class="icon-btn" data-action="edit-edu" data-id="${esc(e.id)}" title="Edit" aria-label="Edit learning entry: ${esc(e.title)}">✎</button>
+        <button class="icon-btn" data-action="delete-edu" data-id="${esc(e.id)}" title="Delete" aria-label="Delete learning entry: ${esc(e.title)}">✕</button>
       </span>
     </div>`).join("");
 
-  return pageHead("Education", `<button class="btn btn-primary" data-action="new-edu">New entry</button>`)
+  return pageHead("Learning", `<button class="btn btn-primary" data-action="new-edu">New entry</button>`, "courses, books, skills, and formal study")
     + filterBar
     + (list.length ? `<section class="panel">${rows}</section>` : emptyState("Nothing under study right now."));
 }
@@ -2627,7 +2747,7 @@ function goalModal(g) {
 function eduModal(e) {
   const v = e || { title: "", provider: "", kind: "Course", status: "in-progress", progress: 0, startDate: "", targetDate: "", notes: "" };
   openModal(
-    `<div class="modal-head"><h3>${e ? "Edit entry" : "New education entry"}</h3></div>
+    `<div class="modal-head"><h3>${e ? "Edit learning entry" : "New learning entry"}</h3></div>
      <form data-form="edu">
        <input type="hidden" name="id" value="${e ? esc(e.id) : ""}">
        ${fld("Title", `<input type="text" name="title" required maxlength="200" value="${esc(v.title)}" placeholder="Degree, course, language, book…">`)}
@@ -2755,7 +2875,7 @@ function sunNav() {
     const a = (180 - (i + 0.5) * step) * Math.PI / 180;
     const x1 = (cx + Math.cos(a) * r1).toFixed(1), y1 = (cy - Math.sin(a) * r1).toFixed(1);
     const x2 = (cx + Math.cos(a) * r2).toFixed(1), y2 = (cy - Math.sin(a) * r2).toFixed(1);
-    const active = state.view === v.id;
+    const active = topSectionOf(state.view) === v.id;
     const ping = v.id === "sol" && state.unread > 0;
     return `<g class="ray ${active ? "active" : ""} ${ping ? "ping" : ""}" data-action="nav" data-view="${v.id}" data-raylabel="${esc(v.label)}">
       <line class="ray-hit" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>
@@ -2763,7 +2883,7 @@ function sunNav() {
       <title>${esc(v.label)}</title>
     </g>`;
   }).join("");
-  const activeLabel = (VIEWS.find(v => v.id === state.view) || VIEWS[0]).label;
+  const activeLabel = (VIEWS.find(v => v.id === topSectionOf(state.view)) || VIEWS[0]).label;
   return `<div class="sunnav">
     <svg viewBox="0 0 200 106" aria-label="Sun navigation">
       <path class="sun-disc" d="M 70 100 A 30 30 0 0 1 130 100"/>
@@ -2792,16 +2912,17 @@ function hudHtml() {
 
 function renderNav() {
   const openCt = state.data.tasks.filter(x => x.status !== "done").length;
+  const connectActivity = connectSummary();
   const connectNav = `<a class="nav-item nav-connect" href="connect.html" aria-label="Open Lyfe Connect">
-    <span class="nav-connect-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
+    <span class="nav-connect-mark"><img src="../assets/lyfe_connect_logo_v2.png" alt=""></span>
     <span>Connect</span>
-    <span class="nav-connect-pulse" aria-hidden="true"></span>
+    ${connectActivity.unread ? `<span class="nav-count">${connectActivity.unread}</span>` : `<span class="nav-connect-pulse" aria-hidden="true"></span>`}
   </a>`;
   document.getElementById("nav").innerHTML = sunNav() + VIEWS.map(v => `
-    <button class="nav-item ${state.view === v.id ? "active" : ""}" data-action="nav" data-view="${v.id}">
+    <button class="nav-item ${topSectionOf(state.view) === v.id ? "active" : ""}" data-action="nav" data-view="${v.id}">
       ${icon(v.id, "nav-ic")}
       <span>${v.label}</span>
-      ${v.id === "tasks" && openCt ? `<span class="nav-count">${openCt}</span>` : ""}
+      ${v.id === "tracking" && openCt ? `<span class="nav-count">${openCt}</span>` : ""}
       ${v.id === "sol" && state.unread > 0 ? `<span class="nav-dot" title="${state.unread} new"></span>` : ""}
     </button>${v.id === "sol" ? connectNav : ""}`).join("") + hudHtml();
 }
@@ -2815,7 +2936,7 @@ document.addEventListener("mouseover", (e) => {
 document.addEventListener("mouseout", (e) => {
   const ray = e.target.closest ? e.target.closest("[data-raylabel]") : null;
   const lab = document.getElementById("sunnav-label");
-  if (ray && lab) lab.textContent = (VIEWS.find(v => v.id === state.view) || VIEWS[0]).label;
+  if (ray && lab) lab.textContent = (VIEWS.find(v => v.id === topSectionOf(state.view)) || VIEWS[0]).label;
 });
 
 /* ---------------- motion engine: scramble + scroll reveal ---------------- */
@@ -3064,7 +3185,6 @@ function render() {
   switch (state.view) {
     case "today":     html = viewToday(); break;
     case "sol":       html = viewSol(); break;
-    case "wander":    html = viewWander(); break;
     case "tasks":     html = viewTasks(); break;
     case "projects":  html = viewProjects(); break;
     case "goals":     html = viewGoals(); break;
@@ -3072,8 +3192,12 @@ function render() {
     case "work":      html = viewWork(); break;
     case "notes":     html = viewPad("notes"); break;
     case "docs":      html = viewPad("docs"); break;
+    case "profile":   html = viewProfile(); break;
     default:          html = viewToday();
   }
+  if (TRACKING_VIEWS.includes(state.view)) html = sectionTabs("tracking", state.view) + html;
+  if (LIBRARY_VIEWS.includes(state.view)) html = sectionTabs("library", state.view) + html;
+  if (PROFILE_VIEWS.includes(state.view)) html = sectionTabs("profile", state.view) + html;
   // same-view re-renders (ticking a task, changing a filter) must feel instant -
   // entrance + reveal animations only replay when the view actually changes
   const sameView = renderedView === state.view;
@@ -3084,7 +3208,7 @@ function render() {
   initReveal(main);
   syncScrollProgress();
   tickSky();
-  if (state.view === "wander") loadWanderPhoto();
+  if (state.view === "today") loadWanderPhoto();
 
   const det = document.getElementById("done-details");
   if (det) det.addEventListener("toggle", () => { state.doneOpen = det.open; });
@@ -3097,6 +3221,10 @@ function render() {
 }
 
 function setView(v) {
+  v = resolvedViewId(v);
+  if (TRACKING_VIEWS.includes(v)) state.trackingView = v;
+  if (LIBRARY_VIEWS.includes(v)) state.libraryView = v;
+  if (PROFILE_VIEWS.includes(v)) state.profileView = v;
   state.view = v;
   if (v === "sol") state.unread = 0;
   try { location.hash = "/" + v; } catch (e) { /* ignore */ }
@@ -3171,6 +3299,20 @@ document.addEventListener("click", (e) => {
 
   switch (action) {
     case "nav": setView(el.dataset.view); break;
+    case "home-tab": {
+      const tab = el.dataset.homeTab;
+      if (tab === "pins") {
+        const pinned = d.notes.filter(n => n.pinned).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+        if (pinned[0]) state.noteId = pinned[0].id;
+        setView("notes");
+      } else if (tab === "projects") {
+        setView("projects");
+      } else if (tab === "pending") {
+        state.taskStatusFilter = "open";
+        setView("tasks");
+      }
+      break;
+    }
 
     case "overlay-close":
       if (e.target === el) closeModal();
@@ -3602,6 +3744,24 @@ document.addEventListener("submit", (e) => {
       break;
     }
 
+    case "profile": {
+      d.settings.name = val("name").slice(0, 60);
+      if (d.settings.name) d.settings.nameSet = true;
+      d.settings.username = val("username").toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 32);
+      d.settings.headline = val("headline").slice(0, 100);
+      d.settings.city = val("city").slice(0, 70);
+      d.settings.country = val("country").slice(0, 70);
+      d.settings.website = val("website").slice(0, 200);
+      d.settings.bio = val("bio").slice(0, 500);
+      d.settings.profileInterests = val("interests").split(",").map(item => item.trim()).filter(Boolean).slice(0, 12);
+      d.settings.connectSync = val("connectSync") === "yes";
+      save();
+      syncProfileToConnect();
+      render();
+      toast(d.settings.connectSync ? "Profile saved and synced to Connect" : "Profile saved in Lyfe");
+      break;
+    }
+
     case "settings": {
       d.settings.name = val("name");
       if (d.settings.name) d.settings.nameSet = true;
@@ -3758,8 +3918,8 @@ document.addEventListener("keydown", (e) => {
     cmdMove(e.key === "ArrowDown" ? 1 : -1);
     return;
   }
-  // wander: ← → flips to another place (never while typing or in a dialog)
-  if (state.view === "wander" && (e.key === "ArrowRight" || e.key === "ArrowLeft") &&
+  // the Wander card lives on Today; ← → flips places when focus is not in a field
+  if (state.view === "today" && (e.key === "ArrowRight" || e.key === "ArrowLeft") &&
       !e.ctrlKey && !e.metaKey && !e.altKey) {
     const ae = document.activeElement;
     const typing = ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.tagName === "SELECT" || ae.isContentEditable);
@@ -3781,11 +3941,7 @@ document.addEventListener("keydown", (e) => {
 
 window.addEventListener("hashchange", () => {
   const v = location.hash.replace(/^#\//, "");
-  if (VIEWS.some(x => x.id === v) && v !== state.view) {
-    state.view = v;
-    if (v === "sol") state.unread = 0;
-    render();
-  }
+  if (ROUTE_VIEWS.includes(v) && resolvedViewId(v) !== state.view) setView(v);
 });
 
 window.addEventListener("beforeunload", () => {
@@ -3838,15 +3994,32 @@ function absorbStored() {
   if (!typing) render();
 }
 
+function connectDigest() {
+  const connect = readConnectState() || {};
+  const notes = Array.isArray(connect.notifications) ? connect.notifications : [];
+  return [notes.length, notes[0] && notes[0].id || "", notes.filter(item => !item.read).length,
+    Array.isArray(connect.saved) ? connect.saved.length : 0,
+    Array.isArray(connect.conversations) ? connect.conversations.length : 0].join(":");
+}
+let connectUiDigest = connectDigest();
+
 window.addEventListener("storage", (e) => {
-  if (e.key !== ACTIVE_KEY) return;
-  if (revOfRaw(e.newValue) > (state.data.rev || 0)) absorbStored();
+  if (e.key === ACTIVE_KEY && revOfRaw(e.newValue) > (state.data.rev || 0)) absorbStored();
+  if (e.key === "lyfe.connect.preview.v1") {
+    connectUiDigest = connectDigest();
+    if (state.view === "today") render(); else renderNav();
+  }
 });
 
 /* storage events can be missed while a tab is frozen or in the back/forward
    cache - re-check whenever it comes back to life */
 function syncFromStorage() {
   if (storedRev() > (state.data.rev || 0)) absorbStored();
+  const nextConnectDigest = connectDigest();
+  if (nextConnectDigest !== connectUiDigest) {
+    connectUiDigest = nextConnectDigest;
+    if (state.view === "today") render(); else renderNav();
+  }
 }
 document.addEventListener("visibilitychange", () => { if (!document.hidden) syncFromStorage(); });
 window.addEventListener("pageshow", (e) => { if (e.persisted) syncFromStorage(); });
@@ -4115,7 +4288,12 @@ async function resolveAuthAndBoot() {
 (function init() {
   applyTheme();
   const h = location.hash.replace(/^#\//, "");
-  if (VIEWS.some(v => v.id === h)) state.view = h;
+  if (ROUTE_VIEWS.includes(h)) {
+    state.view = resolvedViewId(h);
+    if (TRACKING_VIEWS.includes(state.view)) state.trackingView = state.view;
+    if (LIBRARY_VIEWS.includes(state.view)) state.libraryView = state.view;
+    if (PROFILE_VIEWS.includes(state.view)) state.profileView = state.view;
+  }
   // hide the app shell up front only when a backend exists, so a signed-in
   // user never flashes an empty app and a signed-out user never flashes it
   // before the login screen. Unconfigured installs skip this entirely.

@@ -2,18 +2,18 @@
    HTML is network-first (always fresh when online); versioned assets cache-first. */
 "use strict";
 
-const CACHE = "lyfe-crystal-31";
+const CACHE = "lyfe-crystal-33";
 const SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=crystal-31",
-  "./supabase-config.js?v=crystal-31",
-  "./cloud.js?v=crystal-31",
-  "./app.js?v=crystal-31",
+  "./styles.css?v=crystal-33",
+  "./supabase-config.js?v=crystal-33",
+  "./cloud.js?v=crystal-33",
+  "./app.js?v=crystal-33",
   "./connect.html",
-  "./connect.css?v=connect4",
-  "./connect.js?v=connect4",
-  "../assets/lyfe_connect_logo.png",
+  "./connect.css?v=connect5",
+  "./connect.js?v=connect5",
+  "../assets/lyfe_connect_logo_v2.png",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",

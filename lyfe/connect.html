@@ -13,23 +13,23 @@
   <meta property="og:title" content="Lyfe Connect | A network organized around useful work">
   <meta property="og:description" content="Find collaborators, peers, projects, and communities through useful context instead of popularity.">
   <meta property="og:url" content="https://sonnesystems.com/lyfe/connect.html">
-  <meta property="og:image" content="https://sonnesystems.com/assets/lyfe_connect_logo.png">
-  <meta property="og:image:alt" content="Lyfe Connect interlocking ring mark">
+  <meta property="og:image" content="https://sonnesystems.com/assets/lyfe_connect_logo_v2.png">
+  <meta property="og:image:alt" content="Lyfe Connect flowing connection mark">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Lyfe Connect | Meet through curiosity">
   <meta name="twitter:description" content="Find collaborators, peers, projects, and communities through useful context instead of popularity.">
-  <meta name="twitter:image" content="https://sonnesystems.com/assets/lyfe_connect_logo.png">
+  <meta name="twitter:image" content="https://sonnesystems.com/assets/lyfe_connect_logo_v2.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Unbounded:wght@500;600;700&amp;display=swap">
-  <link rel="stylesheet" href="connect.css?v=connect4">
+  <link rel="stylesheet" href="connect.css?v=connect5">
 </head>
 <body>
   <a class="skip-link" href="#connect-main">Skip to the app</a>
 
   <header class="connect-topbar">
     <a class="connect-brand" href="connect.html" aria-label="Lyfe Connect home">
-      <img src="../assets/lyfe_connect_logo.png" alt="">
+      <img src="../assets/lyfe_connect_logo_v2.png" alt="">
       <span>lyfe connect</span>
     </a>
 
@@ -43,6 +43,10 @@
 
     <div class="top-actions">
       <span class="privacy-pill"><i aria-hidden="true"></i>Local-first private preview</span>
+      <button class="icon-button notification-button" type="button" data-action="notifications" aria-label="Open Connect notifications" title="Notifications">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8.5a6 6 0 0 0-12 0c0 7-3 7-3 8.5h18c0-1.5-3-1.5-3-8.5Z"/><path d="M9.5 20h5"/></svg>
+        <span id="notification-count" class="notification-count" hidden>0</span>
+      </button>
       <button class="icon-button" type="button" data-action="safety" aria-label="Open safety centre" title="Safety centre">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.8 6v5.3c0 4.4 2.9 8.1 7.2 9.7 4.3-1.6 7.2-5.3 7.2-9.7V6L12 3Z"/><path d="m8.8 12 2 2 4.4-4.4"/></svg>
       </button>
@@ -91,7 +95,7 @@
       <section class="feed-section" aria-labelledby="feed-title">
         <div class="feed-heading">
           <div><p class="eyebrow">FROM THE NETWORK</p><h2 id="feed-title">Work in progress, shared with context.</h2></div>
-          <p>A visual feed for build logs, research notes, questions, and open calls, without the personal branding theatre.</p>
+          <div class="feed-heading-actions"><p>A visual feed for build logs, research notes, questions, and open calls, without the personal branding theatre.</p><button class="primary-button" type="button" data-action="new-post">Share your work</button></div>
         </div>
         <div id="feed-list" class="feed-grid"></div>
       </section>
@@ -131,7 +135,7 @@
       </div>
       <div id="plan-list" class="plan-grid"></div>
       <section class="lyfe-bridge">
-        <img src="../assets/lyfe_connect_logo.png" alt="">
+        <img src="../assets/lyfe_connect_logo_v2.png" alt="">
         <div><p class="eyebrow">CONNECT × LYFE</p><h2>Next steps move. Private context does not.</h2><p>Only the task title and note you approve are handed to Lyfe. Your network profile, filters, circles, and outreach drafts stay in Connect.</p></div>
         <a href="./">Open Lyfe <span aria-hidden="true">↗</span></a>
       </section>
@@ -163,8 +167,10 @@
           <div class="form-card-head"><span>01</span><div><h2>The basics</h2><p>Enough context to make a professional or creative introduction useful.</p></div></div>
           <div class="field-grid">
             <label><span>What should people call you?</span><input name="name" maxlength="40" autocomplete="name" placeholder="Your first name"></label>
+            <label><span>Your username</span><input name="username" maxlength="32" autocomplete="username" placeholder="yourname"></label>
             <label><span>Your city or time zone</span><input name="city" maxlength="60" autocomplete="address-level2" placeholder="City, region, or UTC offset"></label>
             <label><span>What are you here for?</span><select name="intent"><option value="collaborators">Find collaborators</option><option value="peers">Meet thoughtful peers</option><option value="mentorship">Learn or mentor</option><option value="opportunities">Find projects and opportunities</option><option value="explore">Explore useful ideas</option></select></label>
+            <label class="profile-wide"><span>A useful headline</span><input name="headline" maxlength="100" placeholder="What are you building, learning, or helping with?"></label>
           </div>
         </section>
 
@@ -175,7 +181,11 @@
 
         <section class="form-card">
           <div class="form-card-head"><span>03</span><div><h2>What you are working on</h2><p>One concrete sentence gives the right person a useful place to begin.</p></div></div>
-          <label><span>What are you building, researching, learning, or trying to solve?</span><textarea name="prompt" maxlength="280" rows="5" placeholder="Share the work, question, or problem, not a pitch."></textarea></label>
+          <div class="profile-story-fields">
+            <label><span>What are you building, researching, learning, or trying to solve?</span><textarea name="prompt" maxlength="280" rows="5" placeholder="Share the work, question, or problem, not a pitch."></textarea></label>
+            <label><span>About you</span><textarea name="bio" maxlength="500" rows="4" placeholder="A few genuine lines about what you care about and where someone could help."></textarea></label>
+            <label><span>Website (optional)</span><input name="website" maxlength="200" inputmode="url" placeholder="https://example.com"></label>
+          </div>
         </section>
 
         <div class="form-actions">
@@ -185,7 +195,7 @@
       </form>
 
       <section class="privacy-card">
-        <div><p class="eyebrow">PRIVACY CHOICES</p><h2>Your information should have a clear reason to exist.</h2><p>Connect does not upload this preview data or read your Lyfe workspace. You can pause introductions, leave circles, or erase the preview at any time.</p></div>
+        <div><p class="eyebrow">PRIVACY CHOICES</p><h2>Your information should have a clear reason to exist.</h2><p>Connect can reuse only the profile details you approve in Lyfe. It never copies your tasks, notes, learning, or private workspace. You can pause introductions, leave circles, or erase the preview at any time.</p></div>
         <div class="privacy-actions">
           <button class="quiet-button" type="button" data-action="safety">Open safety centre</button>
           <button class="quiet-button danger-text" type="button" data-action="reset">Erase Connect data</button>
@@ -210,6 +220,6 @@
   <div id="modal-root"></div>
   <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
   <noscript><p class="noscript">Lyfe Connect needs JavaScript for its local, interactive preview.</p></noscript>
-  <script src="connect.js?v=connect4"></script>
+  <script src="connect.js?v=connect5"></script>
 </body>
 </html>

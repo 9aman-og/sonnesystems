@@ -1,7 +1,7 @@
 # Lyfe - your life, lightly kept
 
-One calm place for everything: tasks, projects, goals, education, work log,
-notes, docs - and **EOS**, a companion you can just talk to.
+One calm place for everything: what you are tracking, what you want to keep,
+what you are learning, and **EOS**, a companion you can just talk to.
 
 No frameworks, no build step, no dependencies. Three files that will still
 open in twenty years.
@@ -40,29 +40,30 @@ Files added for this: `manifest.webmanifest`, `sw.js`, `icon-192/512*.png`.
 
 ## Sections
 
-| Section   | What it holds                                            |
-|-----------|----------------------------------------------------------|
-| Today     | What needs you now - due tasks, quick capture, a glance at everything in motion |
-| EOS       | Your companion. Talk like you'd text a friend - EOS files things for you |
-| Tasks     | Grouped Overdue / Today / Upcoming / Someday             |
-| Projects  | Bigger undertakings with progress                        |
-| Goals     | Long-horizon aims with tickable milestones               |
-| Education | Degrees, courses, languages, certifications, books       |
-| Work Log  | A dated record of what actually moved forward (+ hours)  |
-| Notes     | Quick thoughts, searchable, pinnable                     |
-| Docs      | Longer writing, with word counts                         |
+| Section  | What it holds |
+|----------|---------------|
+| Today    | What needs you now, Pins / Projects / Pending shortcuts, Connect activity, and a small Wander discovery break |
+| EOS      | Your adaptive blob companion. Talk naturally and EOS files things for you |
+| Connect  | The separate Lyfe Connect social and collaboration workspace |
+| Tracking | Tasks, projects, goals, and a dated work log, organized as tabs |
+| Library  | Searchable notes, pinned thoughts, and longer docs |
+| Profile  | Your identity, approved Connect details, and your learning record |
 
 ## Lyfe Connect
 
 `connect.html` is a functional, local-first preview of Lyfe Connect, a
 networking platform for collaborators, peers, mentors, projects, and focused
-communities. It combines a visual work feed, context-rich profiles, private
-outreach drafts, small topic Circles, and lightweight workspace pages.
+communities. It combines a visual work feed, user-authored posts with optional
+local images, context-rich profiles, a useful activity inbox, private outreach drafts, small topic Circles,
+and lightweight workspace pages.
 
-The preview uses fictional people and posts, and stores all Connect activity in
-this browser under `lyfe.connect.preview.v1`. Nothing is published or sent to a
-real person. A workspace page can offer its approved title and note to Lyfe as a
-task, but Lyfe asks for confirmation before copying anything.
+The preview uses clearly labelled fictional people and sample posts, while posts
+you create are shown as your own local preview content. Connect stores its
+activity in this browser under `lyfe.connect.preview.v1`; nothing is published
+or sent to a real person. Approved profile fields can sync locally between Lyfe
+and Connect, but tasks, notes, learning, and private workspace data never move.
+A workspace page can offer its approved title and note to Lyfe as a task, but
+Lyfe asks for confirmation before copying anything.
 
 ## EOS, the companion
 
@@ -119,17 +120,17 @@ Lyfe has two complete identities, not two tints of one design:
   way of a 2000s Sony commercial. Even the icons and micro-copy change
   (`LYFE ::CRYSTAL`, `WELCOME.. ::2K`).
 
-In Wander, photos tune in over a clean loading screen (no placeholder art)
-and you can flip places with the ← → arrow keys.
+The old standalone Wander tab now lives on Today. Photos tune in over a clean
+loading screen (no placeholder art), and you can flip places with the ← → keys.
 
 Auto by default - Crystal in daylight hours, Orbit after dark; pick Light or
 Dark in Settings to pin one. Cards lift softly under the cursor with an
 iridescent light that follows it, and a thin holo rail tracks your scroll;
 set your OS to reduced motion to turn all animation off.
 
-EOS appears as a pixel puppy (cream coat, golden ears, a sprout on the head,
-charcoal bandana) with a gentle idle bob, blink and sprout sway - and closed
-sleepy eyes if you're up past 11pm.
+EOS appears as a small liquid blob that changes with Crystal and Orbit, with a
+gentle float, blink, and sleepy eyes after 11pm. The home screen uses Pins,
+Projects, and Pending shortcuts in place of the old decorative ticker.
 
 ## Files
 

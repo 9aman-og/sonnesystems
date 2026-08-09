@@ -160,15 +160,40 @@
 
   applyLyfeTheme();
 
+  function syncProfileFromLyfe(target) {
+    try {
+      var lyfe = JSON.parse(localStorage.getItem("lyfe.v1") || "null");
+      var settings = lyfe && lyfe.settings;
+      if (!settings || settings.connectSync === false) return target;
+      var profile = target.profile;
+      if (settings.name) profile.name = String(settings.name).slice(0, 40);
+      if (settings.username) profile.username = String(settings.username).slice(0, 32);
+      if (settings.city || settings.country) profile.city = String(settings.city || settings.country).slice(0, 60);
+      if (settings.headline) profile.headline = String(settings.headline).slice(0, 100);
+      if (settings.bio) profile.bio = String(settings.bio).slice(0, 500);
+      if (settings.website) profile.website = String(settings.website).slice(0, 200);
+      if (Array.isArray(settings.profileInterests) && settings.profileInterests.length) {
+        profile.sparks = settings.profileInterests.filter(function (x) { return SPARKS.indexOf(x) > 0; }).slice(0, 8);
+      }
+      if (!profile.prompt && (profile.bio || profile.headline)) profile.prompt = String(profile.bio || profile.headline).slice(0, 280);
+      if (profile.name) target.onboarded = true;
+    } catch (error) {}
+    return target;
+  }
+
   function defaultState() {
     return {
-      version: 2,
+      version: 3,
       onboarded: false,
       paused: false,
       filter: "All",
       profile: {
         name: "",
+        username: "",
         city: "",
+        headline: "",
+        bio: "",
+        website: "",
         intent: "collaborators",
         sparks: [],
         prompt: ""
@@ -178,6 +203,8 @@
       blocked: [],
       savedPosts: [],
       usefulPosts: [],
+      myPosts: [],
+      notifications: [],
       conversations: [],
       plans: [],
       circles: [],
@@ -190,13 +217,17 @@
     var base = defaultState();
     try {
       var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (!raw || typeof raw !== "object") return base;
+      if (!raw || typeof raw !== "object") return syncProfileFromLyfe(base);
       base.onboarded = raw.onboarded === true;
       base.paused = raw.paused === true;
       base.filter = SPARKS.indexOf(raw.filter) >= 0 ? raw.filter : "All";
       if (raw.profile && typeof raw.profile === "object") {
         base.profile.name = String(raw.profile.name || "").slice(0, 40);
+        base.profile.username = String(raw.profile.username || "").slice(0, 32);
         base.profile.city = String(raw.profile.city || "").slice(0, 60);
+        base.profile.headline = String(raw.profile.headline || "").slice(0, 100);
+        base.profile.bio = String(raw.profile.bio || "").slice(0, 500);
+        base.profile.website = String(raw.profile.website || "").slice(0, 200);
         base.profile.intent = String(raw.profile.intent || "collaborators");
         base.profile.sparks = Array.isArray(raw.profile.sparks)
           ? raw.profile.sparks.filter(function (x) { return SPARKS.indexOf(x) > 0; }).slice(0, 8)
@@ -208,13 +239,27 @@
       });
       base.conversations = Array.isArray(raw.conversations) ? raw.conversations.filter(validConversation).slice(0, 50) : [];
       base.plans = Array.isArray(raw.plans) ? raw.plans.filter(validPlan).slice(0, 100) : [];
+      base.myPosts = Array.isArray(raw.myPosts) ? raw.myPosts.filter(validPost).slice(0, 80).map(function (item) {
+        return {
+          id: String(item.id || uid()),
+          label: String(item.label || "BUILD LOG").slice(0, 30),
+          title: String(item.title || "").slice(0, 140),
+          body: String(item.body || "").slice(0, 900),
+          tags: Array.isArray(item.tags) ? item.tags.map(String).filter(Boolean).slice(0, 6) : [],
+          visual: ["flow", "map", "branches"].indexOf(String(item.visual)) >= 0 ? String(item.visual) : "flow",
+          image: /^data:image\/(?:png|jpe?g|webp);base64,/i.test(String(item.image || "")) ? String(item.image).slice(0, 2200000) : "",
+          createdAt: Number(item.createdAt || Date.now()),
+          updatedAt: Number(item.updatedAt || item.createdAt || Date.now())
+        };
+      }) : [];
+      base.notifications = Array.isArray(raw.notifications) ? raw.notifications.filter(validNotification).slice(0, 60) : [];
       base.customCircles = Array.isArray(raw.customCircles)
         ? raw.customCircles.filter(function (item) { return item && String(item.name || "").trim(); }).slice(0, 30)
         : [];
       base.circleDrafts = raw.circleDrafts && typeof raw.circleDrafts === "object" ? raw.circleDrafts : {};
-      return base;
+      return syncProfileFromLyfe(base);
     } catch (error) {
-      return base;
+      return syncProfileFromLyfe(base);
     }
   }
 
@@ -227,12 +272,40 @@
     return item && typeof item === "object" && String(item.title || "").trim();
   }
 
+  function validPost(item) {
+    return item && typeof item === "object" && String(item.title || "").trim() && String(item.body || "").trim();
+  }
+
+  function validNotification(item) {
+    return item && typeof item === "object" && String(item.text || "").trim();
+  }
+
   function saveState() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       return true;
     } catch (error) {
       toast("This browser could not save the change.");
+      return false;
+    }
+  }
+
+  function syncProfileToLyfe() {
+    try {
+      var lyfe = JSON.parse(localStorage.getItem("lyfe.v1") || "null");
+      if (!lyfe || !lyfe.settings || lyfe.settings.connectSync === false) return false;
+      lyfe.settings.name = state.profile.name;
+      lyfe.settings.username = state.profile.username;
+      lyfe.settings.city = state.profile.city;
+      lyfe.settings.headline = state.profile.headline;
+      lyfe.settings.bio = state.profile.bio;
+      lyfe.settings.website = state.profile.website;
+      lyfe.settings.profileInterests = state.profile.sparks.slice(0, 8);
+      lyfe.rev = Number(lyfe.rev || 0) + 1;
+      lyfe.savedAt = Date.now();
+      localStorage.setItem("lyfe.v1", JSON.stringify(lyfe));
+      return true;
+    } catch (error) {
       return false;
     }
   }
@@ -250,13 +323,81 @@
       .replace(/'/g, "&#039;");
   }
 
+  function preparePostImage(file) {
+    return new Promise(function (resolve, reject) {
+      if (!file || !file.name) { resolve(""); return; }
+      if (!/^image\//.test(file.type || "") || file.size > 12 * 1024 * 1024) {
+        reject(new Error("Choose an image smaller than 12 MB."));
+        return;
+      }
+      var reader = new FileReader();
+      reader.onerror = function () { reject(new Error("That image could not be read.")); };
+      reader.onload = function () {
+        var img = new Image();
+        img.onerror = function () { reject(new Error("That image format is not supported.")); };
+        img.onload = function () {
+          var max = 1200;
+          var scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+          var canvas = document.createElement("canvas");
+          canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+          canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+          var context = canvas.getContext("2d");
+          context.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL("image/webp", .8));
+        };
+        img.src = String(reader.result || "");
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
   function profileById(id) {
     return PROFILES.find(function (profile) { return profile.id === id; }) || null;
+  }
+
+  function ownProfile() {
+    var name = String(state.profile.name || "You").trim() || "You";
+    var initials = name.split(/\s+/).slice(0, 2).map(function (part) { return part.charAt(0); }).join("").toUpperCase() || "LY";
+    return {
+      id: "me",
+      name: name,
+      role: state.profile.headline || "Lyfe Connect member",
+      city: state.profile.city || "Your network",
+      initials: initials,
+      color: "var(--accent)"
+    };
+  }
+
+  function allPosts() {
+    return state.myPosts.map(function (post) {
+      return Object.assign({}, post, { mine: true, profileId: "me" });
+    }).concat(POSTS);
+  }
+
+  function addNotification(message, kind) {
+    state.notifications.unshift({
+      id: uid(),
+      text: String(message || "").slice(0, 240),
+      kind: String(kind || "activity"),
+      createdAt: Date.now(),
+      read: false
+    });
+    state.notifications = state.notifications.slice(0, 60);
+    renderNotificationCount();
   }
 
   function shortDate(timestamp) {
     var date = new Date(Number(timestamp) || Date.now());
     return date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
+  }
+
+  function timeAgo(timestamp) {
+    var seconds = Math.max(0, Math.floor((Date.now() - Number(timestamp || Date.now())) / 1000));
+    if (seconds < 60) return "just now";
+    if (seconds < 3600) return Math.floor(seconds / 60) + "m ago";
+    if (seconds < 86400) return Math.floor(seconds / 3600) + "h ago";
+    if (seconds < 604800) return Math.floor(seconds / 86400) + "d ago";
+    return shortDate(timestamp);
   }
 
   function dayKey() {
@@ -393,21 +534,23 @@
   function renderFeed() {
     var root = document.getElementById("feed-list");
     if (!root) return;
-    root.innerHTML = POSTS.map(function (post) {
-      var profile = profileById(post.profileId);
+    root.innerHTML = allPosts().map(function (post) {
+      var profile = post.mine ? ownProfile() : profileById(post.profileId);
       var saved = state.savedPosts.indexOf(post.id) >= 0;
       var useful = state.usefulPosts.indexOf(post.id) >= 0;
       return [
-        "<article class=\"feed-card\">",
+        "<article class=\"feed-card ", post.mine ? "my-feed-card" : "", "\">",
           "<header class=\"feed-author\"><span class=\"thread-avatar\" style=\"--thread-color:", esc(profile.color), "\">", esc(profile.initials),
-          "</span><span><strong>", esc(profile.name), "</strong><small>", esc(profile.role), " · ", esc(profile.city), "</small></span></header>",
-          "<div class=\"feed-visual visual-", esc(post.visual), "\" aria-label=\"Abstract project preview\"><i></i><i></i><i></i><span>", esc(post.label), "</span></div>",
+          "</span><span><strong>", esc(profile.name), "</strong><small>", esc(profile.role), " · ", esc(profile.city), post.mine ? " · YOUR POST" : "", "</small></span></header>",
+          post.image
+            ? "<div class=\"feed-photo\"><img src=\"" + esc(post.image) + "\" alt=\"Image attached to " + esc(post.title) + "\"><span>" + esc(post.label) + "</span></div>"
+            : "<div class=\"feed-visual visual-" + esc(post.visual) + "\" aria-label=\"Abstract project preview\"><i></i><i></i><i></i><span>" + esc(post.label) + "</span></div>",
           "<div class=\"feed-copy\"><p class=\"eyebrow\">", esc(post.label), "</p><h3>", esc(post.title), "</h3><p>", esc(post.body), "</p>",
           "<div class=\"interest-tags\">", post.tags.map(function (tag) { return "<span>" + esc(tag) + "</span>"; }).join(""), "</div></div>",
           "<footer class=\"feed-actions\">",
-            "<button type=\"button\" data-action=\"useful-post\" data-id=\"", esc(post.id), "\" class=\"", useful ? "active" : "", "\">", useful ? "Marked useful" : "Useful", "</button>",
-            "<button type=\"button\" data-action=\"save-post\" data-id=\"", esc(post.id), "\" class=\"", saved ? "active" : "", "\">", saved ? "Saved" : "Save", "</button>",
-            "<button type=\"button\" data-action=\"post-reply\" data-id=\"", esc(post.id), "\">Respond privately ↗</button>",
+            post.mine
+              ? "<button type=\"button\" data-action=\"edit-post\" data-id=\"" + esc(post.id) + "\">Edit</button><button type=\"button\" data-action=\"delete-post\" data-id=\"" + esc(post.id) + "\">Delete</button><span class=\"local-post-note\">LOCAL PREVIEW</span>"
+              : "<button type=\"button\" data-action=\"useful-post\" data-id=\"" + esc(post.id) + "\" class=\"" + (useful ? "active" : "") + "\">" + (useful ? "Marked useful" : "Useful") + "</button><button type=\"button\" data-action=\"save-post\" data-id=\"" + esc(post.id) + "\" class=\"" + (saved ? "active" : "") + "\">" + (saved ? "Saved" : "Save") + "</button><button type=\"button\" data-action=\"post-reply\" data-id=\"" + esc(post.id) + "\">Respond privately ↗</button>",
           "</footer>",
         "</article>"
       ].join("");
@@ -543,9 +686,21 @@
   function fillProfileForm() {
     var form = document.getElementById("profile-form");
     form.elements.name.value = state.profile.name;
+    form.elements.username.value = state.profile.username;
     form.elements.city.value = state.profile.city;
+    form.elements.headline.value = state.profile.headline;
+    form.elements.bio.value = state.profile.bio;
+    form.elements.website.value = state.profile.website;
     form.elements.intent.value = state.profile.intent;
     form.elements.prompt.value = state.profile.prompt;
+  }
+
+  function renderNotificationCount() {
+    var badge = document.getElementById("notification-count");
+    if (!badge) return;
+    var count = state.notifications.filter(function (item) { return !item.read; }).length;
+    badge.textContent = count > 99 ? "99+" : String(count);
+    badge.hidden = count === 0;
   }
 
   function renderNavigation() {
@@ -566,6 +721,7 @@
     renderPlans();
     renderCircles();
     fillProfileForm();
+    renderNotificationCount();
     renderNavigation();
   }
 
@@ -628,6 +784,47 @@
     ].join("");
   }
 
+  function showPostModal(post) {
+    var item = post || { id: "", label: "BUILD LOG", title: "", body: "", tags: [], visual: "flow" };
+    openModal([
+      modalHead(item.id ? "Edit your post." : "Share work with context.", "Connect posts are for progress, questions, useful resources, and open calls—not polished personal branding."),
+      "<form class=\"modal-body\" data-form=\"post\">",
+        "<input type=\"hidden\" name=\"postId\" value=\"", esc(item.id), "\">",
+        "<label><span>Post type</span><select name=\"label\"><option ", item.label === "BUILD LOG" ? "selected" : "", ">BUILD LOG</option><option ", item.label === "RESEARCH NOTE" ? "selected" : "", ">RESEARCH NOTE</option><option ", item.label === "QUESTION" ? "selected" : "", ">QUESTION</option><option ", item.label === "OPEN CALL" ? "selected" : "", ">OPEN CALL</option><option ", item.label === "RESOURCE" ? "selected" : "", ">RESOURCE</option></select></label>",
+        "<label><span>Title</span><input name=\"title\" maxlength=\"140\" required placeholder=\"What changed, what did you learn, or what do you need?\" value=\"", esc(item.title), "\"></label>",
+        "<label><span>Context</span><textarea name=\"body\" rows=\"7\" maxlength=\"900\" required placeholder=\"Give people enough context to understand the work and respond usefully.\">", esc(item.body), "</textarea></label>",
+        "<label><span>Topics, separated by commas</span><input name=\"tags\" maxlength=\"160\" placeholder=\"Design, research, open source\" value=\"", esc((item.tags || []).join(", ")), "\"></label>",
+        item.image ? "<div class=\"post-image-current\"><img src=\"" + esc(item.image) + "\" alt=\"Current post image\"><label class=\"inline-check\"><input type=\"checkbox\" name=\"removeImage\" value=\"yes\"><span>Remove this image</span></label></div>" : "",
+        "<label><span>", item.image ? "Replace image (optional)" : "Add an image (optional)", "</span><input type=\"file\" name=\"image\" accept=\"image/*\"></label>",
+        "<label><span>Visual language when there is no image</span><select name=\"visual\"><option value=\"flow\" ", item.visual === "flow" ? "selected" : "", ">Flow</option><option value=\"map\" ", item.visual === "map" ? "selected" : "", ">Map</option><option value=\"branches\" ", item.visual === "branches" ? "selected" : "", ">Branches</option></select></label>",
+        "<p class=\"form-note\">This saves a post inside the private preview on this device. It is not published to a live network.</p>",
+        "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"modal-close\">Cancel</button><button class=\"primary-button\" type=\"submit\">", item.id ? "Save changes" : "Save post to preview", "</button></div>",
+      "</form>"
+    ].join(""), true);
+  }
+
+  function showNotifications() {
+    var items = state.notifications.length ? state.notifications.map(function (item) {
+      return "<article class=\"notification-item " + (!item.read ? "unread" : "") + "\"><i aria-hidden=\"true\"></i><div><p>" + esc(item.text) + "</p><span>" + esc(timeAgo(item.createdAt)) + " · " + esc(item.kind || "activity") + "</span></div></article>";
+    }).join("") : "<div class=\"notification-empty\"><div class=\"empty-core\"></div><h3>Nothing needs your attention.</h3><p>Saved posts, workspace changes, circles, and private outreach activity will appear here.</p></div>";
+    openModal([
+      modalHead("Connect notifications", "A small, chronological inbox for useful activity—without likes, streaks, or urgency theatre."),
+      "<div class=\"modal-body notification-list\">", items, "</div>",
+      state.notifications.length ? "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"clear-notifications\">Clear activity</button></div>" : ""
+    ].join(""), true);
+    state.notifications.forEach(function (item) { item.read = true; });
+    saveState();
+    renderNotificationCount();
+  }
+
+  function showDeletePostConfirm(post) {
+    openModal([
+      modalHead("Remove this post?", "It will be removed from this local preview. Your profile and other Connect data stay unchanged."),
+      "<div class=\"context-card modal-body\"><span>YOUR POST</span><p>", esc(post.title), "</p></div>",
+      "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"modal-close\">Keep post</button><button class=\"primary-button\" type=\"button\" data-action=\"delete-post-confirm\" data-id=\"", esc(post.id), "\">Remove post</button></div>"
+    ].join(""));
+  }
+
   function showOnboarding() {
     ui.onboardingSparks = state.profile.sparks.slice();
     var chips = SPARKS.slice(1).map(function (spark) {
@@ -637,7 +834,7 @@
         "\" aria-pressed=\"" + (active ? "true" : "false") + "\">" + esc(spark) + "</button>";
     }).join("");
     openModal([
-      "<img class=\"onboard-mark\" src=\"../assets/lyfe_connect_logo.png\" alt=\"\">",
+      "<img class=\"onboard-mark\" src=\"../assets/lyfe_connect_logo_v2.png\" alt=\"\">",
       modalHead("Build a network around your work.", "Choose a few fields so the private preview can show useful people, posts, projects, and circles."),
       "<div class=\"onboard-steps\"><i class=\"active\"></i><i class=\"active\"></i><i></i></div>",
       "<form class=\"modal-body\" data-form=\"onboarding\">",
@@ -684,7 +881,7 @@
     openModal([
       modalHead("Safety is part of the product.", "The preview keeps control close and makes its current limits explicit."),
       "<div class=\"modal-body safety-list\">",
-        "<div class=\"safety-item\"><span>1</span><div><h3>Nothing is published or sent from this preview.</h3><p>Profiles, posts, and circles are fictional. Outreach drafts, workspace pages, circle notes, and profile details stay in this browser unless you deliberately add a task to Lyfe.</p></div></div>",
+        "<div class=\"safety-item\"><span>1</span><div><h3>Nothing is published or sent from this preview.</h3><p>Sample profiles, sample posts, and sample circles are fictional. Your own posts, outreach drafts, workspace pages, circle notes, and profile details stay in this browser unless you deliberately add a task to Lyfe.</p></div></div>",
         "<div class=\"safety-item\"><span>2</span><div><h3>Pause, hide, and erase are always available.</h3><p>There is no penalty for taking a break. Hidden profiles stay hidden, and erasing removes the local preview record.</p></div></div>",
         "<div class=\"safety-item\"><span>3</span><div><h3>A live network needs real trust operations.</h3><p>Identity and organization checks, trained moderation, scam and spam detection, reporting operations, and appeal paths must exist before public accounts launch.</p></div></div>",
         "<div class=\"safety-item\"><span>4</span><div><h3>This is not an emergency service.</h3><p>If anyone is in immediate danger, contact the appropriate local emergency service or a trusted person nearby.</p></div></div>",
@@ -775,6 +972,40 @@
 
     if (action === "view") {
       setView(el.dataset.view);
+      return;
+    }
+    if (action === "notifications") {
+      showNotifications();
+      return;
+    }
+    if (action === "clear-notifications") {
+      state.notifications = [];
+      saveState();
+      closeModal();
+      renderNotificationCount();
+      toast("Connect activity cleared from this device.");
+      return;
+    }
+    if (action === "new-post") {
+      showPostModal();
+      return;
+    }
+    if (action === "edit-post") {
+      var editablePost = state.myPosts.find(function (post) { return post.id === el.dataset.id; });
+      if (editablePost) showPostModal(editablePost);
+      return;
+    }
+    if (action === "delete-post") {
+      var removablePost = state.myPosts.find(function (post) { return post.id === el.dataset.id; });
+      if (removablePost) showDeletePostConfirm(removablePost);
+      return;
+    }
+    if (action === "delete-post-confirm") {
+      state.myPosts = state.myPosts.filter(function (post) { return post.id !== el.dataset.id; });
+      saveState();
+      closeModal();
+      renderFeed();
+      toast("Post removed from the private preview.");
       return;
     }
     if (action === "filter") {
@@ -895,9 +1126,12 @@
     }
     if (action === "join-circle") {
       toggleInList(state.circles, el.dataset.id);
+      var joinedCircle = circleById(el.dataset.id);
+      addNotification((state.circles.indexOf(el.dataset.id) >= 0 ? "Joined " : "Left ") + (joinedCircle ? joinedCircle.name : "a circle") + ".", "circle");
       saveState();
       closeModal();
       renderCircles();
+      renderNotificationCount();
       toast(state.circles.indexOf(el.dataset.id) >= 0 ? "Circle joined in this private preview." : "You left the circle.");
       return;
     }
@@ -934,12 +1168,45 @@
     if (action === "modal-backdrop" && event.target === el) closeModal();
   });
 
-  document.addEventListener("submit", function (event) {
+  document.addEventListener("submit", async function (event) {
     var form = event.target;
     var kind = form.dataset.form;
     if (!kind && form.id !== "profile-form") return;
     event.preventDefault();
     var data = new FormData(form);
+
+    if (kind === "post") {
+      var postId = String(data.get("postId") || "");
+      var postTitle = String(data.get("title") || "").trim();
+      var postBody = String(data.get("body") || "").trim();
+      if (!postTitle || !postBody) return;
+      var postValues = {
+        label: String(data.get("label") || "BUILD LOG").slice(0, 30),
+        title: postTitle.slice(0, 140),
+        body: postBody.slice(0, 900),
+        tags: String(data.get("tags") || "").split(",").map(function (tag) { return tag.trim(); }).filter(Boolean).slice(0, 6),
+        visual: ["flow", "map", "branches"].indexOf(String(data.get("visual"))) >= 0 ? String(data.get("visual")) : "flow",
+        image: ""
+      };
+      var existingPost = state.myPosts.find(function (post) { return post.id === postId; });
+      postValues.image = existingPost && data.get("removeImage") !== "yes" ? String(existingPost.image || "") : "";
+      var imageFile = data.get("image");
+      if (imageFile && imageFile.name) {
+        try { postValues.image = await preparePostImage(imageFile); }
+        catch (imageError) { toast(imageError.message || "That image could not be added."); return; }
+      }
+      if (existingPost) Object.assign(existingPost, postValues, { updatedAt: Date.now() });
+      else state.myPosts.unshift(Object.assign({ id: uid(), createdAt: Date.now() }, postValues));
+      addNotification(existingPost ? "Updated your post: " + postValues.title : "Saved your new post: " + postValues.title, "post");
+      saveState();
+      closeModal();
+      renderFeed();
+      renderNotificationCount();
+      setView("discover");
+      document.getElementById("feed-title").scrollIntoView({ behavior: "smooth", block: "start" });
+      toast(existingPost ? "Post updated in the private preview." : "Post saved to the private preview.");
+      return;
+    }
 
     if (kind === "onboarding") {
       state.profile.name = String(data.get("name") || "").trim().slice(0, 40);
@@ -971,6 +1238,8 @@
       thread.messages.push({ id: uid(), text: opening.slice(0, 600), createdAt: Date.now() });
       ui.activeConversation = thread.id;
       if (state.saved.indexOf(profileId) < 0) state.saved.push(profileId);
+      var openingProfile = profileById(profileId);
+      addNotification("Saved a private outreach draft" + (openingProfile ? " for " + openingProfile.name : "") + ".", "network");
       saveState();
       closeModal();
       renderAll();
@@ -1005,6 +1274,7 @@
       var existingPage = state.plans.find(function (plan) { return plan.id === planId; });
       if (existingPage) Object.assign(existingPage, pageValues, { updatedAt: Date.now() });
       else state.plans.unshift(Object.assign({ id: uid(), createdAt: Date.now() }, pageValues));
+      addNotification((existingPage ? "Updated workspace page: " : "Created workspace page: ") + pageValues.title, "workspace");
       saveState();
       closeModal();
       renderPlans();
@@ -1027,6 +1297,7 @@
       };
       state.customCircles.unshift(newCircle);
       state.circles.push(newCircle.id);
+      addNotification("Created your private circle: " + newCircle.name, "circle");
       saveState();
       closeModal();
       renderCircles();
@@ -1041,6 +1312,7 @@
       if (!circleMessage || !circleById(circleId)) return;
       if (!Array.isArray(state.circleDrafts[circleId])) state.circleDrafts[circleId] = [];
       state.circleDrafts[circleId].push({ id: uid(), text: circleMessage.slice(0, 700), createdAt: Date.now() });
+      addNotification("Saved a draft in " + circleById(circleId).name + ".", "circle");
       saveState();
       var draftCircle = circleById(circleId);
       closeModal();
@@ -1052,12 +1324,19 @@
 
     if (form.id === "profile-form") {
       state.profile.name = String(data.get("name") || "").trim().slice(0, 40);
+      state.profile.username = String(data.get("username") || "").trim().replace(/^@+/, "").slice(0, 32);
       state.profile.city = String(data.get("city") || "").trim().slice(0, 60);
+      state.profile.headline = String(data.get("headline") || "").trim().slice(0, 100);
+      state.profile.bio = String(data.get("bio") || "").trim().slice(0, 500);
+      state.profile.website = String(data.get("website") || "").trim().slice(0, 200);
       state.profile.intent = String(data.get("intent") || "collaborators");
       state.profile.prompt = String(data.get("prompt") || "").trim().slice(0, 280);
       state.onboarded = true;
+      addNotification("Your Connect profile was updated.", "profile");
       saveState();
-      document.getElementById("profile-save-note").textContent = "Saved just now · only on this device.";
+      var syncedToLyfe = syncProfileToLyfe();
+      renderNotificationCount();
+      document.getElementById("profile-save-note").textContent = syncedToLyfe ? "Saved just now · approved fields synced to Lyfe." : "Saved just now · only on this device.";
       toast("Profile saved privately.");
     }
   });
@@ -1067,12 +1346,18 @@
   });
 
   window.addEventListener("storage", function (event) {
-    if (event.key === "lyfe.v1") applyLyfeTheme();
+    if (event.key === "lyfe.v1") {
+      applyLyfeTheme();
+      syncProfileFromLyfe(state);
+      saveState();
+      renderAll();
+    }
   });
 
   var requestedView = location.hash.replace("#", "");
   if (document.querySelector("[data-screen='" + requestedView + "']")) ui.view = requestedView;
   setView(ui.view, false);
   renderAll();
-  if (!state.onboarded) setTimeout(showOnboarding, 350);
+  if (requestedView === "notifications") setTimeout(showNotifications, 180);
+  else if (!state.onboarded) setTimeout(showOnboarding, 350);
 })();
