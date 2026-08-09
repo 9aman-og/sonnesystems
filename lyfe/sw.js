@@ -2,7 +2,7 @@
    HTML is network-first (always fresh when online); versioned assets cache-first. */
 "use strict";
 
-const CACHE = "lyfe-auth-41-connect-14";
+const CACHE = "lyfe-auth-42-connect-14";
 const SHELL = [
   "./",
   "./index.html",
@@ -34,6 +34,11 @@ self.addEventListener("activate", (e) => {
     caches.keys()
       .then((keys) => Promise.all(keys.filter((k) => k.startsWith("lyfe-") && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+      // A legacy worker may have served one last page with the old, empty auth
+      // configuration. Refresh open Lyfe windows once when this worker takes
+      // over so the repaired sign-in is available without manual cache steps.
+      .then(() => self.clients.matchAll({ type: "window", includeUncontrolled: true }))
+      .then((windows) => Promise.all(windows.map((client) => client.navigate(client.url).catch(() => null))))
   );
 });
 
