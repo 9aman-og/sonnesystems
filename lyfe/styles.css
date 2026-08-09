@@ -72,7 +72,7 @@
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { height: 100%; }
+html { height: 100%; max-width: 100%; overflow-x: hidden; }
 
 body {
   font-family: var(--sans);
@@ -84,6 +84,9 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
+
+/* Never expose a root-level horizontal scrollbar as decoration. */
+html, body { width: 100%; }
 
 /* ---------------- ambient sky ---------------- */
 
@@ -1102,22 +1105,6 @@ input[type="range"] { width: 100%; accent-color: var(--accent); padding: 0; bord
 
 .empty { padding: 40px 20px; text-align: center; color: var(--ink-3); }
 .empty em { font-family: var(--serif); font-style: italic; font-size: 14px; }
-
-/* ---------------- scroll progress (top rail) ---------------- */
-
-#scroll-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  z-index: 90;
-  background: linear-gradient(90deg, var(--accent-deep), var(--accent));
-  box-shadow: 0 0 12px var(--accent-glow);
-  transform: scaleX(0);
-  transform-origin: 0 50%;
-  pointer-events: none;
-}
 
 /* ---------------- daily photograph ---------------- */
 
@@ -2681,12 +2668,6 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
 
 :root[data-theme="light"] ::selection { background: rgba(64, 118, 255, .26); }
 
-:root[data-theme="light"] #scroll-progress {
-  height: 3px;
-  background: linear-gradient(90deg, #37e2ff, #2b5cf0 45%, #8b5cf6 75%, #ff7ad1);
-  box-shadow: 0 0 14px rgba(64, 118, 255, .5);
-}
-
 :root[data-theme="light"] :is(button, [role="button"]):focus-visible {
   outline: 2px solid var(--accent-2);
   outline-offset: 2px;
@@ -3826,8 +3807,7 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
    Themed entirely through the shared tokens, so it adapts to
    both ORBIT (dark) and CRYSTAL (light) with no per-theme rules.
    ============================================================ */
-body.gated #app,
-body.gated #scroll-progress { display: none; }
+body.gated #app { display: none; }
 
 #auth-gate {
   /* the login screen is always Crystal light, whatever theme the app uses.
@@ -4229,9 +4209,22 @@ body.signed-in #signin-sep { display: none; }
 .auth-or { display: flex; align-items: center; gap: 10px; color: var(--ink-3); font-size: 11px; }
 .auth-or::before, .auth-or::after { content: ""; height: 1px; flex: 1; background: var(--hair); }
 .auth-email-form { display: grid; gap: 7px; }
+.auth-email-form[hidden] { display: none; }
 .auth-email-form label { color: var(--ink-3); font-size: 11px; }
 .auth-email-form > div { display: grid; gap: 8px; }
 .auth-email-form input { width: 100%; min-height: 46px; padding: 0 13px; border: 1px solid var(--hair); border-radius: 12px; background: var(--panel-2); color: var(--ink); }
+.auth-otp-form small { color: var(--ink-3); font-size: 10px; }
+
+.home-calm {
+  margin-top: 22px;
+  border-radius: 28px;
+  background: var(--panel);
+}
+.home-calm .calm-img { height: clamp(220px, 33vw, 440px); animation: none; }
+.home-calm .calm-cap { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 18px; }
+.home-calm .calm-cap > div { display: grid; gap: 4px; }
+.home-calm .calm-cap strong { color: var(--ink); font-size: 14px; letter-spacing: 0; }
+.home-calm .btn { flex: 0 0 auto; }
 
 :root[data-theme="light"] .lyfe-home-hero { box-shadow: 0 24px 70px rgba(44,84,154,.15), inset 0 1px 0 rgba(255,255,255,.9); }
 :root[data-theme="light"] .home-gmail,
@@ -4262,4 +4255,6 @@ body.signed-in #signin-sep { display: none; }
   .home-fact-strip { align-items: flex-start; flex-direction: column; }
   .settings-integration-row { align-items: flex-start; flex-wrap: wrap; }
   .settings-integration-row .btn { width: 100%; }
+  .home-calm .calm-cap { align-items: stretch; flex-direction: column; }
+  .home-calm .btn { width: 100%; }
 }

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy | Lyfe</title>
+  <meta name="description" content="How Lyfe and Lyfe Connect handle your account, private workspace, network profile, and optional Gmail connection.">
+  <link rel="canonical" href="https://sonnesystems.com/lyfe/privacy.html">
+  <meta name="theme-color" content="#edf5ff">
+  <link rel="icon" type="image/png" href="favicon-32.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;display=swap">
+  <link rel="stylesheet" href="legal.css?v=1">
+</head>
+<body>
+  <header>
+    <a class="wordmark" href="./">lyfe</a>
+    <nav><a href="./">Open Lyfe</a><a href="connect.html">Open Connect</a></nav>
+  </header>
+  <main>
+    <p class="eyebrow">PRIVACY</p>
+    <h1>Your private work stays private.</h1>
+    <p class="lead">Lyfe is built around a simple rule: information only moves when you ask it to. This page explains what is kept, why it is needed, and what you can remove.</p>
+
+    <section>
+      <h2>What Lyfe keeps</h2>
+      <p>If you use Lyfe without an account, your tasks, notes, tracking, Library, settings, and EOS conversations stay in your browser. If you sign in, that private Lyfe state is synced to your own protected account record so it can follow you between devices.</p>
+      <p>Lyfe Connect stores the profile, posts, follows, network connections, messages, channels, and shared workspace information you choose to create there. Lyfe and Connect share your sign-in, but their working data is kept separately.</p>
+    </section>
+
+    <section>
+      <h2>Google sign-in and Gmail</h2>
+      <p>Google sign-in gives Lyfe your name, email address, and account identifier. Gmail access is optional and read-only. When you connect it, Lyfe can show recent inbox messages on Today. It cannot send, edit, or delete your email.</p>
+      <p>Email contents are not copied into Lyfe automatically. A message is added to your Library only when you press <strong>Save to Library</strong>. Google access tokens are kept in the active sign-in session and are not written into your Lyfe workspace data.</p>
+      <p>Lyfe’s use of information received from Google follows the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>, including its Limited Use requirements.</p>
+    </section>
+
+    <section>
+      <h2>How account data is protected</h2>
+      <p>Account and sync services are provided through Supabase. Database access rules limit each signed-in person to their own private Lyfe and Connect records. Public browser keys do not bypass those rules. OAuth client secrets are held by the authentication service and are never included in the website files.</p>
+    </section>
+
+    <section>
+      <h2>What we do not do</h2>
+      <ul>
+        <li>We do not sell personal information.</li>
+        <li>We do not use Gmail content for advertising.</li>
+        <li>We do not train AI models on your Gmail or private Lyfe workspace.</li>
+        <li>We do not publish your private tasks, notes, Library, or EOS conversations to Connect.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Your choices</h2>
+      <p>You can disconnect Gmail from your Google Account permissions, sign out at any time, export your local Lyfe data, or erase local Connect data from its privacy controls. To request deletion of synced account data, email <a href="mailto:9aman.aa@gmail.com">9aman.aa@gmail.com</a> from the address connected to the account.</p>
+    </section>
+
+    <footer><span>Last updated 9 August 2026</span><a href="../">Sonne Systems</a></footer>
+  </main>
+</body>
+</html>

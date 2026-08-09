@@ -523,6 +523,18 @@
     ].join("");
   }
 
+  function connectRelationships() {
+    try {
+      var value = JSON.parse(localStorage.getItem("lyfe.connect.suite.v1") || "null") || {};
+      return {
+        following: Array.isArray(value.following) ? value.following : [],
+        connected: Array.isArray(value.connected) ? value.connected : []
+      };
+    } catch (error) {
+      return { following: [], connected: [] };
+    }
+  }
+
   function renderDiscover() {
     var root = document.getElementById("profile-card");
     var actions = document.getElementById("discover-actions");
@@ -563,6 +575,17 @@
     actions.hidden = false;
     var saveButton = actions.querySelector("[data-action='save-profile'] strong");
     if (saveButton) saveButton.textContent = state.saved.indexOf(profile.id) >= 0 ? "Saved to network" : "Save to network";
+    var relationships = connectRelationships();
+    var followButton = actions.querySelector("[data-suite-action='follow']");
+    var networkButton = actions.querySelector("[data-suite-action='connect-person']");
+    if (followButton) {
+      followButton.dataset.id = profile.id;
+      followButton.querySelector("strong").textContent = relationships.following.indexOf(profile.id) >= 0 ? "Following" : "Follow";
+    }
+    if (networkButton) {
+      networkButton.dataset.id = profile.id;
+      networkButton.querySelector("strong").textContent = relationships.connected.indexOf(profile.id) >= 0 ? "In your network" : "Add to network";
+    }
   }
 
   function renderFeed() {
@@ -1370,6 +1393,10 @@
       return;
     }
     if (action === "modal-backdrop" && event.target === el) closeModal();
+  });
+
+  document.addEventListener("lyfeconnect:relationships", function () {
+    if (ui.view === "discover") renderDiscover();
   });
 
   document.addEventListener("submit", async function (event) {

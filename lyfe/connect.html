@@ -28,8 +28,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Unbounded:wght@500;600;700&amp;display=swap">
-  <link rel="stylesheet" href="connect.css?v=connect12">
-  <link rel="stylesheet" href="connect-suite.css?v=connect12">
+  <link rel="stylesheet" href="connect.css?v=connect13">
+  <link rel="stylesheet" href="connect-suite.css?v=connect13">
 </head>
 <body>
   <a class="skip-link" href="#connect-main">Skip to the app</a>
@@ -42,7 +42,7 @@
 
     <nav class="primary-nav" aria-label="Lyfe Connect">
       <button class="top-nav active" type="button" data-action="view" data-view="discover">Home</button>
-      <button class="top-nav" type="button" data-action="view" data-view="reels">Reels</button>
+      <button class="top-nav" type="button" data-action="view" data-view="reels">Instant</button>
       <button class="top-nav" type="button" data-action="view" data-view="network">Network</button>
       <button class="top-nav" type="button" data-action="view" data-view="connections">Messages <span id="connection-count" class="nav-count" hidden>0</span></button>
       <button class="top-nav" type="button" data-action="view" data-view="plans">Workspace</button>
@@ -109,6 +109,8 @@
           <div id="discover-actions" class="discover-actions">
             <button class="choice-button pass" type="button" data-action="pass"><span aria-hidden="true">×</span><strong>Pass for now</strong><small>Quietly move on</small></button>
             <button class="choice-button save" type="button" data-action="save-profile"><span aria-hidden="true">⌁</span><strong>Save to network</strong><small>No notification</small></button>
+            <button class="choice-button follow" type="button" data-suite-action="follow"><span aria-hidden="true">+</span><strong>Follow</strong><small>See their work</small></button>
+            <button class="choice-button network" type="button" data-suite-action="connect-person"><span aria-hidden="true">◎</span><strong>Add to network</strong><small>Open a direct path</small></button>
             <button class="choice-button respond" type="button" data-action="respond"><span aria-hidden="true">↗</span><strong>Respond to their work</strong><small>Begin with useful context</small></button>
           </div>
         </div>
@@ -131,8 +133,8 @@
 
     <section class="app-screen suite-screen" data-screen="reels" aria-labelledby="reels-title" hidden>
       <div class="screen-heading suite-heading">
-        <div><p class="eyebrow">REELS</p><h1 id="reels-title">Watch the idea. Keep the context.</h1></div>
-        <button class="primary-button" type="button" data-suite-action="new-reel">Create reel</button>
+        <div><p class="eyebrow">INSTANT</p><h1 id="reels-title">Watch the idea. Keep the context.</h1></div>
+        <button class="primary-button" type="button" data-suite-action="new-reel">Create Instant</button>
       </div>
       <div id="reels-app"></div>
     </section>
@@ -255,7 +257,7 @@
 
   <nav class="mobile-nav" aria-label="Lyfe Connect mobile navigation">
     <button class="active" type="button" data-action="view" data-view="discover"><span aria-hidden="true">◉</span>Home</button>
-    <button type="button" data-action="view" data-view="reels"><span aria-hidden="true">▷</span>Reels</button>
+    <button type="button" data-action="view" data-view="reels"><span aria-hidden="true">▷</span>Instant</button>
     <button type="button" data-action="view" data-view="network"><span aria-hidden="true">◌</span>Network</button>
     <button type="button" data-action="view" data-view="connections"><span aria-hidden="true">✉</span>Messages</button>
     <button type="button" data-action="view" data-view="plans"><span aria-hidden="true">◇</span>Workspace</button>
@@ -265,7 +267,7 @@
 
   <footer class="connect-footer">
     <span>Lyfe Connect · shared identity, separate space</span>
-    <div><button type="button" data-suite-action="settings">Settings</button><button type="button" data-action="safety">Safety</button><button type="button" data-action="profile-privacy">Privacy</button><a href="../">Sonne Systems</a><a href="./">Lyfe</a></div>
+    <div><button type="button" data-suite-action="settings">Settings</button><button type="button" data-action="safety">Safety</button><a href="privacy.html">Privacy</a><a href="../">Sonne Systems</a><a href="./">Lyfe</a></div>
   </footer>
 
   <input id="connect-import-file" type="file" accept=".json,application/json" hidden>
@@ -273,8 +275,8 @@
   <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
   <noscript><p class="noscript">Lyfe Connect needs JavaScript.</p></noscript>
   <script src="supabase-config.js?v=crystal-33"></script>
-  <script src="cloud.js?v=crystal-39"></script>
-  <script src="connect.js?v=connect12"></script>
-  <script src="connect-suite.js?v=connect12"></script>
+  <script src="cloud.js?v=crystal-40"></script>
+  <script src="connect.js?v=connect13"></script>
+  <script src="connect-suite.js?v=connect13"></script>
 </body>
 </html>

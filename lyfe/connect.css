@@ -125,11 +125,15 @@ a { color: inherit; }
 }
 .connect-brand-lockup { display: inline-flex; align-items: baseline; gap: 6px; white-space: nowrap; }
 .connect-brand-lockup strong {
+  display: inline-block;
+  padding-right: .13em;
+  margin-right: -.04em;
+  overflow: visible;
   font-family: var(--display);
   font-size: 18px;
   font-style: italic;
   font-weight: 700;
-  letter-spacing: -.07em;
+  letter-spacing: -.045em;
   background: linear-gradient(180deg, #14367e, #3f74e8 58%, #8fb6ff);
   -webkit-background-clip: text;
   background-clip: text;
@@ -420,7 +424,7 @@ a { color: inherit; }
 .availability strong { color: var(--ink); font-size: 13px; }
 .availability span { margin-top: 5px; color: var(--quiet); font-size: 12px; }
 
-.discover-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+.discover-actions { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
 .choice-button {
   min-height: 76px;
   padding: 13px 15px;
@@ -443,6 +447,9 @@ a { color: inherit; }
 .choice-button small { color: var(--quiet); font-size: 10px; }
 .choice-button.respond { border-color: color-mix(in srgb, var(--accent) 42%, var(--hair)); background: var(--reply); }
 .choice-button.respond > span { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 36%, var(--hair)); }
+.choice-button.follow > span { color: #7354df; border-color: color-mix(in srgb, #7354df 38%, var(--hair)); }
+.choice-button.network { border-color: color-mix(in srgb, var(--accent) 28%, var(--hair)); }
+.choice-button.network > span { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 34%, var(--hair)); }
 
 .empty-discover {
   min-height: 540px;
@@ -786,6 +793,7 @@ textarea { resize: vertical; line-height: 1.55; }
   .person-body { grid-template-columns: 1fr; }
   .person-side { padding: 28px 0 0; border-top: 1px solid var(--hair); border-left: 0; }
   .active-signals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .discover-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .compact-feed .feed-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
