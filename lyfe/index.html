@@ -93,7 +93,9 @@
       <label for="auth-otp">Six-digit code</label>
       <div><input id="auth-otp" name="token" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required placeholder="000000"><button class="auth-btn" type="submit">Verify code</button></div>
       <small>Use the code sent to your email. It expires shortly.</small>
+      <button class="auth-change-email" data-action="auth-change-email" type="button">Use another email</button>
     </form>
+    <p class="auth-error" data-auth-error role="alert" hidden></p>
     <button class="auth-btn auth-guest" data-action="auth-guest" type="button">Continue as guest</button>
     <p class="auth-fine">Guest keeps everything on this device. Sign in to sync privately across your devices.</p>
   </div>
@@ -103,9 +105,9 @@
 
 <div id="modal-root"></div>
 <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
-<script src="supabase-config.js?v=crystal-33"></script>
-<script src="cloud.js?v=crystal-40"></script>
-<script src="app.js?v=crystal-40"></script>
+<script src="supabase-config.js?v=auth-41"></script>
+<script src="cloud.js?v=auth-41"></script>
+<script src="app.js?v=auth-41"></script>
 <script>
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */

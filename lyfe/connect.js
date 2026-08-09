@@ -1022,7 +1022,7 @@
         "<label><span>Your city or time zone (optional)</span><input name=\"city\" maxlength=\"60\" autocomplete=\"address-level2\" placeholder=\"City, region, or UTC offset\" value=\"", esc(state.profile.city), "\"></label>",
         "<label><span>Choose a few fields</span><div class=\"profile-sparks\">", chips, "</div></label>",
         "<p class=\"form-note\">You can edit this later. Nothing is published until you choose to publish it.</p>",
-        "<div class=\"modal-actions\"><button class=\"primary-button\" type=\"submit\">Enter Connect</button></div>",
+        "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-suite-action=\"auth\">Sign in</button><button class=\"primary-button\" type=\"submit\">Enter Connect</button></div>",
       "</form>"
     ].join(""), true);
   }

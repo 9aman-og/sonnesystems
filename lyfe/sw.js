@@ -2,19 +2,19 @@
    HTML is network-first (always fresh when online); versioned assets cache-first. */
 "use strict";
 
-const CACHE = "lyfe-crystal-40-connect-13";
+const CACHE = "lyfe-auth-41-connect-14";
 const SHELL = [
   "./",
   "./index.html",
   "./styles.css?v=crystal-40",
-  "./supabase-config.js?v=crystal-33",
-  "./cloud.js?v=crystal-40",
-  "./app.js?v=crystal-40",
+  "./supabase-config.js?v=auth-41",
+  "./cloud.js?v=auth-41",
+  "./app.js?v=auth-41",
   "./connect.html",
   "./connect.css?v=connect13",
   "./connect-suite.css?v=connect13",
-  "./connect.js?v=connect13",
-  "./connect-suite.js?v=connect13",
+  "./connect.js?v=connect14",
+  "./connect-suite.js?v=connect14",
   "./connect.webmanifest",
   "./privacy.html",
   "./legal.css?v=1",
@@ -51,7 +51,7 @@ self.addEventListener("fetch", (e) => {
   if (isDoc) {
     // network-first so the app shell updates the moment you're online
     e.respondWith(
-      fetch(req).then((res) => {
+      fetch(req, { cache: "no-store" }).then((res) => {
         const copy = res.clone();
         const pageKey = url.pathname.endsWith("/connect.html") ? "./connect.html" : "./index.html";
         caches.open(CACHE).then((c) => c.put(pageKey, copy)).catch(() => {});
@@ -66,7 +66,7 @@ self.addEventListener("fetch", (e) => {
   // cache only as an offline fallback.
   if (url.pathname.endsWith("supabase-config.js")) {
     e.respondWith(
-      fetch(req).then((res) => {
+      fetch(req, { cache: "no-store" }).then((res) => {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
         return res;
