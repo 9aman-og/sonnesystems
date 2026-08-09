@@ -26,7 +26,7 @@
   ],
   "shortcuts": [
     { "name": "Home", "url": "./connect.html#discover" },
-    { "name": "Reels", "url": "./connect.html#reels" },
+    { "name": "Instant", "url": "./connect.html#reels" },
     { "name": "Messages", "url": "./connect.html#connections" },
     { "name": "Workspace", "url": "./connect.html#plans" }
   ]

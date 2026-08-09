@@ -17,6 +17,7 @@
      await .init()  -> "cloud" | "gate" | "unconfigured"
      await .signInGoogle()
      await .signInEmail(email)
+     await .verifyEmailOtp(email, token)
      await .signOut()
      await .pull()  -> {data,rev} | null
      await .push(data, rev)
@@ -34,6 +35,7 @@
   var SB_ANON = String(CFG.anonKey || "").trim();
   var configured = /^https:\/\/.+\.supabase\.co\/?$/.test(SB_URL) && SB_ANON.length > 20;
   var googleEnabled = CFG.googleEnabled === true;
+  var providerSettingsChecked = false;
 
   // Exact pin keeps an upstream release from changing the app between deploys.
   var SDK_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.2";
@@ -67,6 +69,20 @@
     return sb;
   }
 
+  async function refreshProviderSettings() {
+    if (!configured || providerSettingsChecked) return googleEnabled;
+    providerSettingsChecked = true;
+    try {
+      var response = await fetch(SB_URL.replace(/\/$/, "") + "/auth/v1/settings", {
+        headers: { apikey: SB_ANON }
+      });
+      if (!response.ok) return googleEnabled;
+      var settings = await response.json();
+      googleEnabled = !!(settings && settings.external && settings.external.google);
+    } catch (e) { /* configuration fallback remains available */ }
+    return googleEnabled;
+  }
+
   function userFrom(session) {
     if (!session || !session.user) return null;
     var u = session.user;
@@ -95,7 +111,7 @@
 
   var LyfeCloud = {
     configured: configured,
-    googleEnabled: googleEnabled,
+    get googleEnabled() { return googleEnabled; },
     get user() { return current; },
 
     /* Resolve auth on boot. Never throws.
@@ -105,6 +121,7 @@
     async init() {
       if (!configured) return "unconfigured";
       try {
+        await refreshProviderSettings();
         await ensureClient();
         var res = await sb.auth.getSession();
         var session = res && res.data ? res.data.session : null;
@@ -121,7 +138,8 @@
     },
 
     async signInGoogle() {
-      if (!googleEnabled) throw new Error("Google sign-in needs its OAuth provider configured first.");
+      await refreshProviderSettings();
+      if (!googleEnabled) throw new Error("Google sign-in is not ready on this deployment yet.");
       await ensureClient();
       var result = await sb.auth.signInWithOAuth({
         provider: "google",
@@ -132,7 +150,8 @@
     },
 
     async connectGmail() {
-      if (!googleEnabled) throw new Error("Gmail needs Google OAuth configured first.");
+      await refreshProviderSettings();
+      if (!googleEnabled) throw new Error("Gmail connection is not ready on this deployment yet.");
       await ensureClient();
       var result = await sb.auth.signInWithOAuth({
         provider: "google",
@@ -160,6 +179,20 @@
         }
       });
       if (result && result.error) throw result.error;
+      return result;
+    },
+
+    async verifyEmailOtp(email, token) {
+      await ensureClient();
+      var cleanEmail = String(email || "").trim().toLowerCase();
+      var cleanToken = String(token || "").replace(/\D/g, "");
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) throw new Error("Enter the email address that received the code");
+      if (!/^\d{6}$/.test(cleanToken)) throw new Error("Enter the six-digit code");
+      var result = await sb.auth.verifyOtp({ email: cleanEmail, token: cleanToken, type: "email" });
+      if (result && result.error) throw result.error;
+      var session = result && result.data ? result.data.session : null;
+      current = userFrom(session);
+      googleProviderToken = String(session && session.provider_token || "");
       return result;
     },
 

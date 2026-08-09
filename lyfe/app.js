@@ -585,6 +585,7 @@ const state = {
   unread: 0,
   wanderIndex: Math.floor(Math.random() * PLACES.length),
   factIndex: Math.floor(Math.random() * FACTS.length),
+  calmIndex: Math.floor(Math.random() * 100000),
 };
 
 let gmailMessages = [];
@@ -1165,63 +1166,6 @@ function viewToday() {
   const name = (d.settings.name || "").trim();
   const who = name || "Human";   // greeting knows their name once onboarded
 
-  /* Today is intentionally compact: private work first, then the connected
-     things a person explicitly chose to bring close. */
-  {
-    const openNow = d.tasks.filter(item => item.status !== "done");
-    const overdueNow = openNow.filter(item => item.due && item.due < t).sort(taskCmp);
-    const dueNow = openNow.filter(item => item.due === t).sort(taskCmp);
-    const doneNow = d.tasks.filter(item => item.status === "done" && item.completedAt && isoOf(new Date(item.completedAt)) === t)
-      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
-    const projects = d.projects.filter(project => project.status === "active").sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-    const saved = d.saved.slice().sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
-    const suite = readConnectSuiteState();
-    const workspacePins = (suite.savedReels || []).length + (suite.savedOpportunities || []).length + (suite.pinnedMessages || []).length;
-    const connect = connectSummary();
-    const fact = FACTS[state.factIndex % FACTS.length];
-
-    const quickTabs = `<nav class="home-tabs home-tabs-clean" aria-label="Quick views">
-      <button class="home-tab" type="button" data-action="home-tab" data-home-tab="pins"><span>Pins</span><b>${workspacePins}</b></button>
-      <button class="home-tab" type="button" data-action="home-tab" data-home-tab="projects"><span>Projects</span><b>${projects.length}</b></button>
-      <button class="home-tab" type="button" data-action="home-tab" data-home-tab="pending"><span>Pending</span><b>${openNow.length}</b></button>
-    </nav>`;
-    const queue = (overdueNow.length || dueNow.length || doneNow.length)
-      ? `<ul class="task-list">${overdueNow.map(item => taskRow(item)).join("")}${dueNow.map(item => taskRow(item, { hideDue: true })).join("")}${doneNow.map(item => taskRow(item, { hideDue: true })).join("")}</ul>`
-      : emptyState("Nothing needs you today.");
-    const projectRows = projects.slice(0, 4).map(project => `<button class="home-project-row" type="button" data-action="nav" data-view="projects"><span><strong>${esc(project.name)}</strong><small>${esc(project.area || "Project")}</small></span>${bar(project.progress || 0)}</button>`).join("") || emptyState("No active projects.");
-    const savedRows = saved.slice(0, 4).map(item => `<button class="home-saved-row" type="button" data-action="nav" data-view="saved"><span>${esc(item.source || "Saved")}</span><strong>${esc(item.title || "Untitled")}</strong></button>`).join("") || emptyState("Save mail or Connect items here.");
-
-    return `<div class="lyfe-home">
-      <section class="lyfe-home-hero" data-reveal>
-        <div class="lyfe-home-copy"><span class="home-index">${esc(fmtLongISO(t))}</span><h1>Good ${partCap},<br>${esc(who)}<span class="blink-dot">.</span></h1><p>${openNow.length ? `${openNow.length} thing${openNow.length === 1 ? "" : "s"} still open.` : "Your slate is clear."}</p><div><button class="btn btn-primary" type="button" data-action="new-task">+ Capture</button><button class="btn" type="button" data-action="nav" data-view="sol">${icon("sol")} Ask EOS</button></div></div>
-        <div class="lyfe-home-blob">${eosBlob(124, "eos-blob-home", solMoodNow())}<span>EOS</span></div>
-        <div class="lyfe-home-stats">
-          <button type="button" data-action="nav" data-view="tasks"><b>${overdueNow.length + dueNow.length}</b><span>due now</span></button>
-          <button type="button" data-action="nav" data-view="projects"><b>${projects.length}</b><span>projects</span></button>
-          <button type="button" data-action="home-tab" data-home-tab="pins"><b>${workspacePins}</b><span>workspace pins</span></button>
-          <button type="button" data-action="nav" data-view="saved"><b>${saved.length}</b><span>saved</span></button>
-        </div>
-      </section>
-
-      ${quickTabs}
-
-      <section class="home-primary-grid">
-        <section class="panel home-queue-card"><header><div><span class="eyebrow">TODAY</span><h2>What needs doing</h2></div><span class="queue-count">${overdueNow.length + dueNow.length} live</span></header><form class="quick-add command-add" data-form="quick-task-today"><span>+</span><input type="text" id="qa-title" name="title" maxlength="200" placeholder="Add something for today" autocomplete="off"><button class="btn btn-primary btn-sm" type="submit">Add</button></form>${queue}</section>
-        <aside class="home-eos-card panel"><div>${eosBlob(58, "eos-blob-status", solMoodNow())}<span class="eyebrow">EOS</span></div><h2>${overdueNow.length ? "Start with the smallest overdue thing." : "You have room to choose well."}</h2><button class="btn" type="button" data-action="nav" data-view="sol">Talk to EOS</button></aside>
-      </section>
-
-      ${gmailRailHtml()}
-
-      <section class="home-useful-grid">
-        <section class="panel home-projects-card"><header><div><span class="eyebrow">TRACKING</span><h2>Projects</h2></div><button class="linklike" type="button" data-action="nav" data-view="projects">All projects →</button></header><div>${projectRows}</div></section>
-        <section class="panel home-library-card"><header><div><span class="eyebrow">LIBRARY</span><h2>Saved</h2></div><button class="linklike" type="button" data-action="nav" data-view="saved">Open →</button></header><div>${savedRows}</div></section>
-        <a class="panel home-connect-card" href="connect.html"><img src="../assets/lyfe_connect_logo.png" alt=""><span class="eyebrow">LYFE CONNECT</span><h2>${connect.unread ? connect.unread + " new update" + (connect.unread === 1 ? "" : "s") : "Your network is quiet"}</h2><p>${esc(connect.latest)}</p><span>Open Connect →</span></a>
-      </section>
-
-      <section class="home-fact-strip panel"><div><span class="eyebrow">STRANGE BUT TRUE</span><p>${esc(fact)}</p></div><button class="btn" type="button" data-action="new-fact">Another fact ↻</button></section>
-    </div>`;
-  }
-
   const open = d.tasks.filter(x => x.status !== "done");
   const overdue = open.filter(x => x.due && x.due < t).sort(taskCmp);
   const dueToday = open.filter(x => x.due === t).sort(taskCmp);
@@ -1233,9 +1177,12 @@ function viewToday() {
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   const activeProjects = allActiveProjects.slice(0, 3);
   const recentNotes = d.notes.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 3);
-  const pinnedNotes = d.notes.filter(n => n.pinned);
+  const connectSuite = readConnectSuiteState();
+  const workspacePins = (connectSuite.savedReels || []).length +
+    (connectSuite.savedOpportunities || []).length +
+    (connectSuite.pinnedMessages || []).length;
   const homeTabs = `<nav class="home-tabs" aria-label="Quick views">
-    <button class="home-tab" type="button" data-action="home-tab" data-home-tab="pins"><span>Pins</span><b>${pinnedNotes.length}</b></button>
+    <button class="home-tab" type="button" data-action="home-tab" data-home-tab="pins"><span>Pins</span><b>${workspacePins}</b></button>
     <button class="home-tab" type="button" data-action="home-tab" data-home-tab="projects"><span>Projects</span><b>${allActiveProjects.length}</b></button>
     <button class="home-tab" type="button" data-action="home-tab" data-home-tab="pending"><span>Pending</span><b>${open.length}</b></button>
   </nav>`;
@@ -1255,6 +1202,13 @@ function viewToday() {
       <div class="wander-copy"><span>${esc(wanderCountry)}</span><h3>${esc(wanderName)}</h3><p>${esc(wanderBlurb)}</p></div>
     </section>
     <section class="fact-panel home-fact"><span class="eyebrow">STRANGE BUT TRUE</span><p>${esc(wanderFact)}</p><button class="linklike" data-action="new-fact">another fact ↻</button></section>
+  </section>`;
+
+  const calmHome = `<section class="panel tilt calm-card home-calm cx-moment" aria-labelledby="home-calm-title">
+    <img class="calm-img" alt="A quiet landscape selected for a short pause" loading="lazy"
+      src="https://picsum.photos/seed/lyfe-calm-${state.calmIndex}/1400/700"
+      onerror="this.closest('.calm-card').style.display='none'">
+    <div class="calm-cap"><div><span class="eyebrow">MOMENT OF CALM</span><strong id="home-calm-title">A small pause before the next thing.</strong></div><button class="btn" type="button" data-action="new-calm">Explore again ↻</button></div>
   </section>`;
 
   const connectActivity = connectSummary();
@@ -1348,6 +1302,8 @@ function viewToday() {
 
     ${homeTabs}
 
+    ${gmailRailHtml()}
+
     <section class="cx-bento">
       <section class="panel tilt cx-tile cx-queue">
         <div class="panel-head">
@@ -1406,6 +1362,8 @@ function viewToday() {
 
     ${wanderHome}
 
+    ${calmHome}
+
     <section class="cx-endcap" data-reveal>
       <i class="cx-endcap-disc" aria-hidden="true"></i>
       <span class="cx-endcap-kicker">YOU ARE NOT BEHIND.</span>
@@ -1455,10 +1413,11 @@ function viewToday() {
         <button data-action="nav" data-view="work"><b>${fmtHours(wh)}h</b><span>work logged</span></button>
         <button data-action="nav" data-view="education"><b>${d.education.filter(x => x.status === "in-progress").length}</b><span>learning</span></button>
       </div>
-      <div class="scroll-cue">SCROLL <i></i></div>
     </section>
 
     ${homeTabs}
+
+    ${gmailRailHtml()}
 
     <section class="home-grid">
       <div class="home-focus">
@@ -1522,6 +1481,8 @@ function viewToday() {
     </section>
 
     ${wanderHome}
+
+    ${calmHome}
 
     <section class="home-endcap">
       <span>YOU ARE NOT BEHIND.</span>
@@ -2990,7 +2951,7 @@ function viewSaved() {
       <h2>${esc(item.title || "Untitled")}</h2>
       ${item.body ? `<p>${esc(String(item.body).slice(0, 360))}</p>` : ""}
       <footer><span>${esc(item.kind || "item")}</span><button class="linklike danger" type="button" data-action="delete-saved" data-id="${esc(item.id)}">Remove</button></footer>
-    </article>`).join("")}</div>` : `<section class="panel saved-library-empty"><span class="eyebrow">SAVED</span><h2>Keep useful things without turning them into tasks.</h2><p>Save an email here, or send a reel, opportunity, post, file, or message over from Lyfe Connect.</p><a class="btn" href="connect.html#plans">Open Connect Workspace →</a></section>`;
+    </article>`).join("")}</div>` : `<section class="panel saved-library-empty"><span class="eyebrow">SAVED</span><h2>Keep useful things without turning them into tasks.</h2><p>Save an email here, or send an Instant, opportunity, post, file, or message over from Lyfe Connect.</p><a class="btn" href="connect.html#plans">Open Connect Workspace →</a></section>`;
   return pageHead("Saved", `<a class="btn" href="connect.html#plans">Connect Workspace →</a>`) + body;
 }
 
@@ -3283,20 +3244,6 @@ function autoDecorate(root, sameView) {
   });
 }
 
-/* scroll progress: a thin accent rail along the top of the viewport */
-let scrollRaf = false;
-function syncScrollProgress() {
-  const doc = document.documentElement;
-  const max = doc.scrollHeight - window.innerHeight;
-  const prog = max > 4 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
-  const bar = document.getElementById("scroll-progress");
-  if (bar) bar.style.transform = `scaleX(${prog.toFixed(4)})`;
-}
-window.addEventListener("scroll", () => {
-  if (!scrollRaf) { scrollRaf = true; requestAnimationFrame(() => { scrollRaf = false; syncScrollProgress(); }); }
-}, { passive: true });
-window.addEventListener("resize", syncScrollProgress, { passive: true });
-
 /* ---------------- real-time sky: sun rises, arcs, reddens at dusk, moon at night ---------------- */
 function lerp(a, b, t) { return a + (b - a) * t; }
 function skyRGB(t, isMoon) {
@@ -3573,6 +3520,13 @@ document.addEventListener("click", (e) => {
       render();
       break;
     }
+    case "new-calm": {
+      const previous = state.calmIndex;
+      do state.calmIndex = Math.floor(Math.random() * 100000);
+      while (state.calmIndex === previous);
+      render();
+      break;
+    }
     case "save-wander": {
       const place = PLACES[state.wanderIndex % PLACES.length];
       const now = Date.now();
@@ -3783,11 +3737,31 @@ document.addEventListener("submit", (e) => {
       const button = f.querySelector("button[type=submit]");
       if (button) { button.disabled = true; button.textContent = "Sending..."; }
       LyfeCloud.signInEmail(email).then(() => {
-        toast("Check your email for the sign-in link");
-        if (button) button.textContent = "Link sent";
+        const otpForm = document.querySelector('[data-form="auth-otp"]');
+        if (otpForm) {
+          const emailField = otpForm.querySelector('input[name="email"]');
+          if (emailField) emailField.value = email;
+          otpForm.hidden = false;
+          const tokenField = otpForm.querySelector('input[name="token"]');
+          if (tokenField) tokenField.focus();
+        }
+        f.hidden = true;
+        toast("A six-digit sign-in code is on its way");
       }).catch(error => {
-        toast(error && error.message ? error.message : "Could not send the sign-in link");
-        if (button) { button.disabled = false; button.textContent = "Email me a sign-in link"; }
+        toast(error && error.message ? error.message : "Could not send the sign-in code");
+        if (button) { button.disabled = false; button.textContent = "Send sign-in code"; }
+      });
+      break;
+    }
+    case "auth-otp": {
+      const email = val("email");
+      const token = val("token");
+      if (!(window.LyfeCloud && LyfeCloud.configured)) { toast("Email sign-in is not configured yet"); break; }
+      const button = f.querySelector("button[type=submit]");
+      if (button) { button.disabled = true; button.textContent = "Checking..."; }
+      LyfeCloud.verifyEmailOtp(email, token).then(() => enterCloud()).catch(error => {
+        toast(error && error.message ? error.message : "That code could not be verified");
+        if (button) { button.disabled = false; button.textContent = "Verify code"; }
       });
       break;
     }
@@ -4337,9 +4311,8 @@ function showAuthGate() {
   if (el) {
     const google = el.querySelector('[data-action="auth-google"]');
     const divider = el.querySelector(".auth-or");
-    const googleReady = !!(window.LyfeCloud && LyfeCloud.googleEnabled);
-    if (google) google.hidden = !googleReady;
-    if (divider) divider.hidden = !googleReady;
+    if (google) google.hidden = false;
+    if (divider) divider.hidden = false;
     el.hidden = false;
     setTimeout(() => {
       const first = el.querySelector("button:not([disabled])");
