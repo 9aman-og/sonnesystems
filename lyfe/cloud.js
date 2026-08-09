@@ -45,6 +45,8 @@
   var sb = null;        // supabase client (created lazily)
   var current = null;   // { id, email, name }
   var googleProviderToken = ""; // memory-only: never copied into Lyfe data
+  var lastAuthError = "";
+  var authListenerAttached = false;
   var pushTimer = null;
   var connectPushTimer = null;
 
@@ -66,6 +68,22 @@
     sb = window.supabase.createClient(SB_URL, SB_ANON, {
       auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
     });
+    if (!authListenerAttached) {
+      authListenerAttached = true;
+      sb.auth.onAuthStateChange(function (event, session) {
+        current = userFrom(session);
+        googleProviderToken = String(session && session.provider_token || "");
+        if (session) {
+          lastAuthError = "";
+          cleanUrl();
+        }
+        try {
+          window.dispatchEvent(new CustomEvent("lyfe:authchange", {
+            detail: { event: event, user: current }
+          }));
+        } catch (e) { /* older browsers can continue without the event */ }
+      });
+    }
     return sb;
   }
 
@@ -103,16 +121,30 @@
   }
 
   function cleanUrl() {
-    // after Google returns, drop the ?code=/#access_token noise from the bar
-    if (location.search.indexOf("code=") > -1 || location.hash.indexOf("access_token") > -1) {
+    // After Google returns, drop callback credentials or errors from the bar.
+    if (/([?&#])(code|access_token|refresh_token|error|error_code|error_description)=/.test(location.search + location.hash)) {
       try { history.replaceState(null, "", location.origin + location.pathname); } catch (e) {}
     }
+  }
+
+  function readAuthError() {
+    try {
+      var query = new URLSearchParams(location.search);
+      var hash = new URLSearchParams(location.hash.replace(/^#/, ""));
+      var message = query.get("error_description") || hash.get("error_description") ||
+        query.get("error") || hash.get("error") || "";
+      if (message) {
+        lastAuthError = String(message).replace(/\+/g, " ").slice(0, 240);
+        cleanUrl();
+      }
+    } catch (e) { /* malformed callback URLs fail back to the sign-in gate */ }
   }
 
   var LyfeCloud = {
     configured: configured,
     get googleEnabled() { return googleEnabled; },
     get user() { return current; },
+    get lastError() { return lastAuthError; },
 
     /* Resolve auth on boot. Never throws.
        "cloud"        - a session exists, caller should sync + run
@@ -121,9 +153,11 @@
     async init() {
       if (!configured) return "unconfigured";
       try {
+        readAuthError();
         await refreshProviderSettings();
         await ensureClient();
         var res = await sb.auth.getSession();
+        if (res && res.error) throw res.error;
         var session = res && res.data ? res.data.session : null;
         if (session) {
           current = userFrom(session);
@@ -138,6 +172,7 @@
     },
 
     async signInGoogle() {
+      lastAuthError = "";
       await refreshProviderSettings();
       if (!googleEnabled) throw new Error("Google sign-in is not ready on this deployment yet.");
       await ensureClient();
@@ -150,6 +185,7 @@
     },
 
     async connectGmail() {
+      lastAuthError = "";
       await refreshProviderSettings();
       if (!googleEnabled) throw new Error("Gmail connection is not ready on this deployment yet.");
       await ensureClient();
@@ -168,6 +204,7 @@
     get gmailToken() { return googleProviderToken; },
 
     async signInEmail(email) {
+      lastAuthError = "";
       await ensureClient();
       var cleanEmail = String(email || "").trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) throw new Error("Enter a valid email address");
@@ -183,6 +220,7 @@
     },
 
     async verifyEmailOtp(email, token) {
+      lastAuthError = "";
       await ensureClient();
       var cleanEmail = String(email || "").trim().toLowerCase();
       var cleanToken = String(token || "").replace(/\D/g, "");

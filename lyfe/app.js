@@ -3689,10 +3689,35 @@ document.addEventListener("click", (e) => {
     case "cmd-pick": cmdActivate(cmdItems[+el.dataset.i]); break;
 
     /* accounts */
-    case "auth-google":
-      if (window.LyfeCloud && LyfeCloud.configured && LyfeCloud.googleEnabled) { LyfeCloud.signInGoogle().catch((error) => toast(error.message || "Could not reach sign-in - try again")); }
-      else { toast("Google sign-in is being set up - continue as guest for now"); }
+    case "auth-google": {
+      if (!(window.LyfeCloud && LyfeCloud.configured)) {
+        setAuthError("Sign-in is still loading. Refresh the page once and try again.");
+        toast("Sign-in is still loading");
+        break;
+      }
+      const original = el.innerHTML;
+      el.disabled = true;
+      el.textContent = "Opening Google...";
+      setAuthError("");
+      LyfeCloud.signInGoogle().catch((error) => {
+        el.disabled = false;
+        el.innerHTML = original;
+        const message = error && error.message ? error.message : "Google sign-in could not start. Try the email code instead.";
+        setAuthError(message);
+        toast(message);
+      });
       break;
+    }
+    case "auth-change-email": {
+      const emailForm = document.querySelector('[data-form="auth-email"]');
+      const otpForm = document.querySelector('[data-form="auth-otp"]');
+      if (emailForm) emailForm.hidden = false;
+      if (otpForm) otpForm.hidden = true;
+      setAuthError("");
+      const field = emailForm && emailForm.querySelector('input[name="email"]');
+      if (field) field.focus();
+      break;
+    }
     case "auth-guest": enterGuest(); break;
     case "sign-in-gate":
       if (window.LyfeCloud && LyfeCloud.configured) showAuthGate();
@@ -3736,6 +3761,7 @@ document.addEventListener("submit", (e) => {
       if (!(window.LyfeCloud && LyfeCloud.configured)) { toast("Email sign-in is not configured yet"); break; }
       const button = f.querySelector("button[type=submit]");
       if (button) { button.disabled = true; button.textContent = "Sending..."; }
+      setAuthError("");
       LyfeCloud.signInEmail(email).then(() => {
         const otpForm = document.querySelector('[data-form="auth-otp"]');
         if (otpForm) {
@@ -3748,7 +3774,9 @@ document.addEventListener("submit", (e) => {
         f.hidden = true;
         toast("A six-digit sign-in code is on its way");
       }).catch(error => {
-        toast(error && error.message ? error.message : "Could not send the sign-in code");
+        const message = error && error.message ? error.message : "Could not send the sign-in code";
+        setAuthError(message);
+        toast(message);
         if (button) { button.disabled = false; button.textContent = "Send sign-in code"; }
       });
       break;
@@ -3759,8 +3787,11 @@ document.addEventListener("submit", (e) => {
       if (!(window.LyfeCloud && LyfeCloud.configured)) { toast("Email sign-in is not configured yet"); break; }
       const button = f.querySelector("button[type=submit]");
       if (button) { button.disabled = true; button.textContent = "Checking..."; }
+      setAuthError("");
       LyfeCloud.verifyEmailOtp(email, token).then(() => enterCloud()).catch(error => {
-        toast(error && error.message ? error.message : "That code could not be verified");
+        const message = error && error.message ? error.message : "That code could not be verified";
+        setAuthError(message);
+        toast(message);
         if (button) { button.disabled = false; button.textContent = "Verify code"; }
       });
       break;
@@ -4273,6 +4304,12 @@ function maybeOfferConnectPlan() {
 
 let booted = false;
 let gateReturnFocus = null;
+function setAuthError(message) {
+  const el = document.querySelector("[data-auth-error]");
+  if (!el) return;
+  el.textContent = String(message || "");
+  el.hidden = !message;
+}
 function bootApp() {
   if (booted) return;   // sign-out reloads the page, so boot runs once per load
   booted = true;
@@ -4309,6 +4346,7 @@ function showAuthGate() {
   const el = document.getElementById("auth-gate");
   gateReturnFocus = document.activeElement;
   if (el) {
+    setAuthError(window.LyfeCloud && LyfeCloud.lastError ? LyfeCloud.lastError : "");
     const google = el.querySelector('[data-action="auth-google"]');
     const divider = el.querySelector(".auth-or");
     if (google) google.hidden = false;

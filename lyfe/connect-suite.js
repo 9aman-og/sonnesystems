@@ -354,7 +354,14 @@
     }
     var unavailable = authMode === "unconfigured" ? '<p class="auth-unavailable">Cloud sign-in is not connected on this deployment yet. Guest mode remains available without losing the interface.</p>' : "";
     var googleChoice = '<button class="google-signin" type="button" data-suite-action="google-sign-in"><span class="google-g">G</span>Continue with Google / Gmail</button><div class="auth-divider"><span>or use email</span></div>';
-    modal("Sign in to Lyfe Connect", "Use the same account as Lyfe, while keeping the two products separate.", '<div class="suite-auth">' + unavailable + googleChoice + '<form data-suite-form="email-auth"><label><span>Email address</span><input type="email" name="email" autocomplete="email" required placeholder="you@example.com" ' + (authMode === "unconfigured" ? "disabled" : "") + '></label><button class="primary-button" type="submit" ' + (authMode === "unconfigured" ? "disabled" : "") + '>Send sign-in code</button></form><button class="guest-signin" type="button" data-suite-action="guest-sign-in">Continue on this device</button><p>Your account syncs private state through row-level protected storage. Connect never reads your Lyfe tasks, notes, Gmail, or EOS conversations.</p></div>');
+    var callbackError = window.LyfeCloud && LyfeCloud.lastError ? LyfeCloud.lastError : "";
+    modal("Sign in to Lyfe Connect", "Use the same account as Lyfe, while keeping the two products separate.", '<div class="suite-auth">' + unavailable + '<p class="auth-unavailable" data-suite-auth-error role="alert" ' + (callbackError ? "" : "hidden") + '>' + esc(callbackError) + '</p>' + googleChoice + '<form data-suite-form="email-auth"><label><span>Email address</span><input type="email" name="email" autocomplete="email" required placeholder="you@example.com" ' + (authMode === "unconfigured" ? "disabled" : "") + '></label><button class="primary-button" type="submit" ' + (authMode === "unconfigured" ? "disabled" : "") + '>Send sign-in code</button></form><button class="guest-signin" type="button" data-suite-action="guest-sign-in">Continue on this device</button><p>Your account syncs private state through row-level protected storage. Connect never reads your Lyfe tasks, notes, Gmail, or EOS conversations.</p></div>');
+  }
+
+  function showAuthError(message) {
+    var error = document.querySelector("[data-suite-auth-error]");
+    if (error) { error.textContent = String(message || ""); error.hidden = !message; }
+    if (message) notify(message);
   }
 
   function showEmailOtp(email) {
@@ -447,9 +454,15 @@
     if (action === "guest-sign-in") { closeModal(); notify("Continuing on this device. Sign in anytime to sync."); return; }
     if (action === "google-sign-in") {
       if (!window.LyfeCloud || !LyfeCloud.configured) { notify("Cloud sign-in is not connected yet."); return; }
-      if (!LyfeCloud.googleEnabled) { notify("Google sign-in is still finishing setup. Try email or continue on this device."); return; }
       target.disabled = true;
-      LyfeCloud.signInGoogle().catch(function () { target.disabled = false; notify("Google sign-in could not start."); });
+      var originalGoogle = target.innerHTML;
+      target.textContent = "Opening Google...";
+      showAuthError("");
+      LyfeCloud.signInGoogle().catch(function (error) {
+        target.disabled = false;
+        target.innerHTML = originalGoogle;
+        showAuthError(error && error.message ? error.message : "Google sign-in could not start. Try the email code instead.");
+      });
       return;
     }
     if (action === "sign-out") {
@@ -514,7 +527,8 @@
     if (kind === "email-auth") {
       var email = String(data.get("email") || "").trim();
       var submit = form.querySelector('button[type="submit"]'); submit.disabled = true;
-      LyfeCloud.signInEmail(email).then(function () { showEmailOtp(email); }).catch(function (error) { submit.disabled = false; notify(error.message || "The sign-in code could not be sent."); });
+      showAuthError("");
+      LyfeCloud.signInEmail(email).then(function () { showEmailOtp(email); }).catch(function (error) { submit.disabled = false; showAuthError(error.message || "The sign-in code could not be sent."); });
     } else if (kind === "email-otp-verify") {
       var otpEmail = String(data.get("email") || "").trim();
       var otpToken = String(data.get("token") || "").trim();
