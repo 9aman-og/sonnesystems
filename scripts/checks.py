@@ -71,10 +71,15 @@ def check_papers():
     if not papers.is_dir():
         PROBLEMS.append("papers: papers/ directory is missing")
         return
-    for enc in papers.glob("*.enc"):
+    for plain in papers.rglob("*.pdf"):
+        PROBLEMS.append(f"papers: plaintext PDF is present at {plain.relative_to(ROOT)}")
+    for enc in papers.rglob("*.enc"):
         with open(enc, "rb") as f:
             if f.read(4) != b"SSE1":
                 PROBLEMS.append(f"papers: {enc.name} lacks the SSE1 header (not our format?)")
+    html = (ROOT / "papers.html").read_text(encoding="utf-8")
+    if re.search(r'(?:href|data-paper)=["\'][^"\']+\.pdf["\']', html, re.IGNORECASE):
+        PROBLEMS.append("papers: archive page links to a plaintext PDF")
 
 
 def png_size(path: Path):
