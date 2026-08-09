@@ -13,23 +13,23 @@
   <meta property="og:title" content="Lyfe Connect | A network organized around useful work">
   <meta property="og:description" content="Find collaborators, peers, projects, and communities through useful context instead of popularity.">
   <meta property="og:url" content="https://sonnesystems.com/lyfe/connect.html">
-  <meta property="og:image" content="https://sonnesystems.com/assets/lyfe_connect_logo_v2.png">
-  <meta property="og:image:alt" content="Lyfe Connect flowing connection mark">
+  <meta property="og:image" content="https://sonnesystems.com/assets/lyfe_connect_logo_minimal.png">
+  <meta property="og:image:alt" content="Lyfe Connect minimal interlocking loops mark">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Lyfe Connect | Meet through curiosity">
   <meta name="twitter:description" content="Find collaborators, peers, projects, and communities through useful context instead of popularity.">
-  <meta name="twitter:image" content="https://sonnesystems.com/assets/lyfe_connect_logo_v2.png">
+  <meta name="twitter:image" content="https://sonnesystems.com/assets/lyfe_connect_logo_minimal.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&amp;family=Space+Mono:wght@400;700&amp;family=Unbounded:wght@500;600;700&amp;display=swap">
-  <link rel="stylesheet" href="connect.css?v=connect5">
+  <link rel="stylesheet" href="connect.css?v=connect7">
 </head>
 <body>
   <a class="skip-link" href="#connect-main">Skip to the app</a>
 
   <header class="connect-topbar">
     <a class="connect-brand" href="connect.html" aria-label="Lyfe Connect home">
-      <img src="../assets/lyfe_connect_logo_v2.png" alt="">
+      <img src="../assets/lyfe_connect_logo_minimal.png" alt="">
       <span>lyfe connect</span>
     </a>
 
@@ -43,12 +43,18 @@
 
     <div class="top-actions">
       <span class="privacy-pill"><i aria-hidden="true"></i>Local-first private preview</span>
+      <button class="icon-button" type="button" data-action="search" aria-label="Search Connect" title="Search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4 4"/></svg>
+      </button>
       <button class="icon-button notification-button" type="button" data-action="notifications" aria-label="Open Connect notifications" title="Notifications">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8.5a6 6 0 0 0-12 0c0 7-3 7-3 8.5h18c0-1.5-3-1.5-3-8.5Z"/><path d="M9.5 20h5"/></svg>
         <span id="notification-count" class="notification-count" hidden>0</span>
       </button>
       <button class="icon-button" type="button" data-action="safety" aria-label="Open safety centre" title="Safety centre">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.8 6v5.3c0 4.4 2.9 8.1 7.2 9.7 4.3-1.6 7.2-5.3 7.2-9.7V6L12 3Z"/><path d="m8.8 12 2 2 4.4-4.4"/></svg>
+      </button>
+      <button class="icon-button" type="button" data-action="connect-settings" aria-label="Open Connect settings" title="Settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
       </button>
       <a class="open-lyfe" href="./">Open Lyfe <span aria-hidden="true">↗</span></a>
     </div>
@@ -67,6 +73,11 @@
           <span>Fictional profiles for this private preview</span>
         </div>
       </div>
+
+      <section class="network-pulse" aria-labelledby="network-pulse-title">
+        <div class="network-pulse-copy"><p class="eyebrow">ACTIVE SIGNALS</p><h2 id="network-pulse-title">A few people who are open to a useful conversation.</h2></div>
+        <div id="active-signals" class="active-signals"></div>
+      </section>
 
       <div class="discover-shell">
         <aside class="spark-rail" aria-labelledby="spark-title">
@@ -97,6 +108,11 @@
           <div><p class="eyebrow">FROM THE NETWORK</p><h2 id="feed-title">Work in progress, shared with context.</h2></div>
           <div class="feed-heading-actions"><p>A visual feed for build logs, research notes, questions, and open calls, without the personal branding theatre.</p><button class="primary-button" type="button" data-action="new-post">Share your work</button></div>
         </div>
+        <form class="quick-share" data-form="quick-post">
+          <img src="../assets/lyfe_connect_logo_minimal.png" alt="">
+          <label><span class="sr-only">Start a Connect post</span><textarea name="draft" rows="1" maxlength="900" placeholder="Share an update, question, useful link, or open call…"></textarea></label>
+          <button class="primary-button" type="submit">Continue</button>
+        </form>
         <div id="feed-list" class="feed-grid"></div>
       </section>
 
@@ -135,7 +151,7 @@
       </div>
       <div id="plan-list" class="plan-grid"></div>
       <section class="lyfe-bridge">
-        <img src="../assets/lyfe_connect_logo_v2.png" alt="">
+        <img src="../assets/lyfe_connect_logo_minimal.png" alt="">
         <div><p class="eyebrow">CONNECT × LYFE</p><h2>Next steps move. Private context does not.</h2><p>Only the task title and note you approve are handed to Lyfe. Your network profile, filters, circles, and outreach drafts stay in Connect.</p></div>
         <a href="./">Open Lyfe <span aria-hidden="true">↗</span></a>
       </section>
@@ -161,6 +177,8 @@
           <p>Keep it useful and human. Every field is optional in this local preview and stays in this browser.</p>
         </div>
       </div>
+
+      <section id="connect-profile-preview" class="connect-profile-preview" aria-label="Your Connect profile preview"></section>
 
       <form id="profile-form" class="profile-form">
         <section class="form-card">
@@ -214,12 +232,13 @@
 
   <footer class="connect-footer">
     <span>Lyfe Connect · a local-first private preview by Sonne Systems</span>
-    <div><button type="button" data-action="safety">Safety</button><button type="button" data-action="profile-privacy">Privacy</button><a href="../">Sonne Systems</a><a href="./">Lyfe</a></div>
+    <div><button type="button" data-action="connect-settings">Settings</button><button type="button" data-action="safety">Safety</button><button type="button" data-action="profile-privacy">Privacy</button><a href="../">Sonne Systems</a><a href="./">Lyfe</a></div>
   </footer>
 
+  <input id="connect-import-file" type="file" accept=".json,application/json" hidden>
   <div id="modal-root"></div>
   <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
   <noscript><p class="noscript">Lyfe Connect needs JavaScript for its local, interactive preview.</p></noscript>
-  <script src="connect.js?v=connect5"></script>
+  <script src="connect.js?v=connect7"></script>
 </body>
 </html>

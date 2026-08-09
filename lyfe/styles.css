@@ -2403,41 +2403,29 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
 .eos-blob::after {
   content: "";
   position: absolute;
-  inset: 1px;
+  inset: 12% 18% 48% 20%;
   border-radius: inherit;
-  border-top: 1px solid rgba(255, 255, 255, .72);
+  background: linear-gradient(145deg, rgba(255,255,255,.88), rgba(255,255,255,.08));
+  filter: blur(.2px);
   pointer-events: none;
 }
-.eos-blob-face { position: absolute; z-index: 2; inset: 0; }
-.eos-blob-face i {
+.eos-blob::before {
+  content: "";
   position: absolute;
-  top: 42%;
-  width: max(2px, calc(var(--blob-size) * .09));
-  height: max(2px, calc(var(--blob-size) * .1));
-  border-radius: 50%;
-  background: #10150a;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, .25);
-  animation: eosBlobBlink 4.8s steps(1) infinite;
+  z-index: 1;
+  inset: 8%;
+  border: 1px solid rgba(255,255,255,.22);
+  border-radius: 46% 54% 58% 42% / 58% 46% 54% 42%;
+  box-shadow: inset 0 0 calc(var(--blob-size) * .28) rgba(255,255,255,.18);
+  pointer-events: none;
 }
-.eos-blob-face i:first-child { left: 31%; }
-.eos-blob-face i:nth-child(2) { right: 29%; }
-.eos-blob-face b {
-  position: absolute;
-  left: 50%;
-  top: 61%;
-  width: 22%;
-  height: 10%;
-  transform: translateX(-50%);
-  border-bottom: max(1px, calc(var(--blob-size) * .045)) solid #10150a;
-  border-radius: 0 0 999px 999px;
-}
-.eos-blob.is-sleepy .eos-blob-face i { height: 1px; border-radius: 999px; animation: none; }
+.eos-blob-core { position: absolute; inset: 0; border-radius: inherit; background: radial-gradient(circle at 62% 68%, rgba(255,255,255,.14), transparent 34%); }
+.eos-blob.is-sleepy { opacity: .88; animation-duration: 5.8s, 11s; }
 @keyframes eosBlobFloat { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-7%) rotate(2deg); } }
 @keyframes eosBlobMorph {
   0%, 100% { border-radius: 58% 42% 52% 48% / 48% 58% 42% 52%; }
   50% { border-radius: 43% 57% 46% 54% / 58% 43% 57% 42%; }
 }
-@keyframes eosBlobBlink { 0%, 91%, 97%, 100% { transform: scaleY(1); } 92%, 96% { transform: scaleY(.08); } }
 .sol-chip:hover .eos-blob, .sol-avatar-px:hover .eos-blob, .cx-stat-sol:hover .eos-blob { animation-duration: .7s, 2.4s; }
 .sol-avatar-px { display: flex; flex: none; margin-bottom: 2px; filter: drop-shadow(0 2px 7px var(--accent-glow)); }
 .sol-chip { flex-direction: row; align-items: center; gap: 12px; }
@@ -2451,8 +2439,6 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
     linear-gradient(145deg, #e7fbff 0%, #9cc9ff 35%, #9c86ee 68%, #536fd8 100%);
   box-shadow: inset -5px -5px 12px rgba(48, 63, 148, .24), inset 4px 4px 9px rgba(255, 255, 255, .72), 0 6px 16px rgba(61, 96, 190, .26);
 }
-:root[data-theme="light"] .eos-blob-face i { background: #172654; }
-:root[data-theme="light"] .eos-blob-face b { border-bottom-color: #172654; }
 
 /* ---- important tasks + alarm ---- */
 .imp-flag { color: var(--rose); font-weight: 700; margin-right: 7px; }
@@ -2758,7 +2744,8 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
   z-index: 50;
   height: auto;
   min-height: 62px;
-  margin: 12px clamp(12px, 2.6vw, 26px) 4px;
+  width: min(1500px, calc(100% - 32px));
+  margin: 12px auto 4px;
   padding: 8px 10px;
   display: flex;
   flex-direction: row;
@@ -3584,6 +3571,46 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
   border: 1px solid rgba(255, 255, 255, .9);
 }
 
+/* Settings is the one home for account, comfort, EOS and backups. */
+.settings-head { margin-bottom: 22px; }
+.settings-head h3 { margin-top: 5px; font-family: var(--display); font-size: 30px; }
+.settings-head p { max-width: 520px; margin: 8px 0 0; color: var(--ink-3); line-height: 1.5; }
+.settings-kicker { color: var(--accent); font: 700 9px/1 var(--mono); letter-spacing: .13em; }
+.settings-form { display: grid; gap: 12px; }
+.settings-form .modal-actions { margin-top: 4px; }
+.settings-section, .settings-advanced {
+  padding: 18px;
+  border: 1px solid var(--hair);
+  border-radius: 15px;
+  background: var(--panel-2);
+}
+.settings-section { display: grid; grid-template-columns: minmax(150px, .38fr) minmax(0, 1fr); gap: 20px; }
+.settings-section-copy, .settings-advanced summary { display: flex; align-items: flex-start; gap: 10px; }
+.settings-section-copy > span, .settings-advanced summary > span { color: var(--accent); font: 700 9px/1.4 var(--mono); }
+.settings-section h4, .settings-advanced h4 { margin: 0; font-family: var(--display); font-size: 14px; }
+.settings-section-copy p, .settings-advanced summary p { margin: 5px 0 0; color: var(--ink-3); font-size: 11px; line-height: 1.45; }
+.settings-account .acct-row { margin-bottom: 8px; background: var(--panel); }
+.settings-inline-link { color: var(--accent); font-size: 11px; text-decoration: none; }
+.settings-inline-link:hover { text-decoration: underline; }
+.settings-data-note { margin: 0 0 12px; color: var(--ink-2); font-size: 12px; line-height: 1.5; }
+.settings-data-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.settings-advanced summary { cursor: pointer; list-style: none; }
+.settings-advanced summary::-webkit-details-marker { display: none; }
+.settings-advanced summary::after { content: "+"; margin-left: auto; color: var(--accent); font-size: 20px; line-height: 1; }
+.settings-advanced[open] summary::after { content: "−"; }
+.settings-advanced-body { margin: 18px 0 0 28px; padding-top: 16px; border-top: 1px solid var(--hair); }
+
+@media (max-width: 620px) {
+  .modal { max-width: 100%; padding: 20px 16px; overflow-x: hidden; }
+  .settings-form, .settings-section, .settings-section > div, .settings-advanced { min-width: 0; max-width: 100%; }
+  .settings-section { grid-template-columns: 1fr; gap: 14px; }
+  .settings-account .acct-row { padding: 10px; flex-wrap: wrap; }
+  .settings-account .acct-info { max-width: 100%; }
+  .settings-account .acct-info span { max-width: min(160px, 52vw); }
+  .settings-inline-link { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+  .settings-advanced-body { margin-left: 0; }
+}
+
 :root[data-theme="light"] .cx-stage > .home-tabs {
   margin: 24px -6px 0;
   padding: 7px;
@@ -3752,12 +3779,12 @@ input[type="text"], input[type="password"], input[type="date"], input[type="numb
   :root[data-theme="light"] #sidebar {
     top: 8px;
     min-height: 54px;
-    margin: 8px 10px 2px;
+    width: calc(100% - 20px);
+    margin: 8px auto 2px;
     padding: 6px 8px;
     flex-wrap: wrap;
   }
-  /* CRYSTAL's sidebar is a horizontal bar; let the footer wrap onto its own
-     row so Export / Import / Settings stay reachable and centered on a phone */
+  /* CRYSTAL's sidebar is a horizontal bar; settings stays reachable on phones. */
   :root[data-theme="light"] #nav { flex: 1 1 100%; min-width: 0; }
   :root[data-theme="light"] .side-foot { flex: 1 1 100%; justify-content: center; padding-top: 4px; }
   /* ORBIT hides the sunnav on mobile; CRYSTAL keeps its wordmark */

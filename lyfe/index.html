@@ -44,7 +44,7 @@
 <link rel="dns-prefetch" href="https://upload.wikimedia.org">
 <link rel="dns-prefetch" href="https://picsum.photos">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Unbounded:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=crystal-33">
+<link rel="stylesheet" href="styles.css?v=crystal-35">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -56,15 +56,11 @@
   <aside id="sidebar">
     <nav id="nav" aria-label="Sections"></nav>
     <div class="side-foot">
-      <button class="linklike" data-action="export">Export</button>
-      <span class="sep">·</span>
-      <button class="linklike" data-action="import">Import</button>
-      <span class="sep">·</span>
       <button class="linklike" data-action="settings">Settings</button>
       <span class="sep" id="signin-sep">·</span>
       <button class="linklike signin-link" id="signin-link" data-action="sign-in-gate">Sign in</button>
-      <input type="file" id="importFile" accept=".json,application/json" hidden>
     </div>
+    <input type="file" id="importFile" accept=".json,application/json" hidden>
   </aside>
   <main id="main" tabindex="-1"></main>
 </div>
@@ -99,7 +95,7 @@
 <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
 <script src="supabase-config.js?v=crystal-33"></script>
 <script src="cloud.js?v=crystal-33"></script>
-<script src="app.js?v=crystal-33"></script>
+<script src="app.js?v=crystal-35"></script>
 <script>
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */

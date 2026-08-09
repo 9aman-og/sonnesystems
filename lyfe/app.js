@@ -258,7 +258,7 @@ const PADS = {
    It follows Crystal and Orbit through theme variables instead of carrying a
    separate pixel-art palette. */
 function eosBlob(px, cls, mood) {
-  return `<span class="eos-blob ${cls || ""} ${mood === "sleepy" ? "is-sleepy" : ""}" style="--blob-size:${px}px" aria-hidden="true"><span class="eos-blob-face"><i></i><i></i><b></b></span></span>`;
+  return `<span class="eos-blob ${cls || ""} ${mood === "sleepy" ? "is-sleepy" : ""}" style="--blob-size:${px}px" aria-hidden="true"><span class="eos-blob-core"></span></span>`;
 }
 
 function solMoodNow() {
@@ -1118,7 +1118,7 @@ function viewToday() {
 
   const connectActivity = connectSummary();
   const connectInbox = `<a class="connect-inbox-card" href="connect.html#notifications">
-    <span class="connect-inbox-icon"><img src="../assets/lyfe_connect_logo_v2.png" alt=""></span>
+    <span class="connect-inbox-icon"><img src="../assets/lyfe_connect_logo_minimal.png" alt=""></span>
     <span class="connect-inbox-copy"><span class="eyebrow">CONNECT NOTIFICATIONS</span><strong>${connectActivity.unread ? connectActivity.unread + " unread update" + (connectActivity.unread === 1 ? "" : "s") : "Your Connect inbox is quiet."}</strong><small>${esc(connectActivity.latest)}</small></span>
     <span class="connect-inbox-meta"><b>${connectActivity.threads}</b> drafts · <b>${connectActivity.saved}</b> saved</span>
   </a>`;
@@ -1201,7 +1201,7 @@ function viewToday() {
         <button class="cx-stat" data-action="nav" data-view="projects"><b>${activeProjects.length}</b><span>projects live</span></button>
         <button class="cx-stat" data-action="nav" data-view="work"><b>${fmtHours(wh)}h</b><span>deep work</span></button>
         <button class="cx-stat" data-action="nav" data-view="education"><b>${learning}</b><span>learning</span></button>
-        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${eosBlob(30, "eos-blob-status", solMoodNow())}<span>${sleepy ? "eos · up late" : "eos · online"}</span></button>
+        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${eosBlob(30, "eos-blob-status", solMoodNow())}<span>eos</span></button>
       </div>
     </section>
 
@@ -1256,7 +1256,7 @@ function viewToday() {
       </section>
 
       <a class="cx-connect-card" href="connect.html">
-        <span class="cx-connect-mark"><img src="../assets/lyfe_connect_logo_v2.png" alt=""></span>
+        <span class="cx-connect-mark"><img src="../assets/lyfe_connect_logo_minimal.png" alt=""></span>
         <span class="cx-connect-copy"><span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span><strong>Find the people and rooms your work needs.</strong><span>A calmer network for collaborators, work posts, focused Circles, and shared project pages.</span></span>
         <span class="cx-connect-link">OPEN CONNECT <span aria-hidden="true">↗</span></span>
       </a>
@@ -1304,7 +1304,7 @@ function viewToday() {
       <button class="sol-chip" data-action="nav" data-view="sol" aria-label="Open EOS">
         ${eosBlob(42, "eos-blob-status", solMoodNow())}
         <span class="sol-chip-txt">
-          <span class="sol-chip-main"><span class="live-dot"></span>EOS · ${solMoodNow() === "sleepy" ? "UP LATE WITH YOU" : "ONLINE"}</span>
+          <span class="sol-chip-main">EOS</span>
           <span class="sol-chip-sub">tap to talk to your companion</span>
         </span>
       </button>
@@ -1370,7 +1370,7 @@ function viewToday() {
           <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
         </section>
         <a class="panel tilt connect-card" href="connect.html">
-          <span class="connect-card-mark"><img src="../assets/lyfe_connect_logo_v2.png" alt=""></span>
+          <span class="connect-card-mark"><img src="../assets/lyfe_connect_logo_minimal.png" alt=""></span>
           <span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span>
           <strong>Find the people and rooms your work needs.</strong>
           <span>Discover collaborators, share work in context, and turn a useful thread into organized action.</span>
@@ -1549,7 +1549,7 @@ function viewProfile() {
       </form>
 
       <aside class="panel profile-connect-card">
-        <img src="../assets/lyfe_connect_logo_v2.png" alt="">
+        <img src="../assets/lyfe_connect_logo_minimal.png" alt="">
         <span class="eyebrow">LYFE CONNECT</span>
         <h2>One profile, two useful contexts.</h2>
         <p>Connect uses the identity you approve here, then keeps social posts, outreach, and circles separate from your private Lyfe workspace.</p>
@@ -2786,36 +2786,44 @@ function accountRowHtml() {
 function settingsModal() {
   const s = state.data.settings;
   openModal(
-    `<div class="modal-head"><h3>Settings</h3></div>
-     <form data-form="settings">
-       ${accountRowHtml()}
-       <div class="fld-row">
-         ${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How EOS greets you">`)}
-         ${fld("Appearance", selectHtml("theme", [["auto", "Auto (by time)"], ["light", "Light - Crystal"], ["dark", "Dark - Orbit"]],
-           s.theme === "day" ? "light" : s.theme === "night" ? "dark" : (["auto", "light", "dark"].includes(s.theme) ? s.theme : "auto")))}
-         ${fld("Sound FX", selectHtml("sound", [["on", "On"], ["off", "Off"]], s.sound === false ? "off" : "on"))}
-       </div>
-       <div class="fld-row">
-         ${fld("Age", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="optional">`)}
-         ${fld("Country", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="optional">`)}
-       </div>
-       ${fld("EOS's brain", selectHtml("provider", [
-         ["ollama", "Qwen via Ollama (local, free, private)"],
-         ["claude", "Claude API (needs a key)"],
-         ["offline", "Offline parser only"],
-       ], s.provider || "ollama"))}
-       <div class="fld-row">
-         ${fld("Ollama URL", `<input type="text" name="ollamaUrl" value="${esc(s.ollamaUrl || "http://localhost:11434")}" placeholder="http://localhost:11434">`)}
-         ${fld("Ollama model", `<input type="text" name="ollamaModel" value="${esc(s.ollamaModel || "qwen3:8b")}" placeholder="qwen3:8b">`)}
-       </div>
-       <p class="fld-note">Qwen setup: install ollama.com, then <b>ollama pull qwen3:8b</b> (qwen3:14b if your machine is beefy). For the tuned EOS build, run <b>ollama create lyfe-eos -f sol/Modelfile</b> inside the Lyfe folder and set the model above to <b>lyfe-eos</b>. Existing <b>lyfe-sol</b> builds remain compatible. Opening Lyfe as a file (not localhost)? Start Ollama with OLLAMA_ORIGINS=*. If Ollama is unreachable, the built-in brain answers instead.</p>
-       ${fld("Anthropic API key (for Claude brain)", `<input type="password" name="apiKey" value="${esc(s.apiKey || "")}" placeholder="sk-ant-…" autocomplete="off">`)}
-       <p class="fld-note">Stored only in this browser and sent only to api.anthropic.com.</p>
-       ${fld("Claude model", selectHtml("model", MODELS, s.model || "claude-opus-4-8"))}
-       <p class="fld-note">${CLOUD_MODE
-         ? "Your data syncs privately to your account and is cached on this device for offline use. Your Anthropic key is never uploaded. Export still gives you a full backup."
-         : "All your data stays in this browser. Export a backup from the sidebar now and then."}</p>
-       ${modalActions("Save")}
+    `<div class="modal-head settings-head"><div><span class="settings-kicker">LYFE PREFERENCES</span><h3>Settings</h3><p>Comfort, privacy and backups live here. Nothing important is hidden in the top bar.</p></div></div>
+     <form data-form="settings" class="settings-form">
+       <section class="settings-section settings-account">
+         <div class="settings-section-copy"><span>01</span><div><h4>Account</h4><p>Choose how Lyfe knows you and where your information is kept.</p></div></div>
+         <div>${accountRowHtml()}<a class="settings-inline-link" href="connect.html#profile">Open Connect profile →</a></div>
+       </section>
+       <section class="settings-section">
+         <div class="settings-section-copy"><span>02</span><div><h4>Appearance & comfort</h4><p>Keep the interface comfortable without changing your work.</p></div></div>
+         <div>
+           <div class="fld-row">
+             ${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How EOS greets you">`)}
+             ${fld("Appearance", selectHtml("theme", [["auto", "Follow the time"], ["light", "Crystal light"], ["dark", "Orbit dark"]], s.theme === "day" ? "light" : s.theme === "night" ? "dark" : (["auto", "light", "dark"].includes(s.theme) ? s.theme : "auto")))}
+             ${fld("Interface sounds", selectHtml("sound", [["on", "On"], ["off", "Off"]], s.sound === false ? "off" : "on"))}
+           </div>
+           <div class="fld-row">
+             ${fld("Age (optional)", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="Only if useful to you">`)}
+             ${fld("Country (optional)", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="Used for your profile">`)}
+           </div>
+         </div>
+       </section>
+       <section class="settings-section settings-data">
+         <div class="settings-section-copy"><span>03</span><div><h4>Data & backups</h4><p>Download a readable backup or restore one you already made.</p></div></div>
+         <div><p class="settings-data-note">${CLOUD_MODE ? "Your account is synced and also cached on this device for offline use." : "You are using Lyfe on this device. A backup is the easiest way to move or protect it."}</p><div class="settings-data-actions"><button type="button" class="btn" data-action="export">Download backup</button><button type="button" class="btn" data-action="import">Restore backup</button></div></div>
+       </section>
+       <details class="settings-advanced">
+         <summary><span>04</span><div><h4>EOS intelligence</h4><p>Optional advanced controls for local or connected language models.</p></div></summary>
+         <div class="settings-advanced-body">
+           ${fld("EOS brain", selectHtml("provider", [["ollama", "Qwen through Ollama (local and private)"], ["claude", "Anthropic API (requires your key)"], ["offline", "Built-in offline tools only"]], s.provider || "ollama"))}
+           <div class="fld-row">
+             ${fld("Ollama address", `<input type="text" name="ollamaUrl" value="${esc(s.ollamaUrl || "http://localhost:11434")}" placeholder="http://localhost:11434">`)}
+             ${fld("Ollama model", `<input type="text" name="ollamaModel" value="${esc(s.ollamaModel || "qwen3:8b")}" placeholder="qwen3:8b">`)}
+           </div>
+           ${fld("Anthropic API key", `<input type="password" name="apiKey" value="${esc(s.apiKey || "")}" placeholder="Only needed for Anthropic" autocomplete="off">`)}
+           ${fld("Anthropic model", selectHtml("model", MODELS, s.model || "claude-opus-4-8"))}
+           <p class="fld-note">These advanced values stay in this browser. Your API key is never included in cloud sync or a public profile.</p>
+         </div>
+       </details>
+       ${modalActions("Save settings")}
      </form>`
   );
 }
@@ -2914,7 +2922,7 @@ function renderNav() {
   const openCt = state.data.tasks.filter(x => x.status !== "done").length;
   const connectActivity = connectSummary();
   const connectNav = `<a class="nav-item nav-connect" href="connect.html" aria-label="Open Lyfe Connect">
-    <span class="nav-connect-mark"><img src="../assets/lyfe_connect_logo_v2.png" alt=""></span>
+    <span class="nav-connect-mark"><img src="../assets/lyfe_connect_logo_minimal.png" alt=""></span>
     <span>Connect</span>
     ${connectActivity.unread ? `<span class="nav-count">${connectActivity.unread}</span>` : `<span class="nav-connect-pulse" aria-hidden="true"></span>`}
   </a>`;

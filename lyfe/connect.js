@@ -183,7 +183,7 @@
 
   function defaultState() {
     return {
-      version: 3,
+      version: 4,
       onboarded: false,
       paused: false,
       filter: "All",
@@ -209,7 +209,12 @@
       plans: [],
       circles: [],
       customCircles: [],
-      circleDrafts: {}
+      circleDrafts: {},
+      settings: {
+        compactFeed: false,
+        showMatchReasons: true,
+        quietNotifications: false
+      }
     };
   }
 
@@ -248,6 +253,7 @@
           tags: Array.isArray(item.tags) ? item.tags.map(String).filter(Boolean).slice(0, 6) : [],
           visual: ["flow", "map", "branches"].indexOf(String(item.visual)) >= 0 ? String(item.visual) : "flow",
           image: /^data:image\/(?:png|jpe?g|webp);base64,/i.test(String(item.image || "")) ? String(item.image).slice(0, 2200000) : "",
+          link: cleanLink(item.link),
           createdAt: Number(item.createdAt || Date.now()),
           updatedAt: Number(item.updatedAt || item.createdAt || Date.now())
         };
@@ -257,6 +263,11 @@
         ? raw.customCircles.filter(function (item) { return item && String(item.name || "").trim(); }).slice(0, 30)
         : [];
       base.circleDrafts = raw.circleDrafts && typeof raw.circleDrafts === "object" ? raw.circleDrafts : {};
+      if (raw.settings && typeof raw.settings === "object") {
+        base.settings.compactFeed = raw.settings.compactFeed === true;
+        base.settings.showMatchReasons = raw.settings.showMatchReasons !== false;
+        base.settings.quietNotifications = raw.settings.quietNotifications === true;
+      }
       return syncProfileFromLyfe(base);
     } catch (error) {
       return syncProfileFromLyfe(base);
@@ -321,6 +332,17 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  function cleanLink(value) {
+    var raw = String(value || "").trim();
+    if (!raw) return "";
+    try {
+      var url = new URL(raw);
+      return /^(https?):$/.test(url.protocol) ? url.href.slice(0, 500) : "";
+    } catch (error) {
+      return "";
+    }
   }
 
   function preparePostImage(file) {
@@ -449,6 +471,18 @@
     }).join("");
   }
 
+  function renderActiveSignals() {
+    var root = document.getElementById("active-signals");
+    if (!root) return;
+    root.innerHTML = PROFILES.slice(0, 4).map(function (profile) {
+      return [
+        "<button class=\"signal-person\" type=\"button\" data-action=\"signal-profile\" data-id=\"", esc(profile.id), "\" style=\"--signal-color:", esc(profile.color), "\">",
+          "<span class=\"signal-avatar\">", esc(profile.initials), "</span><span><strong>", esc(profile.name), "</strong><small>", esc(profile.role), "</small></span>",
+        "</button>"
+      ].join("");
+    }).join("");
+  }
+
   function currentProfile() {
     var candidates = todayProfiles();
     if (!candidates.length) return null;
@@ -546,6 +580,7 @@
             ? "<div class=\"feed-photo\"><img src=\"" + esc(post.image) + "\" alt=\"Image attached to " + esc(post.title) + "\"><span>" + esc(post.label) + "</span></div>"
             : "<div class=\"feed-visual visual-" + esc(post.visual) + "\" aria-label=\"Abstract project preview\"><i></i><i></i><i></i><span>" + esc(post.label) + "</span></div>",
           "<div class=\"feed-copy\"><p class=\"eyebrow\">", esc(post.label), "</p><h3>", esc(post.title), "</h3><p>", esc(post.body), "</p>",
+          cleanLink(post.link) ? "<a class=\"post-source\" href=\"" + esc(cleanLink(post.link)) + "\" target=\"_blank\" rel=\"noopener noreferrer\">Open source ↗</a>" : "",
           "<div class=\"interest-tags\">", post.tags.map(function (tag) { return "<span>" + esc(tag) + "</span>"; }).join(""), "</div></div>",
           "<footer class=\"feed-actions\">",
             post.mine
@@ -695,12 +730,30 @@
     form.elements.prompt.value = state.profile.prompt;
   }
 
+  function renderProfilePreview() {
+    var root = document.getElementById("connect-profile-preview");
+    if (!root) return;
+    var profile = ownProfile();
+    var handle = state.profile.username ? "@" + state.profile.username : "Choose a username";
+    var site = cleanLink(state.profile.website);
+    root.innerHTML = [
+      "<article class=\"profile-preview-card\">",
+        "<div class=\"profile-preview-avatar\">", esc(profile.initials), "</div>",
+        "<div class=\"profile-preview-main\"><p class=\"eyebrow\">YOUR PUBLIC-FACING PREVIEW</p><h2>", esc(profile.name), "</h2><span>", esc(handle), " · ", esc(profile.city), "</span>",
+        "<h3>", esc(state.profile.headline || "Add a headline that gives people a place to begin."), "</h3><p>", esc(state.profile.bio || state.profile.prompt || "Your profile can explain what you care about, what you are working on, and where another person could genuinely help."), "</p>",
+        "<div class=\"interest-tags\">", state.profile.sparks.map(function (spark) { return "<span>" + esc(spark) + "</span>"; }).join(""), "</div>",
+        site ? "<a href=\"" + esc(site) + "\" target=\"_blank\" rel=\"noopener noreferrer\">Visit your website ↗</a>" : "", "</div>",
+        "<dl class=\"profile-preview-stats\"><div><dt>", String(state.myPosts.length), "</dt><dd>posts</dd></div><div><dt>", String(state.saved.length), "</dt><dd>people saved</dd></div><div><dt>", String(state.plans.length), "</dt><dd>workspace pages</dd></div></dl>",
+      "</article>"
+    ].join("");
+  }
+
   function renderNotificationCount() {
     var badge = document.getElementById("notification-count");
     if (!badge) return;
     var count = state.notifications.filter(function (item) { return !item.read; }).length;
     badge.textContent = count > 99 ? "99+" : String(count);
-    badge.hidden = count === 0;
+    badge.hidden = count === 0 || state.settings.quietNotifications;
   }
 
   function renderNavigation() {
@@ -713,7 +766,10 @@
   }
 
   function renderAll() {
+    document.body.classList.toggle("compact-feed", state.settings.compactFeed);
+    document.body.classList.toggle("hide-match-reasons", !state.settings.showMatchReasons);
     renderSparkControls();
+    renderActiveSignals();
     renderDiscover();
     renderFeed();
     renderConnectionList();
@@ -721,6 +777,7 @@
     renderPlans();
     renderCircles();
     fillProfileForm();
+    renderProfilePreview();
     renderNotificationCount();
     renderNavigation();
   }
@@ -784,8 +841,8 @@
     ].join("");
   }
 
-  function showPostModal(post) {
-    var item = post || { id: "", label: "BUILD LOG", title: "", body: "", tags: [], visual: "flow" };
+  function showPostModal(post, draft) {
+    var item = post || { id: "", label: "BUILD LOG", title: "", body: String(draft || ""), tags: [], visual: "flow", link: "" };
     openModal([
       modalHead(item.id ? "Edit your post." : "Share work with context.", "Connect posts are for progress, questions, useful resources, and open calls, not polished personal branding."),
       "<form class=\"modal-body\" data-form=\"post\">",
@@ -793,6 +850,7 @@
         "<label><span>Post type</span><select name=\"label\"><option ", item.label === "BUILD LOG" ? "selected" : "", ">BUILD LOG</option><option ", item.label === "RESEARCH NOTE" ? "selected" : "", ">RESEARCH NOTE</option><option ", item.label === "QUESTION" ? "selected" : "", ">QUESTION</option><option ", item.label === "OPEN CALL" ? "selected" : "", ">OPEN CALL</option><option ", item.label === "RESOURCE" ? "selected" : "", ">RESOURCE</option></select></label>",
         "<label><span>Title</span><input name=\"title\" maxlength=\"140\" required placeholder=\"What changed, what did you learn, or what do you need?\" value=\"", esc(item.title), "\"></label>",
         "<label><span>Context</span><textarea name=\"body\" rows=\"7\" maxlength=\"900\" required placeholder=\"Give people enough context to understand the work and respond usefully.\">", esc(item.body), "</textarea></label>",
+        "<label><span>Useful link or source (optional)</span><input name=\"link\" type=\"url\" maxlength=\"500\" placeholder=\"https://…\" value=\"", esc(item.link || ""), "\"><small class=\"field-help\">Use the original paper, project, article, repository, or event page when you have one.</small></label>",
         "<label><span>Topics, separated by commas</span><input name=\"tags\" maxlength=\"160\" placeholder=\"Design, research, open source\" value=\"", esc((item.tags || []).join(", ")), "\"></label>",
         item.image ? "<div class=\"post-image-current\"><img src=\"" + esc(item.image) + "\" alt=\"Current post image\"><label class=\"inline-check\"><input type=\"checkbox\" name=\"removeImage\" value=\"yes\"><span>Remove this image</span></label></div>" : "",
         "<label><span>", item.image ? "Replace image (optional)" : "Add an image (optional)", "</span><input type=\"file\" name=\"image\" accept=\"image/*\"></label>",
@@ -817,6 +875,106 @@
     renderNotificationCount();
   }
 
+  function showSignalProfile(profile) {
+    openModal([
+      modalHead(profile.name, profile.role + " · " + profile.city),
+      "<div class=\"modal-body signal-profile-modal\"><div class=\"signal-profile-lead\"><span class=\"signal-avatar large\" style=\"--signal-color:", esc(profile.color), "\">", esc(profile.initials), "</span><div><p>", esc(profile.thought), "</p><strong>", esc(profile.availability), "</strong></div></div>",
+      "<div class=\"context-card\"><span>A USEFUL PLACE TO BEGIN</span><p>“", esc(profile.prompt), "”</p></div>",
+      "<div class=\"interest-tags\">", profile.interests.map(function (interest) { return "<span>" + esc(interest) + "</span>"; }).join(""), "</div>",
+      "<p class=\"form-note\">This is a clearly labelled fictional profile used to demonstrate the private preview.</p></div>",
+      "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"modal-close\">Close</button><button class=\"primary-button\" type=\"button\" data-action=\"signal-respond\" data-id=\"", esc(profile.id), "\">Respond to their work</button></div>"
+    ].join(""), true);
+  }
+
+  function connectSearchItems(query) {
+    var q = String(query || "").trim().toLowerCase();
+    var items = [];
+    function hit() { return !q || Array.prototype.some.call(arguments, function (value) { return String(value || "").toLowerCase().indexOf(q) >= 0; }); }
+    PROFILES.forEach(function (profile) {
+      if (hit(profile.name, profile.role, profile.city, profile.thought, profile.interests.join(" "))) items.push({ kind: "profile", id: profile.id, title: profile.name, meta: profile.role + " · person" });
+    });
+    allPosts().forEach(function (post) {
+      if (hit(post.title, post.body, post.label, (post.tags || []).join(" "))) items.push({ kind: "post", id: post.id, title: post.title, meta: post.label.toLowerCase() + " · post" });
+    });
+    state.plans.forEach(function (plan) {
+      if (hit(plan.title, plan.note)) items.push({ kind: "plan", id: plan.id, title: plan.title, meta: "workspace page" });
+    });
+    allCircles().forEach(function (circle) {
+      if (hit(circle.name, circle.description, circle.prompt)) items.push({ kind: "circle", id: circle.id, title: circle.name, meta: "circle" });
+    });
+    return items.slice(0, 14);
+  }
+
+  function renderConnectSearch(query) {
+    var root = document.getElementById("connect-search-results");
+    if (!root) return;
+    var items = connectSearchItems(query);
+    root.innerHTML = items.length ? items.map(function (item) {
+      return "<button type=\"button\" class=\"search-result\" data-action=\"search-result\" data-kind=\"" + esc(item.kind) + "\" data-id=\"" + esc(item.id) + "\"><span>" + esc(item.title) + "</span><small>" + esc(item.meta) + "</small></button>";
+    }).join("") : "<div class=\"search-empty\">No people, posts, workspace pages, or circles match that search.</div>";
+  }
+
+  function showConnectSearch() {
+    openModal([
+      modalHead("Search Connect", "Find a person, post, useful resource, workspace page, or circle without hunting through tabs."),
+      "<div class=\"modal-body connect-search\"><label><span class=\"sr-only\">Search Connect</span><input id=\"connect-search-input\" type=\"search\" autocomplete=\"off\" placeholder=\"Search people, work, resources, and rooms\"></label><div id=\"connect-search-results\" class=\"connect-search-results\"></div></div>"
+    ].join(""), true);
+    renderConnectSearch("");
+  }
+
+  function exportConnectData() {
+    var payload = { type: "lyfe-connect-backup", version: 4, exportedAt: new Date().toISOString(), data: state };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "lyfe-connect-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () { URL.revokeObjectURL(link.href); }, 2000);
+    toast("Connect backup downloaded.");
+  }
+
+  function importConnectData(input) {
+    var file = input.files && input.files[0];
+    input.value = "";
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var parsed = JSON.parse(String(reader.result || ""));
+        var incoming = parsed && parsed.type === "lyfe-connect-backup" ? parsed.data : parsed;
+        if (!incoming || typeof incoming !== "object" || !incoming.profile) throw new Error("invalid");
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(incoming));
+        state = loadState();
+        ui.activeConversation = state.conversations.length ? state.conversations[0].id : null;
+        closeModal();
+        renderAll();
+        toast("Connect backup restored on this device.");
+      } catch (error) {
+        toast("That is not a valid Lyfe Connect backup.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function showConnectSettings() {
+    openModal([
+      modalHead("Connect settings", "Control discovery, attention, profile sharing, and local data from one place."),
+      "<form class=\"modal-body connect-settings-form\" data-form=\"connect-settings\">",
+        "<section class=\"connect-settings-section\"><div><span>01</span><h3>Profile & Lyfe</h3><p>Your approved profile fields can stay consistent across both products.</p></div><div><p class=\"settings-status\"><strong>", esc(state.profile.name || "Your profile"), "</strong><span>", esc(state.profile.headline || "Add a useful headline in your profile."), "</span></p><button class=\"quiet-button\" type=\"button\" data-action=\"settings-profile\">Review profile</button></div></section>",
+        "<section class=\"connect-settings-section\"><div><span>02</span><h3>Discovery & attention</h3><p>Choose how much context and activity the interface puts in front of you.</p></div><div class=\"settings-checks\">",
+          "<label class=\"settings-check\"><input type=\"checkbox\" name=\"compactFeed\" ", state.settings.compactFeed ? "checked" : "", "><span><strong>Compact work feed</strong><small>Show more posts with smaller previews.</small></span></label>",
+          "<label class=\"settings-check\"><input type=\"checkbox\" name=\"showMatchReasons\" ", state.settings.showMatchReasons ? "checked" : "", "><span><strong>Show introduction reasons</strong><small>Explain why a person may be relevant instead of using a hidden score.</small></span></label>",
+          "<label class=\"settings-check\"><input type=\"checkbox\" name=\"quietNotifications\" ", state.settings.quietNotifications ? "checked" : "", "><span><strong>Quiet notification badge</strong><small>Keep activity available without a number on the top bar.</small></span></label>",
+          "<button class=\"quiet-button\" type=\"button\" data-action=\"pause-from-modal\">", state.paused ? "Resume introductions" : "Pause introductions", "</button>",
+        "</div></section>",
+        "<section class=\"connect-settings-section\"><div><span>03</span><h3>Data & privacy</h3><p>This preview is local-first. You can move it, inspect it, or erase it.</p></div><div><p class=\"settings-status\"><strong>Stored in this browser</strong><span>Profile, drafts, posts, circles, notifications, and workspace pages.</span></p><div class=\"settings-data-buttons\"><button class=\"quiet-button\" type=\"button\" data-action=\"export-connect\">Download backup</button><button class=\"quiet-button\" type=\"button\" data-action=\"import-connect\">Restore backup</button><button class=\"quiet-button danger-text\" type=\"button\" data-action=\"reset\">Erase preview</button></div></div></section>",
+        "<div class=\"modal-actions\"><button class=\"quiet-button\" type=\"button\" data-action=\"modal-close\">Cancel</button><button class=\"primary-button\" type=\"submit\">Save settings</button></div>",
+      "</form>"
+    ].join(""), true);
+  }
+
   function showDeletePostConfirm(post) {
     openModal([
       modalHead("Remove this post?", "It will be removed from this local preview. Your profile and other Connect data stay unchanged."),
@@ -834,7 +992,7 @@
         "\" aria-pressed=\"" + (active ? "true" : "false") + "\">" + esc(spark) + "</button>";
     }).join("");
     openModal([
-      "<img class=\"onboard-mark\" src=\"../assets/lyfe_connect_logo_v2.png\" alt=\"\">",
+      "<img class=\"onboard-mark\" src=\"../assets/lyfe_connect_logo_minimal.png\" alt=\"\">",
       modalHead("Build a network around your work.", "Choose a few fields so the private preview can show useful people, posts, projects, and circles."),
       "<div class=\"onboard-steps\"><i class=\"active\"></i><i class=\"active\"></i><i></i></div>",
       "<form class=\"modal-body\" data-form=\"onboarding\">",
@@ -976,6 +1134,53 @@
     }
     if (action === "notifications") {
       showNotifications();
+      return;
+    }
+    if (action === "search") {
+      showConnectSearch();
+      return;
+    }
+    if (action === "connect-settings") {
+      showConnectSettings();
+      return;
+    }
+    if (action === "export-connect") {
+      exportConnectData();
+      return;
+    }
+    if (action === "import-connect") {
+      document.getElementById("connect-import-file").click();
+      return;
+    }
+    if (action === "settings-profile") {
+      closeModal();
+      setView("profile");
+      return;
+    }
+    if (action === "signal-profile") {
+      var signalProfile = profileById(el.dataset.id);
+      if (signalProfile) showSignalProfile(signalProfile);
+      return;
+    }
+    if (action === "signal-respond") {
+      var signalResponseProfile = profileById(el.dataset.id);
+      if (signalResponseProfile) showRespond(signalResponseProfile);
+      return;
+    }
+    if (action === "search-result") {
+      var resultKind = el.dataset.kind;
+      var resultId = el.dataset.id;
+      if (resultKind === "profile") {
+        var foundProfile = profileById(resultId);
+        if (foundProfile) showSignalProfile(foundProfile);
+      } else {
+        closeModal();
+        setView(resultKind === "plan" ? "plans" : resultKind === "circle" ? "circles" : "discover");
+        setTimeout(function () {
+          var target = resultKind === "post" ? document.getElementById("feed-title") : document.querySelector("[data-screen='" + (resultKind === "plan" ? "plans" : "circles") + "'] .screen-heading");
+          if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 220);
+      }
       return;
     }
     if (action === "clear-notifications") {
@@ -1175,6 +1380,24 @@
     event.preventDefault();
     var data = new FormData(form);
 
+    if (kind === "quick-post") {
+      var quickDraft = String(data.get("draft") || "").trim();
+      if (!quickDraft) return;
+      showPostModal(null, quickDraft);
+      return;
+    }
+
+    if (kind === "connect-settings") {
+      state.settings.compactFeed = data.get("compactFeed") === "on";
+      state.settings.showMatchReasons = data.get("showMatchReasons") === "on";
+      state.settings.quietNotifications = data.get("quietNotifications") === "on";
+      saveState();
+      closeModal();
+      renderAll();
+      toast("Connect settings saved.");
+      return;
+    }
+
     if (kind === "post") {
       var postId = String(data.get("postId") || "");
       var postTitle = String(data.get("title") || "").trim();
@@ -1184,6 +1407,7 @@
         label: String(data.get("label") || "BUILD LOG").slice(0, 30),
         title: postTitle.slice(0, 140),
         body: postBody.slice(0, 900),
+        link: cleanLink(data.get("link")),
         tags: String(data.get("tags") || "").split(",").map(function (tag) { return tag.trim(); }).filter(Boolean).slice(0, 6),
         visual: ["flow", "map", "branches"].indexOf(String(data.get("visual"))) >= 0 ? String(data.get("visual")) : "flow",
         image: ""
@@ -1336,9 +1560,18 @@
       saveState();
       var syncedToLyfe = syncProfileToLyfe();
       renderNotificationCount();
+      renderProfilePreview();
       document.getElementById("profile-save-note").textContent = syncedToLyfe ? "Saved just now · approved fields synced to Lyfe." : "Saved just now · only on this device.";
       toast("Profile saved privately.");
     }
+  });
+
+  document.addEventListener("input", function (event) {
+    if (event.target.id === "connect-search-input") renderConnectSearch(event.target.value);
+  });
+
+  document.addEventListener("change", function (event) {
+    if (event.target.id === "connect-import-file") importConnectData(event.target);
   });
 
   document.addEventListener("keydown", function (event) {
