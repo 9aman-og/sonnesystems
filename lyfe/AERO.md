@@ -15,27 +15,21 @@ research code, private datasets, or claims that have not been publicly earned.
 
 The v0 is built to test that promise rather than claim general autonomy.
 
-## Today is the attention layer
+## Today keeps Lyfe's character
 
-Today is intentionally not a feed and not a catalogue of every Lyfe feature.
-Its stable hierarchy is:
+Today retains Lyfe's dynamic Crystal/Orbit identities, animated hero, changing
+copy, gamification, heat map, Wander, Calm, Gmail, Projects, Library and Connect.
+The product should become more intelligent without flattening the expressive
+surface that makes Lyfe feel alive.
 
-1. an Aero brief derived from the enabled context sources;
-2. at most five ranked commitments;
-3. shorthand commands that hand the current source into Aero;
-4. read-only Gmail signals;
-5. durable state from Tracking, Library, and Connect.
+Aero is available from the hero, global command, Gmail signals, Connect and the
+dedicated Aero workspace. These entry points hand the active Lyfe source into
+Aero so the person can use shorthand without turning Today into a generic AI
+dashboard.
 
-The old decorative planet/blob, gamification dashboard, heat map, full Wander
-experience, random calm image, repeated Connect cards, and duplicated project
-summaries were removed from Today. Those elements made the page expressive but
-obscured the human decision. Gamification data remains in the product ledger,
-and the underlying Wander route is not deleted, but neither competes with the
-attention surface.
-
-The Aero mark in Today is a fixed logo and context-status card, not a decorative
-character. It shows which sources are actually available and never implies that
-Gmail is connected before Gmail data is present.
+The malformed decorative center blob was replaced by the Frutiger Aero mark
+inside the existing animated rings, petals and pointer-responsive scene. The
+scene still moves; the brand object is now stable and recognizable.
 
 ## Runtime architecture
 

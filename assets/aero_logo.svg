@@ -1,26 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
   <title id="title">Aero</title>
-  <desc id="desc">An orbital arc surrounding a forward-moving A and a calm intelligence core.</desc>
+  <desc id="desc">A glossy sky and water sphere containing a white airflow loop around a living green core.</desc>
   <defs>
-    <linearGradient id="orbit" x1="19" y1="18" x2="109" y2="112" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#C4B5FF"/>
-      <stop offset="0.34" stop-color="#6F97FF"/>
-      <stop offset="0.72" stop-color="#2B5CF0"/>
-      <stop offset="1" stop-color="#1638B8"/>
-    </linearGradient>
-    <linearGradient id="aero-a" x1="50" y1="20" x2="91" y2="101" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#A9C7FF"/>
-      <stop offset="0.46" stop-color="#2B5CF0"/>
-      <stop offset="1" stop-color="#1638B8"/>
-    </linearGradient>
-    <radialGradient id="core" cx="0" cy="0" r="1" gradientTransform="translate(58 67) rotate(52) scale(31)">
-      <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset="0.28" stop-color="#DCE9FF"/>
-      <stop offset="0.62" stop-color="#6F97FF"/>
-      <stop offset="1" stop-color="#2B5CF0"/>
-    </radialGradient>
+    <radialGradient id="sky" cx="34%" cy="21%" r="81%"><stop offset="0" stop-color="#d7fbff"/><stop offset=".16" stop-color="#67e5ff"/><stop offset=".47" stop-color="#08aeea"/><stop offset=".76" stop-color="#0877d5"/><stop offset="1" stop-color="#06499d"/></radialGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#00efff" stop-opacity=".06"/><stop offset=".56" stop-color="#04e1e7" stop-opacity=".28"/><stop offset="1" stop-color="#00f3d1" stop-opacity=".72"/></linearGradient>
+    <linearGradient id="ribbon" x1=".18" y1=".13" x2=".78" y2=".9"><stop offset="0" stop-color="#fff"/><stop offset=".34" stop-color="#f8ffff"/><stop offset=".72" stop-color="#d9f8ff"/><stop offset="1" stop-color="#aee7f3"/></linearGradient>
+    <radialGradient id="leaf" cx="34%" cy="24%" r="78%"><stop offset="0" stop-color="#f3ff5c"/><stop offset=".35" stop-color="#a8ed1d"/><stop offset=".72" stop-color="#1cc95d"/><stop offset="1" stop-color="#029f76"/></radialGradient>
+    <linearGradient id="glint" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+    <clipPath id="orbClip"><circle cx="128" cy="128" r="113"/></clipPath>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="9" stdDeviation="8" flood-color="#003d79" flood-opacity=".32"/></filter>
+    <filter id="softShadow" x="-30%" y="-30%" width="170%" height="170%"><feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#00669b" flood-opacity=".34"/></filter>
+    <filter id="coreGlow" x="-70%" y="-70%" width="240%" height="240%"><feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#dfff3a" flood-opacity=".75"/></filter>
   </defs>
-  <path d="M103.5 25.5C89.2 12 68.4 7.1 48.8 12.8C26.4 19.2 11 39.7 11 63.2c0 29.3 23.7 53 53 53 22.4 0 42.5-14.1 50-35.2" fill="none" stroke="url(#orbit)" stroke-width="10" stroke-linecap="round"/>
-  <path d="M29 94 58.2 28.7c2.1-4.8 8.8-5 11.2-.4L100 87.7c-8.6.1-16.4-4.5-20.4-12.1L64.5 47.1 51.4 76.7C47.2 86.1 39 92.4 29 94Z" fill="url(#aero-a)"/>
-  <circle cx="64" cy="79" r="14" fill="url(#core)"/>
+  <circle cx="128" cy="128" r="114" fill="url(#sky)" filter="url(#shadow)"/>
+  <g clip-path="url(#orbClip)">
+    <ellipse cx="128" cy="190" rx="124" ry="84" fill="url(#sea)"/>
+    <path d="M-4 172c31-24 63-11 91-7 38 5 57-21 93-18 29 3 47 16 83 4v85H-4Z" fill="#00eff0" opacity=".22"/>
+    <path d="M-7 198c35-21 65-11 94-2 38 12 63-18 101-10 25 5 43 17 76 7" fill="none" stroke="#b7ffff" stroke-width="5" opacity=".42"/>
+    <path d="M25 78c17-33 47-47 85-52-13 9-20 19-24 29-21 1-42 10-61 23Z" fill="#fff" opacity=".34"/>
+    <path d="M39 53c23-23 49-30 76-30-17 6-30 13-40 24-13 0-25 2-36 6Z" fill="#fff" opacity=".58"/>
+    <path d="M175 37c25 9 44 23 57 44-21-15-38-18-57-20-10-1-13-19 0-24Z" fill="#fff" opacity=".24"/>
+    <path d="M199 78c-25-29-75-39-118-20-14 6-27 15-38 27 30-13 73-16 100-2 16 8 24 19 22 31-3 18-27 31-50 31-22 0-39-9-38-23 1-12 14-20 33-22-35-8-67 4-72 30-7 35 31 63 74 59 31-3 52-17 64-37 8 23 25 39 54 38-23-15-30-35-27-58 3-24 11-37-4-54Z" fill="url(#ribbon)" stroke="#fff" stroke-opacity=".78" stroke-width="3" filter="url(#softShadow)"/>
+    <path d="M188 75c-24-18-61-25-94-14 27-3 58 2 75 18 18 17 11 42-7 57 25-16 42-38 26-61Z" fill="#fff" opacity=".56"/>
+    <path d="M49 132c-1 27 28 49 61 47 25-1 43-11 56-28-14 12-34 20-56 19-30-1-51-14-61-38Z" fill="#97dae9" opacity=".36"/>
+    <g filter="url(#coreGlow)">
+      <ellipse cx="116" cy="129" rx="29" ry="25" transform="rotate(-22 116 129)" fill="url(#leaf)" stroke="#eaff81" stroke-width="2"/>
+      <path d="M95 142c13-5 24-15 42-31-10 17-20 30-36 38" fill="none" stroke="#eaff80" stroke-width="2.4" stroke-linecap="round" opacity=".8"/>
+      <ellipse cx="107" cy="116" rx="10" ry="6" transform="rotate(-22 107 116)" fill="url(#glint)" opacity=".84"/>
+    </g>
+  </g>
+  <circle cx="128" cy="128" r="113" fill="none" stroke="#d9fbff" stroke-opacity=".8" stroke-width="4"/>
+  <circle cx="128" cy="128" r="108" fill="none" stroke="#5ff6ff" stroke-opacity=".32" stroke-width="2"/>
+  <path d="M45 61c21-25 50-38 85-39" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".78"/>
+  <path d="M35 78c6-10 12-17 20-24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".92"/>
 </svg>

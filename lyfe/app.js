@@ -1171,7 +1171,7 @@ function weekHours() {
 
 /* ---------------- view: today ---------------- */
 
-function viewTodayLegacy() {
+function viewToday() {
   const d = state.data;
   const t = todayStr();
   const hour = new Date().getHours();
@@ -1294,7 +1294,7 @@ function viewTodayLegacy() {
           <i class="cx-petal p1"></i><i class="cx-petal p2"></i><i class="cx-petal p3"></i>
           <div class="cx-core">
             <i class="cx-core-ring rb"></i>
-            <i class="cx-core-orb"></i>
+            <span class="cx-core-logo"><img src="../assets/aero_logo.svg" alt=""></span>
             <i class="cx-core-ring rf"></i>
             <i class="cx-core-orbiter"><i></i></i>
             <span class="cx-core-badge">::2K</span>
@@ -1508,7 +1508,7 @@ function viewTodayLegacy() {
 /* Today is the attention layer of Lyfe. It deliberately shows less than the
    underlying product: one brief, a ranked queue, external signals, and living
    workspaces. Aero is the synthesis and action layer across all of them. */
-function viewToday() {
+function viewTodayAttentionDashboard() {
   const d = state.data;
   const today = todayStr();
   const hour = new Date().getHours();
