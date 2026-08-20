@@ -26,6 +26,7 @@
      await .pullConnect()             -> {data,rev} | null
      await .pushConnect(data, rev)
      .pushConnectDebounced(data, rev)
+     await .invokeAero({prompt,date,kind})
    ============================================================ */
 (function () {
   "use strict";
@@ -35,6 +36,7 @@
   var SB_ANON = String(CFG.anonKey || "").trim();
   var configured = /^https:\/\/.+\.supabase\.co\/?$/.test(SB_URL) && SB_ANON.length > 20;
   var googleEnabled = CFG.googleEnabled === true;
+  var aeroGatewayEnabled = CFG.aeroGatewayEnabled === true;
   var providerSettingsChecked = false;
 
   // Exact pin keeps an upstream release from changing the app between deploys.
@@ -140,9 +142,58 @@
     } catch (e) { /* malformed callback URLs fail back to the sign-in gate */ }
   }
 
+  function cloudError(message, status, code) {
+    var error = new Error(message);
+    error.status = Number(status || 0);
+    error.code = String(code || "cloud_error");
+    return error;
+  }
+
+  async function currentAccessToken() {
+    await ensureClient();
+    var result = await sb.auth.getSession();
+    if (result && result.error) throw result.error;
+    var session = result && result.data ? result.data.session : null;
+    return session && session.access_token ? session.access_token : "";
+  }
+
+  async function callAeroGateway(payload, retry) {
+    var token = await currentAccessToken();
+    if (!token) throw cloudError("Sign in before using the cloud-safe model.", 401, "sign_in_required");
+    var response = await fetch(SB_URL.replace(/\/$/, "") + "/functions/v1/aero-groq", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + token,
+        apikey: SB_ANON,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload || {}),
+    });
+    if (response.status === 401 && retry !== false) {
+      var refreshed = await sb.auth.refreshSession();
+      if (!(refreshed && refreshed.error)) return callAeroGateway(payload, false);
+    }
+    var body = {};
+    try { body = await response.json(); } catch (e) { /* a shaped error follows */ }
+    if (!response.ok) {
+      var code = String(body && body.error || "gateway_unavailable");
+      var messages = {
+        sign_in_required: "Sign in before using the cloud-safe model.",
+        not_allowed: "This Aero gateway is private to its approved account.",
+        provider_not_configured: "The Groq route is not configured yet.",
+        provider_rate_limited: "The free Groq route is busy. Try again shortly.",
+        rate_limited: "Aero is sending too quickly. Try again in a minute.",
+      };
+      throw cloudError(messages[code] || "The cloud-safe model is unavailable.", response.status, code);
+    }
+    if (!(body && body.result)) throw cloudError("The cloud-safe model returned an incomplete response.", 502, "invalid_response");
+    return body;
+  }
+
   var LyfeCloud = {
     configured: configured,
     get googleEnabled() { return googleEnabled; },
+    get aeroGatewayEnabled() { return aeroGatewayEnabled; },
     get user() { return current; },
     get lastError() { return lastAuthError; },
 
@@ -202,6 +253,11 @@
     },
 
     get gmailToken() { return googleProviderToken; },
+
+    async invokeAero(payload) {
+      if (!configured || !aeroGatewayEnabled) throw cloudError("The Groq route is not enabled on this deployment.", 503, "gateway_disabled");
+      return callAeroGateway(payload, true);
+    },
 
     async signInEmail(email) {
       lastAuthError = "";

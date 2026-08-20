@@ -41,6 +41,12 @@ assert.equal(privateRoute.engine, "ollama", "private work must stay local even w
 assert.equal(privateRoute.steps.length, 2, "compound work should be split into inspectable steps");
 const codeRoute = Aero.routePlan({ signal: "debug this script", engines: { gpt: true }, cloudAllowed: true });
 assert.equal(codeRoute.engine, "gpt", "explicitly allowed non-private coding can route to GPT");
+const groqRoute = Aero.routePlan({ signal: "explain speculative decoding", engines: { groq: true }, cloudAllowed: true });
+assert.equal(groqRoute.engine, "groq", "cloud-safe general reasoning can use the protected Groq route");
+const privateGroqRoute = Aero.routePlan({ signal: "summarize my project notes", engines: { groq: true }, cloudAllowed: true });
+assert.equal(privateGroqRoute.engine, "built-in", "personal Lyfe context must not be sent to Groq");
+const actionGroqRoute = Aero.routePlan({ signal: "remind me to call mum tomorrow", engines: { groq: true }, cloudAllowed: true });
+assert.equal(actionGroqRoute.engine, "built-in", "workspace actions stay in the local action engine");
 const multimodalRoute = Aero.routePlan({ signal: "inspect this audio recording and diagram", engines: { inkling: true, gpt: true }, cloudAllowed: true });
 assert.equal(multimodalRoute.engine, "inkling", "an allowed multimodal task can route to an Inkling specialist");
 const privateInklingRoute = Aero.routePlan({ signal: "summarize my private account recording", engines: { inkling: true }, cloudAllowed: true });

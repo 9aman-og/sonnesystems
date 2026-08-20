@@ -246,7 +246,10 @@
     var steps = signal.split(/\s+(?:and then|then|after that|also)\s+|[;\n]+/i)
       .map(function (step) { return text(step, 500); }).filter(Boolean).slice(0, 6);
     if (!steps.length) steps = [signal];
-    var privacy = /\b(private|personal|gmail|email|message|health|money|account|password|family)\b/.test(value) ? "private" : "standard";
+    var sensitive = /\b(private|personal|gmail|email|message|health|money|account|password|family|inbox|profile|library|lyfe)\b/.test(value);
+    var personalContext = /\b(?:my|our|mine)\b.{0,40}\b(?:task|note|doc|project|goal|work|plan|schedule|history|memory|chat|file|people|contact)\b/.test(value);
+    var workspaceAction = /^(?:please\s+)?(?:remind|add (?:a )?(?:task|note|goal|project)|create (?:a )?(?:task|note|doc|goal|project)|task|todo|note\s*:|doc\s*:|goal\s*:|learning\s*:|log\s+|done\s+|remember\s+that|forget\s+)/.test(value);
+    var privacy = sensitive || personalContext || workspaceAction ? "private" : "standard";
     var preferred = engines.inklingLocal ? "inkling" : engines.ollama ? "ollama" : "built-in";
     var reason = engines.inklingLocal ? "private multimodal endpoint" : engines.ollama ? "local model available" : "local deterministic route";
     if (privacy !== "private" && input.cloudAllowed === true) {
@@ -256,6 +259,9 @@
         preferred = "gpt"; reason = "coding route";
       } else if (/\b(research|compare|sources?|web|current|latest)\b/.test(value) && engines.gemini) {
         preferred = "gemini"; reason = "research route";
+      } else if (engines.groq) {
+        preferred = "groq";
+        reason = family === "research" ? "cloud-safe research route" : /\b(code|debug|repository|program|script)\b/.test(value) ? "cloud-safe coding route" : "cloud-safe reasoning route";
       } else if (engines.gpt) {
         preferred = "gpt"; reason = "general reasoning route";
       }

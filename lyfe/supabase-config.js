@@ -12,5 +12,7 @@ window.LYFE_SUPABASE = {
   url: "https://rfjqqixgevlgjeybeedw.supabase.co",
   anonKey: "sb_publishable_VsN4Zi5m-oCca-2ZVJ9Ung_r6vv9wHa",
   // Google OAuth is configured in Supabase. Email sign-in remains available.
-  googleEnabled: true
+  googleEnabled: true,
+  // Calls an authenticated Edge Function. No provider secret is public here.
+  aeroGatewayEnabled: true
 };

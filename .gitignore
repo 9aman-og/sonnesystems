@@ -8,3 +8,8 @@ _tmp_*
 __pycache__/
 .pytest_cache/
 *.db
+
+# local function credentials
+supabase/functions/.env
+supabase/functions/.env.*
+!.env.example

@@ -1,0 +1,4 @@
+project_id = "rfjqqixgevlgjeybeedw"
+
+[functions.aero-groq]
+verify_jwt = true

@@ -89,3 +89,26 @@ guest data so the app still opens.
 Do not enable Google Cloud billing or upgrade Supabase without an explicit
 decision. Check the free-tier usage dashboards before a public launch and keep
 email resend limits in place to prevent abuse.
+
+## Aero Groq gateway
+
+The `aero-groq` Edge Function is the only place that may hold a Groq API key.
+It requires a valid Supabase user JWT and an email listed in the private
+`AERO_ALLOWED_EMAILS` function secret. The public Lyfe bundle contains only the
+Supabase publishable key.
+
+Required hosted function secrets:
+
+- `GROQ_API_KEY`: a Groq Console API key
+- `GROQ_MODEL`: normally `openai/gpt-oss-120b`
+- `AERO_ALLOWED_EMAILS`: comma-separated approved Lyfe accounts
+
+Keep Groq on its Free plan without a payment method and keep the Supabase
+organization on its Free plan. Do not enable a paid developer tier, prepaid
+credits, billing, add-ons, or a Supabase upgrade. When either free quota is
+exhausted, the cloud request must fail and Aero must use its local fallback.
+
+The function accepts only the current prompt, date, and intent family. It has
+an origin allowlist, input limits, a per-user burst limit, a fixed model,
+structured output validation, a 25-second timeout, and no prompt logging.
+Deploy with JWT verification enabled. Do not configure this function as public.

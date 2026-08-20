@@ -97,11 +97,13 @@ The persistent product layer does not depend on one foundation model:
 
 1. deterministic local tools always remain available;
 2. Ollama can provide a local open-model adapter with structured output;
-3. future GPT/Codex and Gemini adapters are optional specialists behind explicit,
+3. Groq GPT-OSS can answer cloud-safe prompts through an authenticated Edge
+   Function that receives no Lyfe context, memory, Gmail, files, or chat history;
+4. future GPT/Codex and Gemini adapters are optional specialists behind explicit,
    supported authorization rather than consumer-session scraping;
-4. Inkling can become an optional multimodal/tool-use specialist behind a private
+5. Inkling can become an optional multimodal/tool-use specialist behind a private
    endpoint or an explicitly approved hosted route;
-5. a failed adapter falls back without bypassing the action validator.
+6. a failed adapter falls back without bypassing the action validator.
 
 ChatGPT Plus and Google AI Pro subscriptions are not assumed to provide developer
 API credit. Every route records the engine that actually answered, and private
@@ -158,6 +160,7 @@ Run the clean-room behavioral checks:
 
 ```powershell
 node aero-core.test.js
+node cloud.test.js
 ```
 
 ## Current v0 limit

@@ -378,9 +378,10 @@ function defaultData() {
       name: "",
       nameSet: false,
       theme: "light",                // auto | light | dark - default Crystal light
-      provider: "auto",              // auto | ollama | offline
+      provider: "auto",              // auto | ollama | groq | offline
       ollamaUrl: "http://localhost:11434",
       ollamaModel: "qwen3:8b",
+      aeroCloudEnabled: false,        // current cloud-safe prompt only, never Lyfe context
       aeroSources: {
         today: true,
         tracking: true,
@@ -503,10 +504,11 @@ function normalize(raw) {
   }, raw.settings && raw.settings.aeroSources && typeof raw.settings.aeroSources === "object" ? raw.settings.aeroSources : {});
   base.settings.aeroLocalLearning = base.settings.aeroLocalLearning !== false;
   base.settings.aeroTrainingConsent = base.settings.aeroTrainingConsent === true;
+  base.settings.aeroCloudEnabled = base.settings.aeroCloudEnabled === true;
   // Retire legacy direct-browser cloud credentials. Consumer subscriptions are
   // not API credentials, and private Lyfe context must never leave through an
   // old saved provider setting.
-  if (!["auto", "ollama", "offline"].includes(base.settings.provider)) base.settings.provider = "auto";
+  if (!["auto", "ollama", "groq", "offline"].includes(base.settings.provider)) base.settings.provider = "auto";
   delete base.settings.apiKey;
   delete base.settings.model;
   delete base.settings.aeroCloudContext;
@@ -2343,10 +2345,11 @@ const SOL_CHIPS = [
 
 function viewSol() {
   const s = state.data.settings;
-  const provider = ["auto", "ollama", "offline"].includes(s.provider) ? s.provider : "auto";
+  const provider = ["auto", "ollama", "groq", "offline"].includes(s.provider) ? s.provider : "auto";
   const statusHtml =
-    provider === "auto" ? `<span class="on">◇</span> local-first routing`
+    provider === "auto" ? `<span class="on">◇</span> local first${s.aeroCloudEnabled ? " + Groq" : ""}`
     : provider === "ollama" ? `<span class="on">◇</span> local ${esc(s.ollamaModel || "qwen3:8b")}`
+    : provider === "groq" ? `<span class="on">◇</span> Groq for cloud-safe prompts`
     : `○ built-in tools`;
   const log = state.data.chat.map(bubbleHtml).join("");
   const context = aeroContextPack();
@@ -2967,20 +2970,49 @@ async function askOllama(turnContext) {
   }
 }
 
+async function askGroq(raw) {
+  if (!(window.LyfeCloud && LyfeCloud.user && LyfeCloud.aeroGatewayEnabled)) {
+    throw new Error("Sign in before using the protected Groq route.");
+  }
+  const response = await LyfeCloud.invokeAero({
+    prompt: String(raw || "").slice(0, 4000),
+    date: todayStr(),
+    kind: AeroCore.classifyIntent(raw),
+  });
+  const parsed = response && response.result ? response.result : {};
+  return {
+    bubbles: Array.isArray(parsed.bubbles) ? parsed.bubbles.map(String).filter(Boolean).slice(0, 4) : ["I need one more detail."],
+    actions: Array.isArray(parsed.actions) ? parsed.actions.map(AeroCore.validateAction).filter(Boolean) : [],
+    assumption: String(parsed.assumption || ""),
+    model: String(response && response.model || "openai/gpt-oss-120b"),
+  };
+}
+
 /* ----- Aero: conversation flow ----- */
 
 let solChain = Promise.resolve();
 let brainWarned = false;
 let ollamaDown = false;   // session flag: stop hammering a dead endpoint
+let groqWarned = false;
+let groqDownUntil = 0;
 
 function handleUserMessage(text) {
   const context = aeroContextPack(null, text);
   const epistemic = AeroCore.epistemicDecision({ signal: text, context });
+  const settings = state.data.settings;
+  const providerChoice = ["auto", "ollama", "groq", "offline"].includes(settings.provider) ? settings.provider : "auto";
+  const cloudReady = settings.aeroCloudEnabled === true
+    && providerChoice !== "offline" && providerChoice !== "ollama"
+    && !!(window.LyfeCloud && LyfeCloud.user && LyfeCloud.aeroGatewayEnabled)
+    && Date.now() >= groqDownUntil;
   const route = AeroCore.routePlan({
     signal: text,
     context,
-    engines: { ollama: (state.data.settings.provider || "auto") !== "offline" && !ollamaDown },
-    cloudAllowed: false,
+    engines: {
+      ollama: (providerChoice === "auto" || providerChoice === "ollama") && !ollamaDown,
+      groq: cloudReady,
+    },
+    cloudAllowed: cloudReady,
   });
   const started = state.data.settings.aeroLocalLearning !== false
     ? AeroCore.beginEpisode(state.data.aero, text, context.surface, context.id)
@@ -2989,28 +3021,55 @@ function handleUserMessage(text) {
   pushChat("user", text, { episodeId: started.episode.id, contextId: context.id });
   solChain = solChain.then(async () => {
     const s = state.data.settings;
-    const provider = ["auto", "ollama", "offline"].includes(s.provider) ? s.provider : "auto";
+    const provider = ["auto", "ollama", "groq", "offline"].includes(s.provider) ? s.provider : "auto";
     let usedEngine = "built-in";
+    let usedReason = route.privacy === "private" ? "private request kept local" : "local deterministic route";
     let reply = null;
     if (epistemic.mode === "clarify") {
       reply = { bubbles: [epistemic.question], actions: [] };
-    } else if ((provider === "ollama" || provider === "auto") && !ollamaDown) {
-      try {
-        showTyping();
-        reply = await askOllama(context);
-        usedEngine = "ollama";
-        hideTyping();
-      } catch (err) {
-        hideTyping();
-        ollamaDown = true;   // don't retry the dead endpoint again this session
-        if (!brainWarned) {
-          brainWarned = true;
-          toast("Aero: can't reach Ollama, using the built-in brain");
-        }
-        reply = solLocalRouted(text, route);
-      }
     } else {
-      reply = solLocalRouted(text, route);
+      const mayUseOllama = (provider === "ollama" || provider === "auto") && !ollamaDown;
+      const mayUseGroq = (provider === "groq" || provider === "auto")
+        && s.aeroCloudEnabled === true && route.privacy === "standard"
+        && !!(window.LyfeCloud && LyfeCloud.user && LyfeCloud.aeroGatewayEnabled)
+        && Date.now() >= groqDownUntil;
+      if (mayUseOllama) {
+        try {
+          showTyping();
+          reply = await askOllama(context);
+          usedEngine = "ollama";
+          usedReason = "local model available";
+        } catch (err) {
+          ollamaDown = true;   // do not retry a dead endpoint again this session
+          if (!brainWarned) {
+            brainWarned = true;
+            toast(mayUseGroq ? "Aero: Ollama is offline, trying Groq" : "Aero: Ollama is offline, using local tools");
+          }
+        } finally {
+          hideTyping();
+        }
+      }
+      if (!reply && mayUseGroq) {
+        try {
+          showTyping();
+          reply = await askGroq(text);
+          usedEngine = "groq";
+          usedReason = "current cloud-safe prompt only";
+        } catch (error) {
+          const status = Number(error && error.status || 0);
+          groqDownUntil = Date.now() + (status === 429 ? 60_000 : 30_000);
+          if (!groqWarned) {
+            groqWarned = true;
+            toast(error && error.message ? error.message : "Groq is unavailable; using local tools");
+          }
+        } finally {
+          hideTyping();
+        }
+      }
+      if (!reply) {
+        reply = solLocalRouted(text, route);
+        usedReason = route.privacy === "private" ? "private request kept local" : "local fallback";
+      }
     }
     const actions = (reply.actions || []).map(AeroCore.validateAction).filter(Boolean);
     let bubbles = Array.isArray(reply.bubbles) && reply.bubbles.length ? reply.bubbles : ["i need one more detail."];
@@ -3028,7 +3087,7 @@ function handleUserMessage(text) {
       contextId: context.id,
       route: {
         engine: usedEngine,
-        reason: usedEngine === route.engine ? route.reason : "local fallback",
+        reason: usedReason,
         steps: route.steps.length,
         privacy: route.privacy,
       },
@@ -3296,6 +3355,7 @@ function settingsModal() {
   const vault = window.AeroKnowledge ? AeroKnowledge.stats() : { records: 0, sources: {} };
   const vaultSources = Object.keys(vault.sources || {}).map(key => `${key} ${vault.sources[key]}`).join(" · ") || "No imports yet";
   const falsePromotion = proof.falsePromotionRate == null ? "&mdash;" : Math.round(proof.falsePromotionRate * 100) + "%";
+  const groqReady = !!(window.LyfeCloud && LyfeCloud.configured && LyfeCloud.aeroGatewayEnabled && LyfeCloud.user);
   const sourceToggle = (id, title, detail) => `<label class="aero-source-toggle"><input type="checkbox" name="source_${id}" ${sources[id] === false ? "" : "checked"}><span><b>${esc(title)}</b><small>${esc(detail)}</small></span></label>`;
   openModal(
     `<div class="settings-hero"><div><span class="settings-kicker">LYFE · AERO</span><h3>Settings</h3><p>Account, context, models, and privacy.</p></div><img src="../assets/aero_logo.svg" alt=""></div>
@@ -3342,14 +3402,15 @@ function settingsModal() {
        <section class="settings-section">
          <div class="settings-section-copy"><span>06</span><div><h4>Model routing</h4><p>Aero chooses an engine; Aero remains the system.</p></div></div>
          <div class="settings-stack">
-           ${fld("Routing mode", selectHtml("provider", [["auto", "Automatic · local first"], ["ollama", "Ollama only"], ["offline", "Built-in tools only"]], ["auto", "ollama", "offline"].includes(s.provider) ? s.provider : "auto"))}
+           ${fld("Routing mode", selectHtml("provider", [["auto", "Automatic · local first"], ["ollama", "Ollama only"], ["groq", "Groq for cloud-safe prompts"], ["offline", "Built-in tools only"]], ["auto", "ollama", "groq", "offline"].includes(s.provider) ? s.provider : "auto"))}
+           <label class="settings-check"><input type="checkbox" name="aeroCloudEnabled" ${s.aeroCloudEnabled ? "checked" : ""}><span><b>Use free Groq for cloud-safe prompts</b><small>Sends only the current prompt. Lyfe context stays local. If free capacity runs out, Aero falls back locally instead of charging.</small></span></label>
            <div class="fld-row">
              ${fld("Ollama address", `<input type="text" name="ollamaUrl" value="${esc(s.ollamaUrl || "http://localhost:11434")}" placeholder="http://localhost:11434">`)}
              ${fld("Ollama model", `<input type="text" name="ollamaModel" value="${esc(s.ollamaModel || "qwen3:8b")}" placeholder="qwen3:8b">`)}
            </div>
-           <div class="model-route-grid"><article><b>Aero local</b><span>Built-in · ready</span></article><article><b>Ollama</b><span>Private local model</span></article><article><b>GPT / Codex</b><span>History import ready · live bridge not connected</span></article><article><b>Gemini</b><span>History import ready · live bridge not connected</span></article><article><b>Inkling</b><span>Evaluated · multimodal specialist candidate</span></article></div>
-           <div class="settings-data-actions"><button type="button" class="btn" data-action="ollama-test">Test local model</button></div>
-           <p class="fld-note">Aero never labels a consumer AI account as connected unless a supported private bridge is actually live.</p>
+           <div class="model-route-grid"><article><b>Aero local</b><span>Built-in · ready</span></article><article><b>Ollama</b><span>Private local model</span></article><article><b>Groq GPT-OSS</b><span>${groqReady ? "Free protected gateway available" : "Free route · sign in to enable"}</span></article><article><b>GPT / Codex</b><span>History import ready · live bridge not connected</span></article><article><b>Gemini</b><span>History import ready · live bridge not connected</span></article><article><b>Inkling</b><span>Evaluated · multimodal specialist candidate</span></article></div>
+           <div class="settings-data-actions"><button type="button" class="btn" data-action="ollama-test">Test local model</button><button type="button" class="btn" data-action="groq-test">Test Groq route</button></div>
+           <p class="fld-note">Private and workspace requests stay local even when Groq is enabled. Aero never treats a consumer AI subscription as API access.</p>
          </div>
        </section>
        <section class="settings-section">
@@ -4230,6 +4291,21 @@ document.addEventListener("click", (e) => {
       });
       break;
     }
+    case "groq-test": {
+      if (!(window.LyfeCloud && LyfeCloud.user && LyfeCloud.aeroGatewayEnabled)) {
+        toast("Sign in to test the protected Groq route");
+        break;
+      }
+      el.disabled = true; el.textContent = "Testing...";
+      LyfeCloud.invokeAero({ prompt: "Reply with one short sentence confirming that Aero is ready.", date: todayStr(), kind: "general" })
+        .then(response => {
+          const model = response && response.model ? " · " + response.model : "";
+          toast("Groq route is ready" + model);
+        })
+        .catch(error => toast(error && error.message ? error.message : "Groq route is unavailable"))
+        .finally(() => { el.disabled = false; el.textContent = "Test Groq route"; });
+      break;
+    }
 
     case "gmail-connect":
       if (window.LyfeCloud && LyfeCloud.configured) LyfeCloud.connectGmail().catch(() => toast("Gmail could not connect - try again"));
@@ -4577,10 +4653,13 @@ document.addEventListener("submit", (e) => {
       };
       d.settings.aeroLocalLearning = fd.has("aeroLocalLearning");
       d.settings.aeroTrainingConsent = fd.has("aeroTrainingConsent");
-      d.settings.provider = ["auto", "ollama", "offline"].includes(val("provider")) ? val("provider") : "auto";
+      d.settings.provider = ["auto", "ollama", "groq", "offline"].includes(val("provider")) ? val("provider") : "auto";
+      d.settings.aeroCloudEnabled = fd.has("aeroCloudEnabled") || d.settings.provider === "groq";
       d.settings.ollamaUrl = val("ollamaUrl") || "http://localhost:11434";
       d.settings.ollamaModel = val("ollamaModel") || "qwen3:8b";
       brainWarned = false;
+      groqWarned = false;
+      groqDownUntil = 0;
       ollamaDown = false;   // give the newly-chosen brain a fresh try
       applyTheme();
       save(); closeModal(); render(); toast("Settings saved");

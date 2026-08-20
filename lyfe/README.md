@@ -103,11 +103,17 @@ Aero routes between replaceable engines in **Settings**:
    pack and a strict structured-action schema.
 2. **Offline deterministic tools.** No model at all; the built-in commands above
    still work.
-3. **Cloud specialists.** GPT/Codex and Gemini are shown as honest adapter states,
+3. **Groq GPT-OSS.** An optional authenticated Edge Function provides free-tier
+   reasoning for cloud-safe prompts. It receives only the current prompt and
+   date. The Lyfe context pack, Gmail, memory, notes, imported chats, and prior
+   messages are never included. Workspace actions and personal-context requests
+   stay local even when this route is enabled. No paid tier is required; quota
+   exhaustion falls back to Aero local instead of becoming billable usage.
+4. **Cloud specialists.** GPT/Codex and Gemini are shown as honest adapter states,
    but are not labelled connected until a supported private bridge exists. A
    consumer ChatGPT Plus or Google AI Pro subscription is not treated as API
    credit and Aero never scrapes an account session.
-4. **Inkling.** The open-weight multimodal model is an evaluated future specialist,
+5. **Inkling.** The open-weight multimodal model is an evaluated future specialist,
    not the free local default; even Inkling-Small's quantized checkpoint requires
    server-class GPU memory.
 
@@ -125,6 +131,7 @@ Run the clean-room Aero checks with:
 
 ```powershell
 node aero-core.test.js
+node cloud.test.js
 ```
 
 ## Your data
