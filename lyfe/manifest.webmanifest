@@ -1,7 +1,7 @@
 {
   "name": "Lyfe - your life, lightly kept",
   "short_name": "Lyfe",
-  "description": "A calm, gamified life tracker with Aero, your AI companion. Tasks, projects, goals, notes, docs and more.",
+  "description": "A calm life workspace with Aero, your personal intelligence layer across tasks, projects, notes, connections, and context.",
   "start_url": "./index.html",
   "scope": "./",
   "id": "lyfe-app",

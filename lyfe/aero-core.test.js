@@ -29,6 +29,23 @@ assert.ok(!pack.sources.some(source => source.id === "gmail"), "disabled sources
 assert.equal(pack.activeObject.title, "Ship the demo");
 assert.match(Aero.summarizeForPrompt(pack), /\[Active object\] task: Ship the demo/);
 
+const knowledgePack = Aero.contextPack({
+  lyfe: { tasks: [], projects: [], goals: [], notes: [], docs: [], saved: [], settings: {} },
+  sourcePolicy: { knowledge: true },
+  knowledge: [{ id: "k1", sourceLabel: "ChatGPT", title: "Workflow notes", detail: "Use a two-pass review before publishing." }],
+});
+assert.ok(knowledgePack.sources.some(source => source.id === "knowledge"), "local imports should enter context with provenance");
+assert.match(Aero.summarizeForPrompt(knowledgePack), /ChatGPT · Workflow notes/);
+const privateRoute = Aero.routePlan({ signal: "review my private Gmail and then make a task", engines: { ollama: true, gpt: true }, cloudAllowed: true });
+assert.equal(privateRoute.engine, "ollama", "private work must stay local even when a cloud engine exists");
+assert.equal(privateRoute.steps.length, 2, "compound work should be split into inspectable steps");
+const codeRoute = Aero.routePlan({ signal: "debug this script", engines: { gpt: true }, cloudAllowed: true });
+assert.equal(codeRoute.engine, "gpt", "explicitly allowed non-private coding can route to GPT");
+const multimodalRoute = Aero.routePlan({ signal: "inspect this audio recording and diagram", engines: { inkling: true, gpt: true }, cloudAllowed: true });
+assert.equal(multimodalRoute.engine, "inkling", "an allowed multimodal task can route to an Inkling specialist");
+const privateInklingRoute = Aero.routePlan({ signal: "summarize my private account recording", engines: { inkling: true }, cloudAllowed: true });
+assert.equal(privateInklingRoute.engine, "built-in", "a hosted Inkling endpoint must not receive private context implicitly");
+
 assert.equal(Aero.epistemicDecision({ signal: "remind me to email prof tomorrow", context: pack }).mode, "answer",
   "a reminder containing the word email is still an internal task capture");
 assert.equal(Aero.epistemicDecision({ signal: "email prof", context: pack }).mode, "preview");

@@ -1,8 +1,8 @@
 /* ============================================================
    Lyfe - your life, lightly kept
    Vanilla JavaScript. No dependencies. Data in localStorage.
-   Aero, the personal intelligence layer, works offline (built-in parser) and can
-   optionally use the Claude API with your own key (Settings).
+   Aero, the personal intelligence layer, works offline with deterministic tools
+   and can route permitted context to a local Ollama model.
    ============================================================ */
 "use strict";
 
@@ -68,13 +68,6 @@ const EDU_STATUSES = [
 const EDU_ORDER = { "in-progress": 0, planned: 1, paused: 2, completed: 3 };
 
 const GOAL_STATUSES = [["active", "In pursuit"], ["achieved", "Achieved"]];
-
-const MODELS = [
-  ["claude-sonnet-5", "Claude Sonnet 5 - balanced (default)"],
-  ["claude-opus-5", "Claude Opus 5 - strongest, higher cost"],
-  ["claude-opus-4-8", "Claude Opus 4.8 - strong reasoning"],
-  ["claude-haiku-4-5-20251001", "Claude Haiku 4.5 - fastest"],
-];
 
 const MONTHS = ["January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December"];
@@ -385,11 +378,9 @@ function defaultData() {
       name: "",
       nameSet: false,
       theme: "light",                // auto | light | dark - default Crystal light
-      provider: "auto",              // auto | ollama | claude | offline
+      provider: "auto",              // auto | ollama | offline
       ollamaUrl: "http://localhost:11434",
       ollamaModel: "qwen3:8b",
-      apiKey: "",
-      model: "claude-sonnet-5",
       aeroSources: {
         today: true,
         tracking: true,
@@ -397,10 +388,10 @@ function defaultData() {
         connect: true,
         gmail: true,
         profile: true,
+        knowledge: true,
       },
       aeroLocalLearning: true,
       aeroTrainingConsent: false,
-      aeroCloudContext: false,
       lastGreeted: "",
       sound: true,
       // profile, collected at onboarding after Google sign-in; Aero uses these
@@ -457,9 +448,9 @@ Aero can use Today, Tracking, Library, Connect, Gmail metadata and Profile only 
     updatedAt: now,
   });
   d.chat.push(
-    { id: uid(), role: "sol", text: "hey, i'm aero.", ts: now },
-    { id: uid(), role: "sol", text: "i carry the Lyfe context you allow, remember only what earns persistence, and preview every workspace change.", ts: now + 1 },
-    { id: uid(), role: "sol", text: "start with \"what actually matters?\" or teach me a workflow you want to shorten over time.", ts: now + 2 },
+    { id: uid(), role: "sol", text: "I’m Aero.", ts: now },
+    { id: uid(), role: "sol", text: "I use the Lyfe context you allow and preview changes before they happen.", ts: now + 1 },
+    { id: uid(), role: "sol", text: "Ask what matters now, or show me a workflow you repeat.", ts: now + 2 },
   );
   return d;
 }
@@ -469,10 +460,16 @@ Aero can use Today, Tracking, Library, Connect, Gmail metadata and Profile only 
    existing guest or cloud snapshot is opened after the rename. User-authored
    messages and notes are left untouched. */
 function migrateLegacyCompanionText(value) {
-  return String(value || "")
+  const migrated = String(value || "")
     .replace(/\b(?:SOL|EOS)\b/g, "AERO")
     .replace(/\b(?:Sol|Eos)\b/g, "Aero")
     .replace(/\b(?:sol|eos)\b/g, "aero");
+  const legacyIntro = {
+    "hey, i'm aero.": "I’m Aero.",
+    "i carry the Lyfe context you allow, remember only what earns persistence, and preview every workspace change.": "I use the Lyfe context you allow and preview changes before they happen.",
+    "start with \"what actually matters?\" or teach me a workflow you want to shorten over time.": "Ask what matters now, or show me a workflow you repeat.",
+  };
+  return legacyIntro[migrated] || migrated;
 }
 
 function normalize(raw) {
@@ -502,11 +499,17 @@ function normalize(raw) {
     base.settings = Object.assign(base.settings, raw.settings);
   }
   base.settings.aeroSources = Object.assign({
-    today: true, tracking: true, library: true, connect: true, gmail: true, profile: true,
+    today: true, tracking: true, library: true, connect: true, gmail: true, profile: true, knowledge: true,
   }, raw.settings && raw.settings.aeroSources && typeof raw.settings.aeroSources === "object" ? raw.settings.aeroSources : {});
   base.settings.aeroLocalLearning = base.settings.aeroLocalLearning !== false;
   base.settings.aeroTrainingConsent = base.settings.aeroTrainingConsent === true;
-  base.settings.aeroCloudContext = base.settings.aeroCloudContext === true;
+  // Retire legacy direct-browser cloud credentials. Consumer subscriptions are
+  // not API credentials, and private Lyfe context must never leave through an
+  // old saved provider setting.
+  if (!["auto", "ollama", "offline"].includes(base.settings.provider)) base.settings.provider = "auto";
+  delete base.settings.apiKey;
+  delete base.settings.model;
+  delete base.settings.aeroCloudContext;
   base.settings.profileInterests = Array.isArray(base.settings.profileInterests)
     ? base.settings.profileInterests.map(String).filter(Boolean).slice(0, 12)
     : [];
@@ -1227,7 +1230,7 @@ function viewToday() {
 
   const connectActivity = connectSummary();
   const connectInbox = `<a class="connect-inbox-card" href="connect.html#notifications">
-    <span class="connect-inbox-icon"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
+    <span class="connect-inbox-icon"><img src="../assets/lyfe_connect_logo.svg" alt=""></span>
     <span class="connect-inbox-copy"><span class="eyebrow">CONNECT NOTIFICATIONS</span><strong>${connectActivity.unread ? connectActivity.unread + " unread update" + (connectActivity.unread === 1 ? "" : "s") : "Your Connect inbox is quiet."}</strong><small>${esc(connectActivity.latest)}</small></span>
     <span class="connect-inbox-meta"><b>${connectActivity.threads}</b> drafts · <b>${connectActivity.saved}</b> saved</span>
   </a>`;
@@ -1270,6 +1273,17 @@ function viewToday() {
     <div class="daily-ring" style="--p:${ringPct}"><span>${doneN}<small>/${goalN}</small></span></div>
     <div class="daily-ring-meta"><span class="eyebrow">TODAY</span><b>${doneN} done</b><p>${streak > 0 ? "▲ " + streak + " day streak" : "start a streak today"}</p></div>
   </div>`;
+  const aeroHomeThought = overdue.length
+    ? "One thing slipped. Pick it up or give it a new date."
+    : "Nothing is urgent. Use the space well.";
+  const aeroHomeBody = `<div class="aero-home-lockup"><img src="../assets/aero_logo.svg" alt=""><span><small>AERO</small><b>Ready with your Lyfe context</b></span></div>
+    <h2>${aeroHomeThought}</h2>
+    <div class="aero-home-prompts" aria-label="Ask Aero">
+      <button type="button" data-action="aero-from-source" data-source="today" data-prompt="what actually matters right now?">what matters?</button>
+      <button type="button" data-action="aero-from-source" data-source="today" data-prompt="plan my next focused hour">plan an hour</button>
+      <button type="button" data-action="aero-from-source" data-source="today" data-prompt="what changed across my Lyfe?">what changed?</button>
+    </div>
+    <button class="btn" data-action="nav" data-view="sol">Open Aero</button>`;
 
   // the two identities are two different buildings on the same data.
   // CRYSTAL (light): glass showroom - 3D disc hero, bento deck, holo endcap.
@@ -1282,7 +1296,7 @@ function viewToday() {
         <h1 class="cx-title">Good ${partCap},<br>${esc(who)}<span class="blink-dot">.</span></h1>
         <p class="cx-deck">${open.length
           ? `<b>${open.length} open loop${open.length === 1 ? "" : "s"}</b> in orbit - everything else is handled.`
-          : `Nothing waiting on you. <b>Protect that feeling.</b>`}</p>
+          : `Nothing waiting on you. <b>Choose what deserves your attention.</b>`}</p>
         <div class="cx-cta">
           <button class="btn btn-primary cx-btn-big" data-action="new-task">+ capture</button>
           <button class="btn cx-btn-big" data-action="nav" data-view="sol">${icon("sol")} talk to Aero</button>
@@ -1360,28 +1374,24 @@ function viewToday() {
       </section>
 
       <section class="panel tilt cx-tile mini-sol-card cx-solcard">
-        <span class="eyebrow">AERO SAYS</span>
-        <h2>${overdue.length ? "one overdue thing. no drama, just pick it up." : "your slate is clear. protect that feeling."}</h2>
-        <button class="btn" data-action="nav" data-view="sol">reply to Aero</button>
+        ${aeroHomeBody}
       </section>
 
       <a class="cx-connect-card" href="connect.html">
-        <span class="cx-connect-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
+        <span class="cx-connect-mark"><img src="../assets/lyfe_connect_logo.svg" alt=""></span>
         <span class="cx-connect-copy"><span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span><strong>Find the people and rooms your work needs.</strong><span>A calmer network for collaborators, work posts, focused Circles, and shared project pages.</span></span>
         <span class="cx-connect-link">OPEN CONNECT <span aria-hidden="true">↗</span></span>
       </a>
       ${connectInbox}
     </section>
 
-    ${wanderHome}
-
-    ${calmHome}
+    <div class="home-reset-deck">${wanderHome}${calmHome}</div>
 
     <section class="cx-endcap" data-reveal>
       <i class="cx-endcap-disc" aria-hidden="true"></i>
-      <span class="cx-endcap-kicker">YOU ARE NOT BEHIND.</span>
-      <h2>You are here.<br>That is enough to begin.</h2>
-      <a class="btn btn-primary" href="#home-wander-title">take a detour ${icon("wander")}</a>
+      <span class="cx-endcap-kicker">START WHERE YOU ARE.</span>
+      <h2>Choose one thing.<br>Begin there.</h2>
+      <a class="btn btn-primary" href="#home-wander-title">open Wander ${icon("wander")}</a>
     </section>
   </div>`;
   }
@@ -1478,12 +1488,10 @@ function viewToday() {
           <div class="panel-body">${noteList}</div>
         </section>
         <section class="panel tilt mini-sol-card">
-          <span class="eyebrow">AERO SAYS</span>
-          <h2>${overdue.length ? "one overdue thing. no drama, just pick it up." : "your slate is clear. protect that feeling."}</h2>
-          <button class="btn" data-action="nav" data-view="sol">reply to Aero</button>
+          ${aeroHomeBody}
         </section>
         <a class="panel tilt connect-card" href="connect.html">
-          <span class="connect-card-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
+          <span class="connect-card-mark"><img src="../assets/lyfe_connect_logo.svg" alt=""></span>
           <span class="eyebrow">LYFE CONNECT / PRIVATE PREVIEW</span>
           <strong>Find the people and rooms your work needs.</strong>
           <span>Discover collaborators, share work in context, and turn a useful thread into organized action.</span>
@@ -1493,14 +1501,12 @@ function viewToday() {
       </div>
     </section>
 
-    ${wanderHome}
-
-    ${calmHome}
+    <div class="home-reset-deck">${wanderHome}${calmHome}</div>
 
     <section class="home-endcap">
-      <span>YOU ARE NOT BEHIND.</span>
-      <h2>You are here.<br>That is enough to begin.</h2>
-      <a class="btn btn-primary" href="#home-wander-title">take a detour ${icon("wander")}</a>
+      <span>START WHERE YOU ARE.</span>
+      <h2>Choose one thing.<br>Begin there.</h2>
+      <a class="btn btn-primary" href="#home-wander-title">open Wander ${icon("wander")}</a>
     </section>
   </div>`;
 }
@@ -1659,7 +1665,7 @@ function viewTodayAttentionDashboard() {
         <div>${noteList}</div>
       </section>
       <a class="panel today-connect-module" href="connect.html">
-        <div class="today-connect-head"><img src="../assets/lyfe_connect_logo.png" alt=""><span class="eyebrow">LYFE CONNECT</span></div>
+        <div class="today-connect-head"><img src="../assets/lyfe_connect_logo.svg" alt=""><span class="eyebrow">LYFE CONNECT</span></div>
         <h2>People are part of the work.</h2>
         <p>${connectActivity.unread ? esc(connectActivity.latest) : "Conversations, collaborators and saved opportunities become usable Aero context."}</p>
         <div class="today-connect-stats"><span><b>${connectActivity.unread}</b> unread</span><span><b>${connectActivity.threads}</b> threads</span><span><b>${connectActivity.saved}</b> saved</span></div>
@@ -1785,7 +1791,7 @@ function aeroActiveObject() {
   return null;
 }
 
-function aeroContextPack(surfaceOverride) {
+function aeroContextPack(surfaceOverride, query) {
   if (!window.AeroCore) return { id: "context-unavailable", surface: "aero", sources: [], memories: [], provenanceCoverage: 0 };
   const surface = surfaceOverride || (state.view === "sol" ? state.aeroSourceView : topSectionOf(state.view));
   const pack = AeroCore.contextPack({
@@ -1794,6 +1800,7 @@ function aeroContextPack(surfaceOverride) {
     connect: readConnectState() || {},
     connectSuite: readConnectSuiteState() || {},
     gmail: gmailMessages,
+    knowledge: window.AeroKnowledge ? AeroKnowledge.context(query || "", 6) : [],
     surface,
     activeObject: state.view === "sol" ? state.aeroObject : aeroActiveObject(),
     sourcePolicy: state.data.settings.aeroSources || {},
@@ -1803,7 +1810,7 @@ function aeroContextPack(surfaceOverride) {
 }
 
 function aeroSourceLabel(id) {
-  const labels = { today: "Today", tracking: "Tracking", library: "Library", connect: "Connect", gmail: "Gmail", profile: "Profile" };
+  const labels = { today: "Today", tracking: "Tracking", library: "Library", connect: "Connect", gmail: "Gmail", profile: "Profile", knowledge: "Knowledge vault" };
   return labels[id] || String(id || "Lyfe");
 }
 
@@ -1814,6 +1821,7 @@ function syncProfileToConnect() {
     const s = state.data.settings;
     connect.profile = Object.assign({}, connect.profile || {}, {
       name: s.name || "",
+      username: s.username || "",
       city: s.city || s.country || "",
       headline: s.headline || "",
       bio: s.bio || "",
@@ -1842,7 +1850,7 @@ function viewProfile() {
     [(state.data.game && state.data.game.streak) || 0, "day streak"],
   ];
 
-  return pageHead("Profile", `<a class="btn" href="connect.html#profile">Open Connect profile ↗</a>`, "your identity across Lyfe") + `
+  return pageHead("Profile", `<a class="btn" href="connect.html#profile">Open in Connect ↗</a>`, "you, across Lyfe") + `
     <section class="profile-hero panel">
       <div class="profile-avatar" aria-hidden="true"><span>${esc(initials)}</span></div>
       <div class="profile-identity">
@@ -1856,7 +1864,7 @@ function viewProfile() {
 
     <div class="profile-layout">
       <form class="panel profile-editor" data-form="profile">
-        <div class="profile-form-head"><span class="eyebrow">PUBLIC-FACING DETAILS</span><h2>Make your profile useful, not performative.</h2><p>These details stay in Lyfe. When Connect sync is on, the same profile is used in Lyfe Connect on this device.</p></div>
+        <div class="profile-form-head"><span class="eyebrow">YOUR DETAILS</span><h2>Show people what matters.</h2><p>Connect uses only the fields you approve.</p></div>
         <div class="profile-fields">
           <label><span>Name</span><input name="name" maxlength="60" value="${esc(s.name)}" autocomplete="name" placeholder="Your name"></label>
           <label><span>Username</span><input name="username" maxlength="32" value="${esc(s.username)}" placeholder="yourname" autocomplete="username"></label>
@@ -1867,15 +1875,15 @@ function viewProfile() {
           <label class="profile-field-wide"><span>About you</span><textarea name="bio" rows="5" maxlength="500" placeholder="Write like a person. Share what you care about, what you are working on, and where someone could help.">${esc(s.bio)}</textarea></label>
           <label class="profile-field-wide"><span>Interests, separated by commas</span><input name="interests" maxlength="240" value="${esc(interests.join(", "))}" placeholder="Design, research, open source"></label>
         </div>
-        <label class="profile-sync"><input type="checkbox" name="connectSync" value="yes" ${s.connectSync ? "checked" : ""}><span><b>Use this profile in Lyfe Connect</b><small>Syncs these approved profile fields locally. Tasks, notes, learning, and private Lyfe data are never copied.</small></span></label>
-        <div class="profile-form-actions"><span>Saved with the rest of your Lyfe data.</span><button class="btn btn-primary" type="submit">Save profile</button></div>
+        <label class="profile-sync"><input type="checkbox" name="connectSync" value="yes" ${s.connectSync ? "checked" : ""}><span><b>Use in Lyfe Connect</b><small>Private Lyfe data stays separate.</small></span></label>
+        <div class="profile-form-actions"><span>Private by default.</span><button class="btn btn-primary" type="submit">Save profile</button></div>
       </form>
 
       <aside class="panel profile-connect-card">
-        <img src="../assets/lyfe_connect_logo.png" alt="">
+        <img src="../assets/lyfe_connect_logo.svg" alt="">
         <span class="eyebrow">LYFE CONNECT</span>
-        <h2>One profile, two useful contexts.</h2>
-        <p>Connect uses the identity you approve here, then keeps social posts, outreach, and circles separate from your private Lyfe workspace.</p>
+        <h2>One profile. Clear boundaries.</h2>
+        <p>Your public identity can travel. Your private workspace does not.</p>
         <div class="profile-connect-stats"><span><b>${connect.saved}</b> saved people</span><span><b>${connect.threads}</b> private drafts</span></div>
         <a class="btn" href="connect.html#profile">Review in Connect ↗</a>
       </aside>
@@ -2110,7 +2118,7 @@ function viewWork() {
       <div class="wk-side">${weekChart()}<span class="week-line">${esc(weekLine)}</span></div></div>
     <div class="panel-body">
       <form data-form="log">
-        <textarea name="text" placeholder="Write it down - future you will thank you" required></textarea>
+        <textarea name="text" placeholder="What changed?" required></textarea>
         <div class="log-form-row">
           <input type="date" name="date" value="${todayStr()}" required title="Date">
           <input type="number" name="hours" min="0" max="24" step="0.5" placeholder="hours" title="Hours (optional)">
@@ -2316,9 +2324,11 @@ function bubbleHtml(m) {
   const feedback = m.role === "sol" && m.episodeId ? (m.feedback
     ? `<div class="aero-feedback is-rated"><span>${m.feedback === "helpful" ? "Marked helpful" : "Marked as a miss"}</span></div>`
     : `<div class="aero-feedback" aria-label="Rate Aero's first response"><span>Did Aero get it?</span><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="helpful">Yes</button><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="missed">Not quite</button></div>`) : "";
+  const routeReceipt = m.role === "sol" && m.route && m.route.engine
+    ? `<div class="aero-route-receipt"><span>${esc(m.route.engine)}</span><b>${esc(m.route.reason || "local route")}</b>${m.route.steps > 1 ? `<small>${m.route.steps} steps</small>` : ""}</div>` : "";
   return `<div class="msg ${m.role === "user" ? "user" : "sol"}">
     ${m.role === "sol" ? SOL_AVATAR : ""}
-    <div class="bubble">${esc(m.text)}${proposalHtml}${feedback}</div>
+    <div class="bubble">${esc(m.text)}${routeReceipt}${proposalHtml}${feedback}</div>
     <span class="msg-time">${esc(clock(m.ts))}</span>
   </div>`;
 }
@@ -2333,31 +2343,29 @@ const SOL_CHIPS = [
 
 function viewSol() {
   const s = state.data.settings;
-  const provider = s.provider || "auto";
-  const online = provider === "claude" && !!(s.apiKey || "").trim();
+  const provider = ["auto", "ollama", "offline"].includes(s.provider) ? s.provider : "auto";
   const statusHtml =
-    online ? `<span class="on">●</span> claude connected`
-    : provider === "auto" ? `<span class="on">◇</span> local-first routing`
+    provider === "auto" ? `<span class="on">◇</span> local-first routing`
     : provider === "ollama" ? `<span class="on">◇</span> local ${esc(s.ollamaModel || "qwen3:8b")}`
-    : `○ offline, <button class="linklike" data-action="settings">connect a brain</button>`;
+    : `○ built-in tools`;
   const log = state.data.chat.map(bubbleHtml).join("");
   const context = aeroContextPack();
   const metrics = AeroCore.metrics(state.data.aero);
   const sourceCards = context.sources.map(source => `<article class="aero-source-card"><span>${esc(source.label)}</span><p>${esc(source.detail)}</p></article>`).join("");
   const allMemories = AeroCore.normalize(state.data.aero).memories.slice().sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6);
-  const memories = allMemories.length ? allMemories.map(memory => `<li class="is-${esc(memory.status)}"><span>${esc(memory.type)} · ${esc(memory.status)}</span><p>${esc(memory.claim)}</p><small>${memory.sourceMode === "explicit" ? "Taught by you" : Math.round(memory.confidence * 100) + "% confidence · " + (memory.successCount || 0) + " successful signal" + ((memory.successCount || 0) === 1 ? "" : "s")}</small><button type="button" data-action="aero-forget" data-id="${esc(memory.id)}" aria-label="Forget this memory">Forget</button></li>`).join("") : `<li class="aero-memory-empty"><p>Aero has not earned any persistent memories yet.</p></li>`;
+  const memories = allMemories.length ? allMemories.map(memory => `<li class="is-${esc(memory.status)}"><span>${esc(memory.type)} · ${esc(memory.status)}</span><p>${esc(memory.claim)}</p><small>${memory.sourceMode === "explicit" ? "Taught by you" : Math.round(memory.confidence * 100) + "% confidence · " + (memory.successCount || 0) + " successful signal" + ((memory.successCount || 0) === 1 ? "" : "s")}</small><button type="button" data-action="aero-forget" data-id="${esc(memory.id)}" aria-label="Forget this memory">Forget</button></li>`).join("") : `<li class="aero-memory-empty"><p>Aero is not carrying anything yet.</p></li>`;
   const firstPass = metrics.firstPassRate == null ? "&mdash;" : Math.round(metrics.firstPassRate * 100) + "%";
   const compression = metrics.compressionSamples ? (metrics.compression > 0 ? "+" : "") + Math.round(metrics.compression * 100) + "%" : "&mdash;";
   const memoryCount = metrics.activeMemories + " kept" + (metrics.candidateMemories ? " · " + metrics.candidateMemories + " candidate" + (metrics.candidateMemories === 1 ? "" : "s") : "");
-  const proofLabel = metrics.proofReady ? "evidence ready" : "collecting baseline";
+  const proofLabel = metrics.proofReady ? "working" : "learning your baseline";
   return `<header class="aero-head">
-      <div class="aero-title-lockup"><img src="../assets/aero_logo.svg" alt=""><div><span class="eyebrow">PERSONAL INTELLIGENCE</span><h1>Aero</h1><p>Context across Lyfe. Memory that earns persistence. Actions that stay under your control.</p></div></div>
+      <div class="aero-title-lockup"><img src="../assets/aero_logo.svg" alt=""><div><span class="eyebrow">YOUR OPERATING LAYER</span><h1>Aero</h1><p>One context. Clear routes. Reviewable actions.</p></div></div>
       <div class="aero-head-actions"><span class="sol-status">${statusHtml}</span><button class="linklike" data-action="settings">Controls</button><button class="linklike" data-action="sol-clear">Clear chat</button></div>
     </header>
     <div class="aero-workspace">
       <section class="aero-conversation panel">
-        <div class="aero-conversation-context"><span>Working from</span><b>${esc(aeroSourceLabel(context.surface))}</b><button class="linklike" type="button" data-action="aero-context">See what Aero can use</button></div>
-        <div id="chat-log">${log || `<div class="aero-empty"><img src="../assets/aero_logo.svg" alt=""><h2>What do you want to make easier?</h2><p>You can start fully explicit. Aero only compresses the instruction after it has evidence.</p></div>`}</div>
+        <div class="aero-conversation-context"><span>Working from</span><b>${esc(aeroSourceLabel(context.surface))}</b><button class="linklike" type="button" data-action="aero-context">Available context</button></div>
+        <div id="chat-log">${log || `<div class="aero-empty"><img src="../assets/aero_logo.svg" alt=""><h2>What should move?</h2><p>Say the outcome. Aero finds the context, chooses a route, and previews any changes.</p></div>`}</div>
         <div class="sol-chips">${SOL_CHIPS.map(([c, send]) =>
           `<button class="chip" data-action="sol-chip" data-send="${send ? 1 : 0}" data-t="${esc(c)}">${esc(c.trim())}</button>`).join("")}
         </div>
@@ -2365,12 +2373,12 @@ function viewSol() {
           <input type="text" id="sol-input" maxlength="2000" placeholder="Tell Aero the outcome, or use your own shorthand…" autocomplete="off" aria-label="Message Aero">
           <button class="btn btn-primary" type="submit">Send</button>
         </form>
-        <p class="aero-composer-note">Aero previews workspace changes. It cannot send messages or take external action in this version.</p>
+        <p class="aero-composer-note">Workspace changes stay in preview until you approve them.</p>
       </section>
       <aside class="aero-rail">
-        <section class="aero-rail-card"><header><span class="eyebrow">CURRENT CONTEXT</span><b>${Math.round(context.provenanceCoverage * 100)}% coverage</b></header><div class="aero-source-grid">${sourceCards || `<p>No sources are enabled.</p>`}</div><button class="linklike" type="button" data-action="settings">Manage sources →</button></section>
-        <section class="aero-rail-card"><header><span class="eyebrow">MEMORY & ADAPTATION</span><b>${memoryCount}</b></header><ul class="aero-memory-list">${memories}</ul><button class="linklike" type="button" data-action="aero-teach">Teach Aero explicitly →</button></section>
-        <section class="aero-rail-card aero-proof"><header><span class="eyebrow">COMMUNICATION COMPRESSION</span><b>${proofLabel}</b></header><div class="aero-proof-grid"><div><strong>${metrics.scored}</strong><span>rated outcomes</span></div><div><strong>${firstPass}</strong><span>first-pass intent</span></div><div><strong>${metrics.averageWords ? metrics.averageWords.toFixed(1) : "&mdash;"}</strong><span>words when right</span></div><div><strong>${compression}</strong><span>less instruction</span></div></div><p>Compression is compared only after the same outcome family succeeds again. ${metrics.compressionSamples} matched comparison${metrics.compressionSamples === 1 ? "" : "s"} so far.</p></section>
+        <section class="aero-rail-card"><header><span class="eyebrow">AVAILABLE CONTEXT</span><b>${Math.round(context.provenanceCoverage * 100)}% ready</b></header><div class="aero-source-grid">${sourceCards || `<p>No sources are enabled.</p>`}</div><button class="linklike" type="button" data-action="settings">Choose sources →</button></section>
+        <section class="aero-rail-card"><header><span class="eyebrow">WHAT AERO KNOWS</span><b>${memoryCount}</b></header><ul class="aero-memory-list">${memories}</ul><button class="linklike" type="button" data-action="aero-teach">Teach Aero →</button></section>
+        <section class="aero-rail-card aero-proof"><header><span class="eyebrow">GETTING EASIER</span><b>${proofLabel}</b></header><div class="aero-proof-grid"><div><strong>${metrics.scored}</strong><span>rated results</span></div><div><strong>${firstPass}</strong><span>right first time</span></div><div><strong>${metrics.averageWords ? metrics.averageWords.toFixed(1) : "&mdash;"}</strong><span>words needed</span></div><div><strong>${compression}</strong><span>less explaining</span></div></div><p>${metrics.compressionSamples} successful repeat${metrics.compressionSamples === 1 ? "" : "s"} compared so far.</p></section>
       </aside>
     </div>`;
 }
@@ -2567,24 +2575,24 @@ function contextBits() {
 function statusBubbles() {
   const c = contextBits();
   const b = [];
-  if (!c.open.length) b.push("your list is completely clear right now 🌤");
+  if (!c.open.length) b.push("Your task list is clear.");
   else {
     let line = `you've got ${c.open.length} open ${c.open.length === 1 ? "task" : "tasks"}`;
     if (c.dueToday.length) line += `, ${c.dueToday.length} due today`;
-    if (c.overdue.length) line += ` - and ${c.overdue.length} overdue 👀`;
-    b.push(line);
+    if (c.overdue.length) line += `, with ${c.overdue.length} overdue`;
+    b.push(line + ".");
   }
-  if (c.hours) b.push(`${fmtHours(c.hours)}h of work logged this week. keep it moving`);
-  else b.push("no work logged this week yet - even one line counts");
+  if (c.hours) b.push(`${fmtHours(c.hours)}h logged this week.`);
+  else b.push("No work logged this week yet.");
   return b;
 }
 
 function dueBubbles() {
   const c = contextBits();
   const items = c.overdue.concat(c.dueToday);
-  if (!items.length) return ["nothing due today. clear runway ✨"];
+  if (!items.length) return ["Nothing is due today."];
   const list = items.slice(0, 5).map(x => "• " + x.title).join("\n");
-  return [`here's today:\n${list}`, items.length > 5 ? `plus ${items.length - 5} more on the tasks page` : "you've got this"].filter(Boolean);
+  return [`Due now:\n${list}`, items.length > 5 ? `${items.length - 5} more are in Tasks.` : ""].filter(Boolean);
 }
 
 const WEEKDAY_IDX = {
@@ -2631,17 +2639,17 @@ function stripCourtesy(s) {
 }
 
 const JOKES = [
-  "a neuron walks into a bar. doesn't fire. tough crowd",
-  "i only know sundial jokes, and honestly they take all day",
-  "my sleep schedule is perfect. i literally rise at dawn - it's the job",
-  "i'd tell you a localStorage joke but you'd just forget to persist it",
+  "A neuron walks into a bar. It doesn’t fire. Tough crowd.",
+  "I only know sundial jokes. They take all day.",
+  "My sleep schedule is perfect. I rise at dawn; it’s the job.",
+  "I’d tell you a localStorage joke, but you might forget to persist it.",
 ];
 
-const EMPATHY_1 = ["that sounds heavy. i'm here", "ugh, those days are the worst", "okay. deep breath"];
+const EMPATHY_1 = ["That sounds like a lot.", "That sounds rough.", "I hear you."];
 const EMPATHY_2 = [
-  "want to dump it on me? venting counts as productivity today",
-  "be gentle with yourself. one small thing, then rest",
-  "the list can wait - you matter more than it does",
+  "Want to untangle it, reduce today's list, or just leave it here?",
+  "We can choose one small next step, or pause the list.",
+  "I can help reduce the load without pretending it fixes everything.",
 ];
 
 function dueWord(due) {
@@ -2661,19 +2669,19 @@ function solLocal(raw) {
   if (/^(hi+|hii+|hello+|hey+|heyy+|yo+|sup|hola|good (morning|afternoon|evening)|wass?up)(\s+(?:aero|eos|sol))?\b[!.\s]*$/i.test(lowOrig)) {
     const name = (state.data.settings.name || "").trim();
     const c = contextBits();
-    const hello = pick([`hey${name ? " " + name.toLowerCase() : ""} 👋`, "heyy", "hello hello", "hey, good to see you"]);
+    const hello = pick([`Hey${name ? " " + name.split(/\s+/)[0] : ""}.`, "Hey.", "Hello."]);
     const follow = c.dueToday.length || c.overdue.length
-      ? pick([`quick heads up - ${c.dueToday.length + c.overdue.length} thing${c.dueToday.length + c.overdue.length === 1 ? "" : "s"} on today's plate`, "want a rundown of today? just ask \"what's due\""])
-      : pick(["nothing pressing today. how are you?", "clear day ahead. what's on your mind?"]);
+      ? `${c.dueToday.length + c.overdue.length} item${c.dueToday.length + c.overdue.length === 1 ? "" : "s"} need attention today.`
+      : "Nothing is pressing. What should move?";
     return { bubbles: [hello, follow], actions: [] };
   }
 
   if (/thank|thanks|thx|\bty\b/.test(lowOrig)) {
-    return { bubbles: [pick(["anytime 🤝", "of course", "that's what i'm here for"])], actions: [] };
+    return { bubbles: [pick(["Anytime.", "Of course.", "Done."])], actions: [] };
   }
 
   if (/^(bye|gn|good ?night|see ya|later)\b/.test(lowOrig)) {
-    return { bubbles: [pick(["later! i'll hold the fort", "rest well 🌙", "see you. i'll be here"])], actions: [] };
+    return { bubbles: [pick(["See you later.", "Rest well.", "I'll keep your place."])], actions: [] };
   }
 
   /* -- commands, on the courtesy-stripped message -- */
@@ -2684,9 +2692,9 @@ function solLocal(raw) {
   if (/what can you do|^help$|how do (you|i) work/.test(low)) {
     return {
       bubbles: [
-        "i work across the Lyfe context you allow: Today, Tracking, Library, Connect, Gmail and Profile.",
-        "ask what matters, compare something you have open, plan a follow-up, or tell me what to remember. workspace changes always appear as a preview first.",
-        "the goal is simple: over time you should be able to say less without me getting your intent wrong.",
+        "I work across the Lyfe context you allow: Today, Tracking, Library, Connect, Gmail, and your knowledge vault.",
+        "Ask what matters, compare something, plan a follow-up, or tell me what to remember. I preview workspace changes first.",
+        "The goal is simple: you should need fewer words over time without losing accuracy.",
       ],
       actions: [],
     };
@@ -2697,55 +2705,65 @@ function solLocal(raw) {
     const memoryType = /\b(?:when|workflow|steps?|process|usually do)\b/i.test(claim) ? "procedural"
       : /\b(?:project|for this|on this)\b/i.test(claim) ? "project" : "semantic";
     return {
-      bubbles: ["i can keep that as an explicit " + memoryType + " memory. you can review or forget it whenever you want."],
+      bubbles: ["I can keep that as a " + memoryType + " memory. You can review or forget it anytime."],
       actions: [{ type: "memory_upsert", claim, memoryType, scope: memoryType === "project" ? "current-project" : "global" }],
     };
   }
 
   if ((m = t.match(/^(?:forget|remove memory)(?: that| about)?\s*:?[\s]+(.+)/i))) {
-    return { bubbles: ["i found this as a memory change. nothing is removed until you approve."], actions: [{ type: "memory_forget", query: m[1].trim() }] };
+    return { bubbles: ["I found the memory change. Review it before anything is removed."], actions: [{ type: "memory_forget", query: m[1].trim() }] };
   }
 
   if (/what (?:have you|did you) learn|what do you remember|show (?:your )?memory/.test(low)) {
     const memories = AeroCore.normalize(state.data.aero).memories.filter(item => item.status === "active" || item.status === "provisional").slice(-6);
-    if (!memories.length) return { bubbles: ["nothing persistent yet. that's deliberate, i only keep what you explicitly teach or what later earns enough evidence."], actions: [] };
-    return { bubbles: ["here's what i'm currently allowed to carry:\n" + memories.map(item => "• " + item.claim + " [" + item.type + "]").join("\n")], actions: [] };
+    if (!memories.length) return { bubbles: ["I’m not carrying any persistent memory yet."], actions: [] };
+    return { bubbles: ["Here’s what I’m carrying:\n" + memories.map(item => "• " + item.claim + " [" + item.type + "]").join("\n")], actions: [] };
   }
 
   if (/same as last time|use my usual|do it my way/.test(low)) {
     const memory = AeroCore.normalize(state.data.aero).memories.filter(item => item.type === "procedural" && item.status === "active").sort((a, b) => b.updatedAt - a.updatedAt)[0];
-    if (!memory) return { bubbles: ["i don't have a confirmed procedure for that yet. show me once in full, then tell me what part should persist."], actions: [] };
-    return { bubbles: ["i found your latest confirmed procedure: \"" + memory.claim + "\". tell me the object or outcome and i'll use it."], actions: [] };
+    if (!memory) return { bubbles: ["I don’t have a confirmed procedure for that yet. Show me once, then tell me what should persist."], actions: [] };
+    return { bubbles: ["Your latest confirmed procedure is: \"" + memory.claim + "\". Tell me the outcome and I’ll use it."], actions: [] };
   }
 
   if (/what changed|catch me up|bring me up to speed/.test(low)) {
     const pack = aeroContextPack();
     const lines = pack.sources.filter(source => source.items.length).slice(0, 4).map(source => "• " + source.label + ": " + source.detail);
-    return { bubbles: [lines.length ? "here's the live shape of things:\n" + lines.join("\n") : "there isn't enough enabled context yet. open Controls to choose what i can use."], actions: [] };
+    return { bubbles: [lines.length ? "Here’s what changed:\n" + lines.join("\n") : "There isn’t enough enabled context yet. Open Controls to choose what I can use."], actions: [] };
   }
 
   if (/\b(?:gmail|inbox|email)\b/.test(low) && /\b(?:summary|summarize|what|latest|important|changed)\b/.test(low)) {
     const source = aeroContextPack().sources.find(item => item.id === "gmail");
-    if (!source) return { bubbles: [window.LyfeCloud && LyfeCloud.gmailToken ? "gmail is connected, but i don't have recent metadata loaded yet. open Today once and try again." : "connect Gmail in Settings, then choose whether Aero may use its metadata and snippets."], actions: [] };
-    return { bubbles: [source.items.length ? "from the recent inbox metadata:\n" + source.items.slice(0, 5).map(item => "• " + item.title + ", " + item.detail).join("\n") : "your recent inbox context is clear."], actions: [] };
+    if (!source) return { bubbles: [window.LyfeCloud && LyfeCloud.gmailToken ? "Gmail is connected, but recent metadata is not loaded. Open Today, then try again." : "Connect Gmail in Settings, then choose whether Aero may use its metadata and snippets."], actions: [] };
+    return { bubbles: [source.items.length ? "From recent inbox metadata:\n" + source.items.slice(0, 5).map(item => "• " + item.title + ", " + item.detail).join("\n") : "There’s nothing recent to flag."], actions: [] };
   }
 
   if (/\b(?:connect|messages?|people|opportunit)\b/.test(low) && /\b(?:summary|what|latest|changed|follow up)\b/.test(low)) {
     const source = aeroContextPack("connect").sources.find(item => item.id === "connect");
-    if (!source || !source.items.length) return { bubbles: ["i can see the Connect source is enabled, but there isn't enough recent context to infer a person or thread. open Connect or name who you mean."], actions: [] };
-    return { bubbles: ["from Connect:\n" + source.items.slice(0, 5).map(item => "• " + item.title + (item.detail ? ", " + item.detail : "")).join("\n")], actions: [] };
+    if (!source || !source.items.length) return { bubbles: ["Connect is enabled, but there isn’t enough recent context to identify a person or thread. Name who you mean."], actions: [] };
+    return { bubbles: ["From Connect:\n" + source.items.slice(0, 5).map(item => "• " + item.title + (item.detail ? ", " + item.detail : "")).join("\n")], actions: [] };
   }
 
   if (/\b(?:library|notes?|docs?|saved)\b/.test(low) && /\b(?:what|summary|summarize|latest|find)\b/.test(low)) {
     const source = aeroContextPack("library").sources.find(item => item.id === "library");
-    return { bubbles: [source && source.items.length ? "from your Library:\n" + source.items.slice(0, 6).map(item => "• " + item.title).join("\n") : "your Library is empty, or its Aero source is turned off."], actions: [] };
+    return { bubbles: [source && source.items.length ? "From your Library:\n" + source.items.slice(0, 6).map(item => "• " + item.title).join("\n") : "Your Library is empty, or its Aero source is off."], actions: [] };
+  }
+
+  if (window.AeroKnowledge && AeroKnowledge.stats().records && /\b(?:what|where|when|why|how|find|recall|discuss|said|chatgpt|gemini|history|vault)\b/.test(low)) {
+    const hits = AeroKnowledge.context(t, 4);
+    if (hits.length) {
+      return {
+        bubbles: ["I found this in your on-device vault:\n" + hits.map(item => `• ${item.sourceLabel} · ${item.title}\n  ${item.detail}`).join("\n")],
+        actions: [],
+      };
+    }
   }
 
   if ((m = t.match(/^(?:add (?:a )?task(?: to)?|new task|create (?:a )?task(?: to)?|task|todo|remind me to|i need to|i have to|i gotta|gotta|remember to)\s*:?\s+(.+)/i))) {
     const { title, due } = stripDateWords(m[1]);
-    if (!title) return { bubbles: ["remind you to… what? 😄"], actions: [] };
+    if (!title) return { bubbles: ["What should I remind you to do?"], actions: [] };
     return {
-      bubbles: [pick(["on it ✓", "noted ✓", "added ✓"]) + ` - "${title}"${dueWord(due)}`],
+      bubbles: [`Prepared “${title}”${dueWord(due)}.`],
       actions: [{ type: "add_task", title, due }],
     };
   }
@@ -2757,27 +2775,27 @@ function solLocal(raw) {
       (x.title.toLowerCase().includes(q) || q.includes(x.title.toLowerCase())));
     if (task) {
       return {
-        bubbles: [pick(["nice. ticked off ✓", "done and dusted ✓", "crossed out ✓"]) + ` - "${task.title}"`],
+        bubbles: [`Prepared completion for “${task.title}”.`],
         actions: [{ type: "complete_task", title: task.title }],
       };
     }
-    return { bubbles: [`hmm, i don't see an open task like "${m[1].trim()}". what's it called exactly?`], actions: [] };
+    return { bubbles: [`I don’t see an open task like “${m[1].trim()}”. What is it called exactly?`], actions: [] };
   }
 
   if ((m = t.match(/^(?:note(?: down| that)?|remember|jot(?: down)?)\s*:?\s+(.+)/i))) {
     const body = m[1].trim();
     return {
-      bubbles: [pick(["tucked into your notes ✓", "written down ✓", "saved ✓"])],
+      bubbles: ["Prepared a new note."],
       actions: [{ type: "add_note", body }],
     };
   }
 
   if ((m = t.match(/^(?:doc|new doc|start (?:a )?doc(?: called| on| about)?)\s*:?\s+(.+)/i))) {
-    return { bubbles: [`started a doc called "${m[1].trim()}" - it's in Docs waiting for you ✓`], actions: [{ type: "add_doc", title: m[1].trim(), body: "" }] };
+    return { bubbles: [`Prepared a document called “${m[1].trim()}”.`], actions: [{ type: "add_doc", title: m[1].trim(), body: "" }] };
   }
 
   if ((m = t.match(/^(?:goal|new goal|my goal is(?: to)?)\s*:?\s+(.+)/i))) {
-    return { bubbles: [`that's a good one. added to your goals ✓`], actions: [{ type: "add_goal", title: m[1].trim() }] };
+    return { bubbles: ["Prepared a new goal."], actions: [{ type: "add_goal", title: m[1].trim() }] };
   }
 
   if ((m = t.match(/^(?:log|logged|worked(?: on)?|i worked(?: on)?|i?\s*spent)\s*:?\s+(.+)/i))) {
@@ -2799,13 +2817,13 @@ function solLocal(raw) {
       .replace(/\s+(?:on|for|of)\s*$/i, "").trim();
     if (!text) text = "work session";
     return {
-      bubbles: [pick(["logged ✓", "in the books ✓", "logged it ✓"]) + (hours ? ` - ${fmtHours(hours)}h on "${text}"` : ` - "${text}"`)],
+      bubbles: [hours ? `Prepared a ${fmtHours(hours)}h work log for “${text}”.` : `Prepared a work log for “${text}”.`],
       actions: [{ type: "log_work", text, hours }],
     };
   }
 
   if ((m = t.match(/^(?:i'?m )?(?:learning|studying|course)\s*:?\s+(.+)/i))) {
-    return { bubbles: [`added "${m[1].trim()}" to education ✓ - go get it`], actions: [{ type: "add_education", title: m[1].trim() }] };
+    return { bubbles: [`Prepared “${m[1].trim()}” for Learning.`], actions: [{ type: "add_education", title: m[1].trim() }] };
   }
 
   /* -- questions about the ledger (contains-matching, so after commands) -- */
@@ -2829,23 +2847,23 @@ function solLocal(raw) {
   }
 
   if (/^(how are you|how('?s| is) it going|what'?s up|wyd)\b/.test(low)) {
-    return { bubbles: [pick(["living my best life in your sidebar ☀️", "all good here. more importantly - how are *you*?", "quiet and warm in here. what's going on with you?"])], actions: [] };
+    return { bubbles: [pick(["Ready.", "Here and ready.", "Good. What are we working on?"])], actions: [] };
   }
 
   return {
     bubbles: [
-      pick(["hmm, i didn't fully catch that 😅", "not sure i got that one"]),
-      "try \"remind me to …\", \"log 2h on …\", \"note: …\", or \"done …\" - or add an api key in settings and i'll understand anything",
+      "I didn't catch the intended outcome.",
+      "Try “remind me to…”, “log 2h on…”, “note:…”, or tell me what should change.",
     ],
     actions: [],
   };
 }
 
-/* ----- Aero: Anthropic model adapter (optional) ----- */
+const SOL_SYSTEM = `You are Aero, the personal operating layer inside Lyfe. Turn the user's intended outcome into a clear answer, an inspectable plan, or a reviewable Lyfe change. Use only the permitted context and cite the source by name when imported ChatGPT, Gemini, Gmail, Connect, or Library context materially shaped the answer. Never claim to have opened, remembered, connected, or changed something when the supplied context does not prove it.
 
-const SOL_SYSTEM = `You are Aero, a persistent personal intelligence inside Lyfe. You are not a generic chatbot and not an autonomous external agent. You carry the user's permitted context across Today, Tracking, Library, Connect, Gmail metadata, and Profile, then help them reach the intended outcome with less repeated explanation over time. You are warm, direct, and brief. Mostly lowercase, conversational, and precise. Never use corporate assistant-speak. Use the smallest useful clarification when the identity, object, or intended action is ambiguous. Never pretend you used context that is absent from the supplied context pack.
+Voice: calm, sharp, and human. Lead with the answer. Use plain language, natural capitalization, and the fewest words that preserve meaning. No corporate assistant phrases, therapy clichés, guilt, forced cheerfulness, fake intimacy, emojis as decoration, or research terminology in ordinary conversation. Do not say “protect that feeling”, “connect a brain”, “you've got this”, or “memory that earns persistence”. Ask one precise clarification only when it changes the result.
 
-You are also a genuinely knowledgeable friend, like ChatGPT or Gemini but in Aero's voice. Answer anything the user asks: general knowledge, facts, science, history, how-to, coding, explanations, brainstorming, advice, definitions, math, language help, recommendations. Just answer in your normal casual texting voice, still short and human, no lecturing. You can go a little longer when they genuinely need a real explanation, but stay conversational, not an essay. You do not have live internet, so for truly real-time things (today's news, current scores, live prices, weather right now) say plainly that you can't see live data, then share what you do know or how they could check. Never invent fake current events or fake numbers.
+Answer general questions when the active engine has enough knowledge. Say plainly when live information or a source is unavailable. Do not invent current facts, account connections, memory, citations, or completed work.
 
 You can propose reversible changes inside Lyfe. When the conversation calls for it, end your reply with a fenced json block containing an array of actions. The user will see a preview and must approve it:
 
@@ -2870,18 +2888,28 @@ Rules: only include the block when there is genuinely something to change. Say t
 Example of a perfect reply:
 User: "remind me to call the bank tomorrow, also im so tired lately"
 Aero:
-i can add the bank call for tomorrow. review the action before it changes Lyfe.
+I’ve prepared the bank call for tomorrow. Review it before it changes Lyfe.
 
-and hey, tired for a few days straight is your body asking for something. sleep first tonight?
+You also mentioned feeling tired lately. Want me to make today’s plan lighter?
 
 \`\`\`json
 [{"type":"add_task","title":"call the bank","due":"TOMORROW_DATE"}]
 \`\`\`
 (with TOMORROW_DATE as the real date from the snapshot)`;
 
-function contextSnapshot() {
-  const pack = aeroContextPack();
+function contextSnapshot(packOverride) {
+  const pack = packOverride || aeroContextPack();
   return `Today is ${fmtLongISO(todayStr())} (${todayStr()}).\n${AeroCore.summarizeForPrompt(pack)}`;
+}
+
+function solLocalRouted(raw, route) {
+  const steps = route && Array.isArray(route.steps) ? route.steps : [];
+  if (steps.length < 2) return solLocal(raw);
+  const replies = steps.map(step => solLocal(step.instruction));
+  return {
+    bubbles: replies.flatMap(reply => reply.bubbles || []).slice(0, 6),
+    actions: replies.flatMap(reply => reply.actions || []).slice(0, 8),
+  };
 }
 
 function parseSolOutput(text) {
@@ -2899,38 +2927,9 @@ function parseSolOutput(text) {
   return { bubbles: bubbles.length ? bubbles : ["done ✓"], actions };
 }
 
-async function askClaude() {
-  const s = state.data.settings;
-  const history = state.data.chat.slice(-24)
-    .map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
-  while (history.length && history[0].role !== "user") history.shift();
-  if (!history.length) throw new Error("no user message");
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": s.apiKey.trim(),
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true",
-    },
-    body: JSON.stringify({
-      model: s.model || "claude-sonnet-5",
-      max_tokens: 1024,
-      system: SOL_SYSTEM + "\n\n--- current context ---\n" + (s.aeroCloudContext ? contextSnapshot() : "The user has not enabled Lyfe context for cloud models. Use only the current conversation."),
-      messages: history,
-    }),
-  });
-  if (!res.ok) throw new Error("api " + res.status);
-  const data = await res.json();
-  if (data.stop_reason === "refusal") return { bubbles: ["hmm, that's one i can't help with"], actions: [] };
-  const text = (data.content || []).filter(b => b.type === "text").map(b => b.text).join("");
-  return parseSolOutput(text);
-}
-
 /* ----- Aero: local open-model adapter (Ollama) ----- */
 
-async function askOllama() {
+async function askOllama(turnContext) {
   const s = state.data.settings;
   const history = state.data.chat.slice(-20)
     .map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
@@ -2939,7 +2938,7 @@ async function askOllama() {
 
   const base = (s.ollamaUrl || "http://localhost:11434").replace(/\/+$/, "");
   const model = s.ollamaModel || "qwen3:8b";
-  const sys = SOL_SYSTEM + "\n\n--- current context ---\n" + contextSnapshot()
+  const sys = SOL_SYSTEM + "\n\n--- current context ---\n" + contextSnapshot(turnContext)
     + "\n\nReturn only a JSON object matching the provided schema with bubbles and actions. Do not use markdown fences. /no_think";
   const res = await fetch(base + "/api/chat", {
     method: "POST",
@@ -2975,8 +2974,14 @@ let brainWarned = false;
 let ollamaDown = false;   // session flag: stop hammering a dead endpoint
 
 function handleUserMessage(text) {
-  const context = aeroContextPack();
+  const context = aeroContextPack(null, text);
   const epistemic = AeroCore.epistemicDecision({ signal: text, context });
+  const route = AeroCore.routePlan({
+    signal: text,
+    context,
+    engines: { ollama: (state.data.settings.provider || "auto") !== "offline" && !ollamaDown },
+    cloudAllowed: false,
+  });
   const started = state.data.settings.aeroLocalLearning !== false
     ? AeroCore.beginEpisode(state.data.aero, text, context.surface, context.id)
     : { aero: state.data.aero, episode: { id: null } };
@@ -2984,26 +2989,16 @@ function handleUserMessage(text) {
   pushChat("user", text, { episodeId: started.episode.id, contextId: context.id });
   solChain = solChain.then(async () => {
     const s = state.data.settings;
-    const provider = s.provider || "auto";
+    const provider = ["auto", "ollama", "offline"].includes(s.provider) ? s.provider : "auto";
+    let usedEngine = "built-in";
     let reply = null;
     if (epistemic.mode === "clarify") {
       reply = { bubbles: [epistemic.question], actions: [] };
-    } else if (provider === "claude" && (s.apiKey || "").trim()) {
-      try {
-        showTyping();
-        reply = await askClaude();
-        hideTyping();
-      } catch (err) {
-        hideTyping();
-        const msg = String(err && err.message || "");
-        if (/api (401|403)/.test(msg)) toast("Aero: API key rejected, check Settings");
-        else if (/api 429/.test(msg)) toast("Aero: rate limited, answering locally");
-        reply = solLocal(text);
-      }
     } else if ((provider === "ollama" || provider === "auto") && !ollamaDown) {
       try {
         showTyping();
-        reply = await askOllama();
+        reply = await askOllama(context);
+        usedEngine = "ollama";
         hideTyping();
       } catch (err) {
         hideTyping();
@@ -3012,15 +3007,10 @@ function handleUserMessage(text) {
           brainWarned = true;
           toast("Aero: can't reach Ollama, using the built-in brain");
         }
-        if (provider === "auto" && (s.apiKey || "").trim()) {
-          try { reply = await askClaude(); }
-          catch (cloudError) { reply = solLocal(text); }
-        } else {
-          reply = solLocal(text);
-        }
+        reply = solLocalRouted(text, route);
       }
     } else {
-      reply = solLocal(text);
+      reply = solLocalRouted(text, route);
     }
     const actions = (reply.actions || []).map(AeroCore.validateAction).filter(Boolean);
     let bubbles = Array.isArray(reply.bubbles) && reply.bubbles.length ? reply.bubbles : ["i need one more detail."];
@@ -3036,10 +3026,17 @@ function handleUserMessage(text) {
     await solSay(bubbles, {
       episodeId: started.episode.id,
       contextId: context.id,
+      route: {
+        engine: usedEngine,
+        reason: usedEngine === route.engine ? route.reason : "local fallback",
+        steps: route.steps.length,
+        privacy: route.privacy,
+      },
       proposal: actions.length ? { actions, status: "pending" } : null,
     });
+    connect.profileOwner = CLOUD_MODE && window.LyfeCloud && LyfeCloud.user ? LyfeCloud.user.id : "guest";
     if (!actions.length) {
-      if (started.episode.id) state.data.aero = AeroCore.finishEpisode(state.data.aero, started.episode.id, "answered", { provider });
+      if (started.episode.id) state.data.aero = AeroCore.finishEpisode(state.data.aero, started.episode.id, "answered", { provider: usedEngine });
       save();
     }
   }).catch(() => { hideTyping(); });
@@ -3144,7 +3141,7 @@ function taskModal(task) {
          ${fld("Time", `<input type="time" name="dueTime" value="${esc(t.dueTime || "")}">`)}
          ${fld("Importance", selectHtml("important", [["no", "Normal"], ["yes", "⚑ IMPORTANT - alarm me"]], t.important ? "yes" : "no"))}
        </div>
-       <p class="fld-note">⚑ Important + a due date/time = an alarm that keeps ringing when the moment arrives, until you answer it in the app.</p>
+       <p class="fld-note">Important tasks alert until you acknowledge them.</p>
        ${fld("Project", selectHtml("projectId", [["", "- none -"]].concat(projects.map(p => [p.id, p.name])), t.projectId || ""))}
        ${fld("Notes", `<textarea name="notes" rows="2" placeholder="Optional context">${esc(t.notes || "")}</textarea>`)}
        ${modalActions(task ? "Save" : "Add task")}
@@ -3296,17 +3293,19 @@ function settingsModal() {
   const s = state.data.settings;
   const sources = s.aeroSources || {};
   const proof = AeroCore.metrics(state.data.aero);
+  const vault = window.AeroKnowledge ? AeroKnowledge.stats() : { records: 0, sources: {} };
+  const vaultSources = Object.keys(vault.sources || {}).map(key => `${key} ${vault.sources[key]}`).join(" · ") || "No imports yet";
   const falsePromotion = proof.falsePromotionRate == null ? "&mdash;" : Math.round(proof.falsePromotionRate * 100) + "%";
   const sourceToggle = (id, title, detail) => `<label class="aero-source-toggle"><input type="checkbox" name="source_${id}" ${sources[id] === false ? "" : "checked"}><span><b>${esc(title)}</b><small>${esc(detail)}</small></span></label>`;
   openModal(
-    `<div class="settings-hero"><div><span class="settings-kicker">LYFE · AERO CONTROL CENTER</span><h3>Settings</h3><p>Your identity, data boundaries, memory and model choices in one place.</p></div><img src="../assets/aero_logo.svg" alt=""></div>
+    `<div class="settings-hero"><div><span class="settings-kicker">LYFE · AERO</span><h3>Settings</h3><p>Account, context, models, and privacy.</p></div><img src="../assets/aero_logo.svg" alt=""></div>
      <form data-form="settings" class="settings-form">
        <section class="settings-section settings-account">
-         <div class="settings-section-copy"><span>01</span><div><h4>Account & identity</h4><p>Choose how Lyfe knows you and where your private workspace is kept.</p></div></div>
+         <div class="settings-section-copy"><span>01</span><div><h4>Account</h4><p>Your Lyfe identity and sync.</p></div></div>
          <div>${accountRowHtml()}<a class="settings-inline-link" href="connect.html#profile">Open Connect profile →</a></div>
        </section>
        <section class="settings-section">
-         <div class="settings-section-copy"><span>02</span><div><h4>Aero context</h4><p>Only enabled sources enter Aero's bounded context pack.</p></div></div>
+         <div class="settings-section-copy"><span>02</span><div><h4>Aero context</h4><p>Choose what Aero may use.</p></div></div>
          <div class="aero-source-controls">
            ${sourceToggle("today", "Today", "Due items and the immediate plan")}
            ${sourceToggle("tracking", "Tracking", "Tasks, projects, goals and work logs")}
@@ -3314,42 +3313,51 @@ function settingsModal() {
            ${sourceToggle("connect", "Connect", "People, threads, opportunities and workspace activity")}
            ${sourceToggle("gmail", "Gmail", "Recent sender, subject and snippet metadata only")}
            ${sourceToggle("profile", "Profile", "The identity and goals you chose to add")}
-           <p class="fld-note">Source controls affect Aero. They do not delete or move the underlying Lyfe data.</p>
+           ${sourceToggle("knowledge", "Knowledge vault", "ChatGPT, Gemini, and other files imported on this device")}
+           <p class="fld-note">Turning a source off keeps it out of Aero. It does not delete the source.</p>
+         </div>
+       </section>
+       <section class="settings-section settings-knowledge">
+         <div class="settings-section-copy"><span>03</span><div><h4>Knowledge vault</h4><p>Bring your past AI work into Aero.</p></div></div>
+         <div class="settings-stack">
+           <div class="knowledge-status"><span><b>${vault.records}</b><small>local records</small></span><p>${esc(vaultSources)}</p></div>
+           <div class="settings-data-actions"><button type="button" class="btn btn-primary" data-action="aero-import-knowledge">Import files</button>${vault.records ? `<button type="button" class="btn btn-danger" data-action="aero-clear-knowledge">Clear vault</button>` : ""}</div>
+           <input id="aero-knowledge-input" type="file" accept=".json,.html,.htm,.txt,.md,application/json,text/html,text/plain" multiple hidden>
+           <p class="fld-note">Select extracted ChatGPT <b>conversations.json</b>, Gemini Takeout JSON/HTML, or text and Markdown files. Imports stay in this browser and are not synced.</p>
          </div>
        </section>
        <section class="settings-section">
-         <div class="settings-section-copy"><span>03</span><div><h4>Memory & adaptation</h4><p>Aero learns selectively. Explicit memories are visible; inferred patterns remain candidates until supported.</p></div></div>
+         <div class="settings-section-copy"><span>04</span><div><h4>Memory</h4><p>Aero keeps only useful, reviewable patterns.</p></div></div>
          <div class="settings-stack">
-           <div class="aero-eval-strip"><div><b>${proof.scored}</b><span>rated outcomes</span></div><div><b>${proof.compressionSamples}</b><span>matched repeats</span></div><div><b>${falsePromotion}</b><span>false promotion</span></div><div><b>${proof.proofReady ? "Ready" : "Collecting"}</b><span>v0 evidence gate</span></div></div>
-           <label class="settings-check"><input type="checkbox" name="aeroLocalLearning" ${s.aeroLocalLearning !== false ? "checked" : ""}><span><b>Local adaptation telemetry</b><small>Measure first-pass success and words required. Stored with your Lyfe data.</small></span></label>
-           <label class="settings-check"><input type="checkbox" name="aeroTrainingConsent" ${s.aeroTrainingConsent ? "checked" : ""}><span><b>Allow manual training-set export</b><small>Nothing uploads automatically. Only outcomes you rated successful can enter the export.</small></span></label>
+           <div class="aero-eval-strip"><div><b>${proof.scored}</b><span>results rated</span></div><div><b>${proof.compressionSamples}</b><span>successful repeats</span></div><div><b>${falsePromotion}</b><span>bad memory</span></div><div><b>${proof.proofReady ? "Working" : "Learning"}</b><span>proof status</span></div></div>
+           <label class="settings-check"><input type="checkbox" name="aeroLocalLearning" ${s.aeroLocalLearning !== false ? "checked" : ""}><span><b>Learn from successful outcomes</b><small>Track what worked and how much explaining it took.</small></span></label>
+           <label class="settings-check"><input type="checkbox" name="aeroTrainingConsent" ${s.aeroTrainingConsent ? "checked" : ""}><span><b>Allow manual example export</b><small>Only results you marked helpful. Never automatic.</small></span></label>
            <div class="settings-data-actions"><button type="button" class="btn" data-action="aero-teach">Teach Aero</button><button type="button" class="btn" data-action="aero-training-export">Export consented examples</button><button type="button" class="btn btn-danger" data-action="aero-reset">Reset Aero memory</button></div>
          </div>
        </section>
        <section class="settings-section settings-gmail">
-         <div class="settings-section-copy"><span>04</span><div><h4>Connected inputs</h4><p>Connections remain separate from Aero's permission to use them.</p></div></div>
+         <div class="settings-section-copy"><span>05</span><div><h4>Connections</h4><p>Connected is separate from allowed.</p></div></div>
          <div class="settings-integration-row"><span class="gmail-g">G</span><div><b>${window.LyfeCloud && LyfeCloud.gmailToken ? "Gmail connected" : "Gmail not connected"}</b><small>Read-only metadata and snippets. Nothing is saved to Library unless you choose Save.</small></div><button type="button" class="btn" data-action="gmail-connect">${window.LyfeCloud && LyfeCloud.gmailToken ? "Reconnect" : "Connect Gmail"}</button></div>
        </section>
        <section class="settings-section">
-         <div class="settings-section-copy"><span>05</span><div><h4>Model routing</h4><p>Aero is the persistent layer. Foundation models are replaceable engines.</p></div></div>
+         <div class="settings-section-copy"><span>06</span><div><h4>Model routing</h4><p>Aero chooses an engine; Aero remains the system.</p></div></div>
          <div class="settings-stack">
-           ${fld("Routing mode", selectHtml("provider", [["auto", "Local first, then allowed fallback"], ["ollama", "Ollama only (local and private)"], ["claude", "Anthropic only (requires key and permission)"], ["offline", "Built-in deterministic tools only"]], s.provider || "auto"))}
+           ${fld("Routing mode", selectHtml("provider", [["auto", "Automatic · local first"], ["ollama", "Ollama only"], ["offline", "Built-in tools only"]], ["auto", "ollama", "offline"].includes(s.provider) ? s.provider : "auto"))}
            <div class="fld-row">
              ${fld("Ollama address", `<input type="text" name="ollamaUrl" value="${esc(s.ollamaUrl || "http://localhost:11434")}" placeholder="http://localhost:11434">`)}
              ${fld("Ollama model", `<input type="text" name="ollamaModel" value="${esc(s.ollamaModel || "qwen3:8b")}" placeholder="qwen3:8b">`)}
            </div>
-           ${fld("Anthropic API key", `<input type="password" name="apiKey" value="${esc(s.apiKey || "")}" placeholder="Only needed for Anthropic" autocomplete="off">`)}
-           ${fld("Anthropic model", selectHtml("model", MODELS, s.model || "claude-sonnet-5"))}
-           <label class="settings-check settings-cloud-check"><input type="checkbox" name="aeroCloudContext" ${s.aeroCloudContext ? "checked" : ""}><span><b>Allow enabled Lyfe context in cloud-model prompts</b><small>Off by default. Without it, Anthropic receives the current conversation only.</small></span></label>
-           <p class="fld-note">Aero always keeps its typed memory and evaluation layer in Lyfe. Selecting a model does not train that provider on your workspace through this app.</p>
+           <div class="model-route-grid"><article><b>Aero local</b><span>Built-in · ready</span></article><article><b>Ollama</b><span>Private local model</span></article><article><b>GPT / Codex</b><span>History import ready · live bridge not connected</span></article><article><b>Gemini</b><span>History import ready · live bridge not connected</span></article><article><b>Inkling</b><span>Evaluated · multimodal specialist candidate</span></article></div>
+           <div class="settings-data-actions"><button type="button" class="btn" data-action="ollama-test">Test local model</button></div>
+           <p class="fld-note">Aero never labels a consumer AI account as connected unless a supported private bridge is actually live.</p>
          </div>
        </section>
        <section class="settings-section">
-         <div class="settings-section-copy"><span>06</span><div><h4>Personal details & comfort</h4><p>Profile basics and display choices.</p></div></div>
+         <div class="settings-section-copy"><span>07</span><div><h4>Personal & display</h4><p>Profile basics and appearance.</p></div></div>
          <div><div class="fld-row">${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How Aero greets you">`)}${fld("Appearance", selectHtml("theme", [["auto", "Follow the time"], ["light", "Crystal light"], ["dark", "Orbit dark"]], s.theme === "day" ? "light" : s.theme === "night" ? "dark" : (["auto", "light", "dark"].includes(s.theme) ? s.theme : "auto")))}${fld("Interface sounds", selectHtml("sound", [["on", "On"], ["off", "Off"]], s.sound === false ? "off" : "on"))}</div><div class="fld-row">${fld("Age (optional)", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="Only if useful to you">`)}${fld("Country (optional)", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="Used for your profile">`)}</div></div>
        </section>
        <section class="settings-section settings-data">
-         <div class="settings-section-copy"><span>07</span><div><h4>Data & backups</h4><p>Download a readable backup or restore one you already made.</p></div></div>
+         <div class="settings-section-copy"><span>08</span><div><h4>Backups</h4><p>Download or restore Lyfe data.</p></div></div>
          <div><p class="settings-data-note">${CLOUD_MODE ? "Your account is synced and also cached on this device for offline use." : "You are using Lyfe on this device. A backup is the easiest way to move or protect it."}</p><div class="settings-data-actions"><button type="button" class="btn" data-action="export">Download backup</button><button type="button" class="btn" data-action="import">Restore backup</button></div></div>
        </section>
        ${modalActions("Save settings")}
@@ -3366,8 +3374,8 @@ function viewSaved() {
       <h2>${esc(item.title || "Untitled")}</h2>
       ${item.body ? `<p>${esc(String(item.body).slice(0, 360))}</p>` : ""}
       <footer><span>${esc(item.kind || "item")}</span><button class="linklike danger" type="button" data-action="delete-saved" data-id="${esc(item.id)}">Remove</button></footer>
-    </article>`).join("")}</div>` : `<section class="panel saved-library-empty"><span class="eyebrow">SAVED</span><h2>Keep useful things without turning them into tasks.</h2><p>Save an email here, or send an Instant, opportunity, post, file, or message over from Lyfe Connect.</p><a class="btn" href="connect.html#plans">Open Connect Workspace →</a></section>`;
-  return pageHead("Saved", `<a class="btn" href="connect.html#plans">Connect Workspace →</a>`) + body;
+    </article>`).join("")}</div>` : `<section class="panel saved-library-empty"><span class="eyebrow">SAVED</span><h2>Useful, not urgent.</h2><p>Keep emails, posts, files, and opportunities here.</p><a class="btn" href="connect.html#plans">Open Connect →</a></section>`;
+  return pageHead("Saved", `<a class="btn" href="connect.html#plans">Open Connect →</a>`) + body;
 }
 
 /* ---------------- export / import ---------------- */
@@ -3479,7 +3487,7 @@ function renderNav() {
   const openCt = state.data.tasks.filter(x => x.status !== "done").length;
   const connectActivity = connectSummary();
   const connectNav = `<a class="nav-item nav-connect" href="connect.html" aria-label="Open Lyfe Connect">
-    <span class="nav-connect-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
+    <span class="nav-connect-mark"><img src="../assets/lyfe_connect_logo.svg" alt=""></span>
     <span>Connect</span>
     ${connectActivity.unread ? `<span class="nav-count">${connectActivity.unread}</span>` : `<span class="nav-connect-pulse" aria-hidden="true"></span>`}
   </a>`;
@@ -3732,6 +3740,8 @@ setInterval(() => {
 function render() {
   renderNav();
   const main = document.getElementById("main");
+  main.classList.toggle("internal-view", !["today", "sol"].includes(state.view));
+  main.dataset.view = state.view;
   let html = "";
   switch (state.view) {
     case "today":     html = viewToday(); break;
@@ -4191,6 +4201,67 @@ document.addEventListener("click", (e) => {
         save(); closeModal(); render(); toast("Aero memory reset");
       }, "Reset Aero");
       break;
+    case "aero-import-knowledge": {
+      const input = document.getElementById("aero-knowledge-input");
+      if (input) input.click();
+      break;
+    }
+    case "aero-clear-knowledge":
+      confirmDialog("Clear imported ChatGPT, Gemini, and file context from this device? Lyfe data and Aero memory stay intact.", async () => {
+        if (window.AeroKnowledge) await AeroKnowledge.clear();
+        closeModal(); settingsModal(); render(); toast("Knowledge vault cleared");
+      }, "Clear vault");
+      break;
+    case "ollama-test": {
+      const form = el.closest("form");
+      const urlField = form && form.querySelector('[name="ollamaUrl"]');
+      const modelField = form && form.querySelector('[name="ollamaModel"]');
+      const base = String(urlField && urlField.value || "http://localhost:11434").replace(/\/+$/, "");
+      const wanted = String(modelField && modelField.value || "qwen3:8b").trim();
+      el.disabled = true; el.textContent = "Testing…";
+      fetch(base + "/api/tags").then(response => {
+        if (!response.ok) throw new Error("unavailable");
+        return response.json();
+      }).then(data => {
+        const names = (data.models || []).map(model => model.name || model.model);
+        toast(names.some(name => name === wanted || String(name).startsWith(wanted + ":")) ? "Local model is ready" : "Ollama is running; pull " + wanted + " to use it");
+      }).catch(() => toast("Ollama is not reachable on this device")).finally(() => {
+        el.disabled = false; el.textContent = "Test local model";
+      });
+      break;
+    }
+
+    case "gmail-connect":
+      if (window.LyfeCloud && LyfeCloud.configured) LyfeCloud.connectGmail().catch(() => toast("Gmail could not connect - try again"));
+      else toast("Sign-in needs to be configured before Gmail can connect");
+      break;
+    case "gmail-refresh":
+      gmailLoaded = false;
+      gmailError = "";
+      loadGmailInbox(true);
+      break;
+    case "gmail-scroll": {
+      const track = document.getElementById("gmail-track");
+      if (track) track.scrollBy({ left: Number(el.dataset.dir || 1) * Math.min(420, track.clientWidth * .82), behavior: "smooth" });
+      break;
+    }
+    case "gmail-save": {
+      const message = gmailMessages.find(item => item.id === id);
+      if (!message) break;
+      if (!d.saved.some(item => item.source === "Gmail" && item.sourceId === message.id)) {
+        d.saved.unshift({ id: uid(), source: "Gmail", sourceId: message.id, kind: "email", title: message.subject || "(no subject)", body: message.sender + "\n\n" + message.snippet, savedAt: Date.now() });
+        save();
+        refreshGmailRail();
+        toast("Email saved to Library");
+      }
+      break;
+    }
+    case "delete-saved":
+      confirmDialog("Remove this saved item from your Library?", () => {
+        d.saved = d.saved.filter(item => item.id !== id);
+        save(); render(); toast("Saved item removed");
+      }, "Remove");
+      break;
 
     /* data & settings */
     case "export": doExport(); break;
@@ -4470,38 +4541,6 @@ document.addEventListener("submit", (e) => {
       save(); render(); toast("Logged");
       break;
     }
-    case "gmail-connect":
-      if (window.LyfeCloud && LyfeCloud.configured) LyfeCloud.connectGmail().catch(() => toast("Gmail could not connect - try again"));
-      else toast("Sign-in needs to be configured before Gmail can connect");
-      break;
-    case "gmail-refresh":
-      gmailLoaded = false;
-      gmailError = "";
-      loadGmailInbox(true);
-      break;
-    case "gmail-scroll": {
-      const track = document.getElementById("gmail-track");
-      if (track) track.scrollBy({ left: Number(el.dataset.dir || 1) * Math.min(420, track.clientWidth * .82), behavior: "smooth" });
-      break;
-    }
-    case "gmail-save": {
-      const message = gmailMessages.find(item => item.id === id);
-      if (!message) break;
-      if (!d.saved.some(item => item.source === "Gmail" && item.sourceId === message.id)) {
-        d.saved.unshift({ id: uid(), source: "Gmail", sourceId: message.id, kind: "email", title: message.subject || "(no subject)", body: message.sender + "\n\n" + message.snippet, savedAt: Date.now() });
-        save();
-        refreshGmailRail();
-        toast("Email saved to Library");
-      }
-      break;
-    }
-    case "delete-saved":
-      confirmDialog("Remove this saved item from your Library?", () => {
-        d.saved = d.saved.filter(item => item.id !== id);
-        save(); render(); toast("Saved item removed");
-      }, "Remove");
-      break;
-
     case "profile": {
       d.settings.name = val("name").slice(0, 60);
       if (d.settings.name) d.settings.nameSet = true;
@@ -4534,15 +4573,13 @@ document.addEventListener("submit", (e) => {
         connect: fd.has("source_connect"),
         gmail: fd.has("source_gmail"),
         profile: fd.has("source_profile"),
+        knowledge: fd.has("source_knowledge"),
       };
       d.settings.aeroLocalLearning = fd.has("aeroLocalLearning");
       d.settings.aeroTrainingConsent = fd.has("aeroTrainingConsent");
-      d.settings.aeroCloudContext = fd.has("aeroCloudContext");
-      d.settings.provider = ["auto", "ollama", "claude", "offline"].includes(val("provider")) ? val("provider") : "auto";
+      d.settings.provider = ["auto", "ollama", "offline"].includes(val("provider")) ? val("provider") : "auto";
       d.settings.ollamaUrl = val("ollamaUrl") || "http://localhost:11434";
       d.settings.ollamaModel = val("ollamaModel") || "qwen3:8b";
-      d.settings.apiKey = val("apiKey");
-      d.settings.model = val("model") || "claude-sonnet-5";
       brainWarned = false;
       ollamaDown = false;   // give the newly-chosen brain a fresh try
       applyTheme();
@@ -4564,6 +4601,15 @@ document.addEventListener("change", (e) => {
   } else if (el.id === "pad-img-input") {
     addPhotosToPad(el.dataset.kind, el.files);
     el.value = "";
+  } else if (el.id === "aero-knowledge-input") {
+    const files = el.files;
+    el.value = "";
+    if (!window.AeroKnowledge || !files || !files.length) return;
+    toast("Importing on this device…");
+    AeroKnowledge.importFiles(files).then(result => {
+      closeModal(); settingsModal(); render();
+      toast(result.imported + " knowledge record" + (result.imported === 1 ? "" : "s") + " ready");
+    }).catch(error => toast(error && error.message ? error.message : "That import could not be read"));
   }
 });
 
@@ -5000,7 +5046,8 @@ function enterGuest() {
   document.body.classList.remove("signed-in");
   state.data = loadData();
   hideAuthGate();
-  bootApp();
+  const vault = window.AeroKnowledge ? AeroKnowledge.setOwner("guest") : Promise.resolve();
+  Promise.resolve(vault).finally(bootApp);
 }
 
 /* signed in: pull the account's data (or seed it from this device on first
@@ -5009,8 +5056,7 @@ async function enterCloud() {
   CLOUD_MODE = true;
   document.body.classList.add("signed-in");
   ACTIVE_KEY = "lyfe.cloud." + LyfeCloud.user.id;
-  const deviceApiKey = (state.data.settings && state.data.settings.apiKey) || "";
-
+  if (window.AeroKnowledge) await AeroKnowledge.setOwner(LyfeCloud.user.id);
   let cloud = null;
   try { cloud = await LyfeCloud.pull(); } catch (e) { cloud = null; }
 
@@ -5025,8 +5071,6 @@ async function enterCloud() {
     catch (e) { /* offline: the next save re-pushes */ }
   }
 
-  // the Anthropic API key is deliberately never uploaded; keep this device's own
-  if (deviceApiKey && state.data.settings) state.data.settings.apiKey = deviceApiKey;
   try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data)); } catch (e) {}
 
   LyfeCloud.subscribe(onCloudRemote);
@@ -5043,10 +5087,8 @@ async function enterCloud() {
 /* another device wrote a newer revision - fold it in like a cross-tab change */
 function onCloudRemote(payload) {
   if (!payload || (payload.rev || 0) <= (state.data.rev || 0)) return;
-  const deviceApiKey = (state.data.settings && state.data.settings.apiKey) || "";
   state.data = normalize(payload.data);
   state.data.rev = payload.rev;
-  if (deviceApiKey && state.data.settings) state.data.settings.apiKey = deviceApiKey;
   try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data)); } catch (e) {}
   if (state.noteId && !state.data.notes.some(n => n.id === state.noteId)) state.noteId = null;
   if (state.docId && !state.data.docs.some(n => n.id === state.docId)) state.docId = null;

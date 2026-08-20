@@ -162,7 +162,8 @@
 
   function syncProfileFromLyfe(target) {
     try {
-      var lyfe = JSON.parse(localStorage.getItem("lyfe.v1") || "null");
+      var lyfeKey = window.LyfeCloud && LyfeCloud.user ? "lyfe.cloud." + LyfeCloud.user.id : "lyfe.v1";
+      var lyfe = JSON.parse(localStorage.getItem(lyfeKey) || "null");
       var settings = lyfe && lyfe.settings;
       if (!settings || settings.connectSync === false) return target;
       var profile = target.profile;
@@ -1015,7 +1016,7 @@
         "\" aria-pressed=\"" + (active ? "true" : "false") + "\">" + esc(spark) + "</button>";
     }).join("");
     openModal([
-      "<img class=\"onboard-mark\" src=\"../assets/lyfe_connect_logo.png\" alt=\"\">",
+      "<img class=\"onboard-mark\" src=\"../assets/lyfe_connect_logo.svg\" alt=\"\">",
       modalHead("Build a network around your work.", "Choose a few interests to shape your home feed, opportunities, and communities."),
       "<form class=\"modal-body\" data-form=\"onboarding\">",
         "<label><span>What should we call you?</span><input name=\"name\" maxlength=\"40\" autocomplete=\"name\" placeholder=\"First name\" value=\"", esc(state.profile.name), "\"></label>",
@@ -1605,12 +1606,21 @@
   });
 
   window.addEventListener("storage", function (event) {
-    if (event.key === "lyfe.v1") {
+    if (event.key === STORAGE_KEY) {
+      state = loadState();
+      renderAll();
+    } else if (event.key === "lyfe.v1" || (window.LyfeCloud && LyfeCloud.user && event.key === "lyfe.cloud." + LyfeCloud.user.id)) {
       applyLyfeTheme();
       syncProfileFromLyfe(state);
       saveState();
       renderAll();
     }
+  });
+
+  window.addEventListener("lyfe-connect-auth-ready", function () {
+    syncProfileFromLyfe(state);
+    saveState();
+    renderAll();
   });
 
   var requestedView = location.hash.replace("#", "");

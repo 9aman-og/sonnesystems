@@ -12,6 +12,12 @@
   "categories": ["social", "productivity", "business"],
   "icons": [
     {
+      "src": "../assets/lyfe_connect_logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
       "src": "../assets/lyfe_connect_logo.png",
       "sizes": "512x512",
       "type": "image/png",

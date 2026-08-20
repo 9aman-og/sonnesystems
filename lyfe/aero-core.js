@@ -167,6 +167,17 @@
       [settings.name, settings.headline, list(settings.focus).join(", ")].filter(Boolean).join(" · ") || "Profile not completed",
       [], "private-profile");
 
+    var knowledge = list(input.knowledge).slice(0, 8).map(function (item) {
+      return {
+        id: text(item.id, 160),
+        title: text((item.sourceLabel ? item.sourceLabel + " · " : "") + (item.title || "Imported context"), 220),
+        detail: text(item.detail, 760),
+      };
+    }).filter(function (item) { return item.detail; });
+    addSource(sources, sourcePolicy.knowledge !== false && knowledge.length > 0, "knowledge", "Knowledge vault",
+      knowledge.length + " relevant passage" + (knowledge.length === 1 ? "" : "s") + " · stored on this device",
+      knowledge, "device-only");
+
     var aero = normalize(input.aero);
     var memories = aero.memories.filter(function (memory) {
       return memory.status === "active" || memory.status === "provisional";
@@ -224,6 +235,40 @@
     if (/\b(remind|task|todo|goal|project|log|worked)\b/.test(value)) return "organize";
     if (/\b(remember|forget|prefer|usually|same as last time)\b/.test(value)) return "memory";
     return "general";
+  }
+
+  function routePlan(input) {
+    input = input || {};
+    var signal = text(input.signal, 2000);
+    var value = signal.toLowerCase();
+    var family = classifyIntent(signal);
+    var engines = input.engines || {};
+    var steps = signal.split(/\s+(?:and then|then|after that|also)\s+|[;\n]+/i)
+      .map(function (step) { return text(step, 500); }).filter(Boolean).slice(0, 6);
+    if (!steps.length) steps = [signal];
+    var privacy = /\b(private|personal|gmail|email|message|health|money|account|password|family)\b/.test(value) ? "private" : "standard";
+    var preferred = engines.inklingLocal ? "inkling" : engines.ollama ? "ollama" : "built-in";
+    var reason = engines.inklingLocal ? "private multimodal endpoint" : engines.ollama ? "local model available" : "local deterministic route";
+    if (privacy !== "private" && input.cloudAllowed === true) {
+      if (/\b(image|audio|voice|recording|screenshot|diagram|multimodal)\b/.test(value) && engines.inkling) {
+        preferred = "inkling"; reason = "multimodal tool route";
+      } else if (/\b(code|debug|repository|program|script)\b/.test(value) && engines.gpt) {
+        preferred = "gpt"; reason = "coding route";
+      } else if (/\b(research|compare|sources?|web|current|latest)\b/.test(value) && engines.gemini) {
+        preferred = "gemini"; reason = "research route";
+      } else if (engines.gpt) {
+        preferred = "gpt"; reason = "general reasoning route";
+      }
+    }
+    return {
+      family: family,
+      privacy: privacy,
+      engine: preferred,
+      reason: reason,
+      steps: steps.map(function (step, index) {
+        return { id: "step-" + (index + 1), instruction: step, engine: preferred, status: "planned" };
+      }),
+    };
   }
 
   function wordCount(signal) {
@@ -536,6 +581,7 @@
     contextPack: contextPack,
     summarizeForPrompt: summarizeForPrompt,
     classifyIntent: classifyIntent,
+    routePlan: routePlan,
     epistemicDecision: epistemicDecision,
     beginEpisode: beginEpisode,
     finishEpisode: finishEpisode,

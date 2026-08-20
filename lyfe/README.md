@@ -97,14 +97,24 @@ The built-in deterministic adapter understands common plain-text workflows:
   after a break, and checks in on its own while the app is open
 - vent to it ("i'm so tired") and it responds like a friend, not a form
 
-Aero routes between replaceable model adapters in **Settings**:
+Aero routes between replaceable engines in **Settings**:
 
 1. **Ollama.** A configurable local open model receives the permitted context
    pack and a strict structured-action schema.
-2. **Claude API.** Paste an Anthropic key; strongest understanding. The key is
-   stored only in this browser and context is withheld unless separately enabled.
-3. **Offline deterministic tools.** No model at all; the built-in commands above
+2. **Offline deterministic tools.** No model at all; the built-in commands above
    still work.
+3. **Cloud specialists.** GPT/Codex and Gemini are shown as honest adapter states,
+   but are not labelled connected until a supported private bridge exists. A
+   consumer ChatGPT Plus or Google AI Pro subscription is not treated as API
+   credit and Aero never scrapes an account session.
+4. **Inkling.** The open-weight multimodal model is an evaluated future specialist,
+   not the free local default; even Inkling-Small's quantized checkpoint requires
+   server-class GPU memory.
+
+The device-only Knowledge vault can import a user-owned ChatGPT
+`conversations.json`, Gemini Takeout JSON/HTML, and text or Markdown files. It
+indexes those records in IndexedDB, retrieves only relevant excerpts per turn,
+and shows source provenance. The vault is not included in Lyfe account sync.
 
 If a selected model is unreachable, Aero falls back to the deterministic tools.
 The app does not claim that exporting examples trains a foundation model. Run a
@@ -120,9 +130,10 @@ node aero-core.test.js
 ## Your data
 
 Guest data is stored in the browser's `localStorage` under the key `lyfe.v1`.
-It stays on that device except for Aero's optional, user-configured model calls. If the optional
-Supabase integration is configured, signing in enables private cross-device
-sync; the Anthropic API key is stripped before any sync write.
+It stays on that device. If the optional Supabase integration is configured,
+signing in enables private cross-device sync for the Lyfe ledger. Knowledge-vault
+imports remain device-only and local Ollama calls stay on the configured local
+endpoint.
 
 **The data belongs to one browser profile.** Use **Export** in the sidebar to
 download a JSON backup regularly, and **Import** to restore or move machines.
@@ -162,3 +173,5 @@ uses Pins, Projects, and Pending shortcuts in place of the old decorative ticker
 - `app.js` - Lyfe UI and product workflows; plain JavaScript, no dependencies
 - `aero-core.js` - clean-room context, memory, governance, and evaluation logic
 - `aero-core.test.js` - deterministic Aero behavior checks
+- `aero-knowledge.js` - device-only history import and relevant-context retrieval
+- `tests/aero-knowledge.test.html` - browser checks for import, retrieval, and clearing

@@ -281,7 +281,7 @@
     var channel = selectedChannel();
     var messages = messagesFor(channel.id);
     var huddle = suite.huddleChannel === channel.id;
-    root.innerHTML = '<div class="channels-shell"><aside class="channel-rail"><div class="channel-workspace"><img src="../assets/lyfe_connect_logo.png" alt=""><div><strong>Lyfe studio</strong><small>' + allChannels().length + ' channels · ' + (huddle ? "huddle live" : "all quiet") + '</small></div></div><div class="channel-section-title"><span>Channels</span><button type="button" data-suite-action="new-channel">+</button></div><nav>' + allChannels().map(function (item) {
+    root.innerHTML = '<div class="channels-shell"><aside class="channel-rail"><div class="channel-workspace"><img src="../assets/lyfe_connect_logo.svg" alt=""><div><strong>Lyfe studio</strong><small>' + allChannels().length + ' channels · ' + (huddle ? "huddle live" : "all quiet") + '</small></div></div><div class="channel-section-title"><span>Channels</span><button type="button" data-suite-action="new-channel">+</button></div><nav>' + allChannels().map(function (item) {
       return '<button class="' + (item.id === channel.id ? "active" : "") + '" type="button" data-suite-action="channel-select" data-id="' + esc(item.id) + '"><span>#</span><strong>' + esc(item.name) + '</strong>' + (item.unread ? '<i>' + item.unread + '</i>' : '') + '</button>';
     }).join("") + '</nav><div class="channel-direct"><span>Direct messages</span>' + PEOPLE.slice(0, 4).map(function (person) { return '<button type="button" data-suite-action="connect-person" data-id="' + person.id + '"><i style="--dm:' + person.color + '">' + person.initials + '</i><strong>' + person.name.split(" ")[0] + '</strong><small>•</small></button>'; }).join("") + '</div></aside><section class="channel-main"><header><div><h2># ' + esc(channel.name) + '</h2><p>' + esc(channel.purpose) + '</p></div><div><button type="button" data-suite-action="channel-search">Search</button><button type="button" data-suite-action="channel-canvas">Canvas</button><button class="huddle-button ' + (huddle ? "live" : "") + '" type="button" data-suite-action="huddle" data-id="' + esc(channel.id) + '">' + (huddle ? "Leave huddle" : "Start huddle") + '</button><span class="member-count">' + esc(channel.members || 1) + ' people</span></div></header><div class="channel-pins"><button type="button" data-suite-action="channel-pins"><b>2</b> pinned</button><button type="button" data-suite-action="channel-files"><b>6</b> files</button><span>Canvas updated today</span></div><div class="channel-messages">' + (messages.length ? messages.map(function (message) {
       var pinned = has(suite.pinnedMessages, message.id);
@@ -592,6 +592,7 @@
       } catch (error) { notify("Cloud sync is temporarily offline; this device copy is safe."); }
     }
     renderAccountButton();
+    window.dispatchEvent(new CustomEvent("lyfe-connect-auth-ready"));
   }
 
   function boot() {

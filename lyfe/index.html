@@ -44,7 +44,7 @@
 <link rel="dns-prefetch" href="https://upload.wikimedia.org">
 <link rel="dns-prefetch" href="https://picsum.photos">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Unbounded:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=aero-core-6">
+<link rel="stylesheet" href="styles.css?v=aero-core-10">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -67,18 +67,18 @@
 <div id="auth-gate" hidden role="dialog" aria-modal="true" aria-label="Sign in to Lyfe">
   <div class="auth-shell">
     <section class="auth-story" aria-labelledby="auth-story-title">
-      <div class="auth-story-brand"><img src="../assets/aero_logo.svg" alt=""><span>Aero inside Lyfe</span></div>
+      <div class="auth-story-brand"><img src="../assets/aero_logo.svg" alt=""><span>Aero × Lyfe</span></div>
       <div class="auth-story-main">
-        <span class="auth-kicker">YOUR PERSONAL INTELLIGENCE</span>
+        <span class="auth-kicker">ONE PLACE TO THINK AND DO</span>
         <h1 id="auth-story-title">Say less.<br>Aero carries the context.</h1>
-        <p>Lyfe keeps your work, projects, library, inbox and people together. Aero learns the useful patterns across them, with every action still under your control.</p>
+        <p>Lyfe holds your work, notes, inbox, and people. Aero turns that context into a clear next move.</p>
         <div class="auth-promise-grid">
-          <div><b>Context, not surveillance</b><span>You choose which Lyfe surfaces Aero can use.</span></div>
-          <div><b>Memory that earns trust</b><span>See it, teach it, dispute it or forget it.</span></div>
-          <div><b>Actions you approve</b><span>Aero previews changes before touching your workspace.</span></div>
+          <div><b>Context you choose</b><span>Every source has its own switch.</span></div>
+          <div><b>Memory you can inspect</b><span>Teach it, correct it, or forget it.</span></div>
+          <div><b>Changes you approve</b><span>Nothing moves without a preview.</span></div>
         </div>
       </div>
-      <p class="auth-boundary">Aero is a clean-room product system. Sonne Systems' EOS research remains separate.</p>
+      <p class="auth-boundary">Private by default. Your workspace is never public.</p>
     </section>
     <section class="auth-card">
       <div class="auth-mark" aria-hidden="true">
@@ -88,7 +88,7 @@
         </svg>
       </div>
       <h2 class="auth-title">Welcome to Lyfe</h2>
-      <p class="auth-tag">your life, lightly kept</p>
+      <p class="auth-tag">your day, in one place</p>
       <button class="auth-btn auth-google" data-action="auth-google" type="button">
         <svg class="g-logo" viewBox="0 0 48 48" aria-hidden="true">
           <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
@@ -123,13 +123,14 @@
 <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
 <script src="supabase-config.js?v=auth-41"></script>
 <script src="cloud.js?v=auth-41"></script>
-<script src="aero-core.js?v=aero-core-6"></script>
-<script src="app.js?v=aero-core-6"></script>
+<script src="aero-core.js?v=aero-core-10"></script>
+<script src="aero-knowledge.js?v=aero-core-10"></script>
+<script src="app.js?v=aero-core-10"></script>
 <script>
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-  var workerRefreshKey = "lyfe.worker.refresh.aeroCore4";
+  var workerRefreshKey = "lyfe.worker.refresh.aeroCore10";
   if (!sessionStorage.getItem(workerRefreshKey)) {
     navigator.serviceWorker.addEventListener("controllerchange", function () {
       sessionStorage.setItem(workerRefreshKey, "1");
@@ -137,7 +138,7 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     }, { once: true });
   }
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js?v=aero-core-6").catch(function () { /* offline install optional */ });
+    navigator.serviceWorker.register("sw.js?v=aero-core-10").catch(function () { /* offline install optional */ });
   });
 }
 </script>

@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Aero knowledge vault checks</title>
+<body><main><h1>Aero knowledge vault checks</h1><pre id="result">Running…</pre></main>
+<script src="../aero-knowledge.js"></script>
+<script>
+(async function () {
+  var out = document.getElementById("result");
+  try {
+    await AeroKnowledge.setOwner("automated-test");
+    await AeroKnowledge.clear();
+    var sample = JSON.stringify([{
+      title: "Synthetic weekly review",
+      create_time: 1767225600,
+      mapping: {
+        one: { message: { author: { role: "user" }, create_time: 1767225601, content: { parts: ["Start my weekly review with unfinished promises, then choose three priorities."] } } },
+        two: { message: { author: { role: "assistant" }, create_time: 1767225602, content: { parts: ["I will use that order for this review."] } } }
+      }
+    }]);
+    var imported = await AeroKnowledge.importFiles([{ name: "conversations.json", size: sample.length, text: async function () { return sample; } }]);
+    var hits = AeroKnowledge.context("unfinished promises weekly priorities", 5);
+    if (imported.imported !== 1) throw new Error("expected one imported record");
+    if (!hits.length || hits[0].source !== "chatgpt") throw new Error("expected a sourced ChatGPT retrieval");
+    if (!/unfinished promises/i.test(hits[0].detail)) throw new Error("expected the matching passage");
+    await AeroKnowledge.clear();
+    out.textContent = "PASS\nImported: 1\nRetrieved: ChatGPT · Synthetic weekly review\nCleared: yes";
+  } catch (error) {
+    out.textContent = "FAIL\n" + (error && error.stack || error);
+    document.documentElement.dataset.failed = "true";
+  }
+})();
+</script>
+</html>

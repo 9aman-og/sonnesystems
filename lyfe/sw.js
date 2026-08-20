@@ -2,24 +2,26 @@
    HTML is network-first (always fresh when online); versioned assets cache-first. */
 "use strict";
 
-const CACHE = "lyfe-aero-core-6-connect-15";
+const CACHE = "lyfe-aero-core-10-connect-17";
 const SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=aero-core-6",
+  "./styles.css?v=aero-core-10",
   "./supabase-config.js?v=auth-41",
   "./cloud.js?v=auth-41",
-  "./aero-core.js?v=aero-core-6",
-  "./app.js?v=aero-core-6",
+  "./aero-core.js?v=aero-core-10",
+  "./aero-knowledge.js?v=aero-core-10",
+  "./app.js?v=aero-core-10",
   "./connect.html",
-  "./connect.css?v=connect13",
-  "./connect-suite.css?v=aero-core-6",
-  "./connect.js?v=connect14",
-  "./connect-suite.js?v=connect15",
+  "./connect.css?v=connect17",
+  "./connect-suite.css?v=aero-core-10",
+  "./connect.js?v=connect17",
+  "./connect-suite.js?v=connect17",
   "./connect.webmanifest",
   "./privacy.html",
   "./legal.css?v=1",
   "../assets/lyfe_connect_logo.png",
+  "../assets/lyfe_connect_logo.svg",
   "../assets/aero_logo.svg",
   "./manifest.webmanifest",
   "./icon-192.png",
@@ -44,7 +46,7 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // never touch the user's data or third-party APIs (Ollama, Claude, Wikipedia, fonts, photos)
+  // never touch the user's data or third-party APIs (Ollama, Wikipedia, fonts, photos)
   if (url.origin !== location.origin) return;
 
   const isDoc = req.mode === "navigate" ||

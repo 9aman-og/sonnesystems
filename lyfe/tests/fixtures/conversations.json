@@ -1,0 +1,22 @@
+[
+  {
+    "title": "Synthetic weekly review",
+    "create_time": 1767225600,
+    "mapping": {
+      "one": {
+        "message": {
+          "author": { "role": "user" },
+          "create_time": 1767225601,
+          "content": { "content_type": "text", "parts": ["For my weekly review, start with unfinished promises and then choose three priorities."] }
+        }
+      },
+      "two": {
+        "message": {
+          "author": { "role": "assistant" },
+          "create_time": 1767225602,
+          "content": { "content_type": "text", "parts": ["I will use that order for this review."] }
+        }
+      }
+    }
+  }
+]

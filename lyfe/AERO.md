@@ -57,9 +57,9 @@ eligible memory. Disabling a source keeps it out of the prompt; it does not
 delete the underlying Lyfe data.
 
 Gmail contributes recent sender, subject, and snippet metadata only. Connect
-contributes local conversations, activity, saved opportunities, and pins. Cloud
-models receive enabled Lyfe context only when the separate cloud-context switch
-is on.
+contributes local conversations, activity, saved opportunities, and pins. The
+device-only Knowledge vault can retrieve relevant passages from user-owned
+ChatGPT/Gemini exports without placing those imports in Lyfe sync.
 
 ### Typed memory
 
@@ -97,11 +97,41 @@ The persistent product layer does not depend on one foundation model:
 
 1. deterministic local tools always remain available;
 2. Ollama can provide a local open-model adapter with structured output;
-3. Anthropic can be selected with a user-supplied key;
-4. a failed adapter falls back without bypassing the action validator.
+3. future GPT/Codex and Gemini adapters are optional specialists behind explicit,
+   supported authorization rather than consumer-session scraping;
+4. Inkling can become an optional multimodal/tool-use specialist behind a private
+   endpoint or an explicitly approved hosted route;
+5. a failed adapter falls back without bypassing the action validator.
 
-The API key is device-local. A cloud adapter may receive the conversation while
-Lyfe context remains disabled.
+ChatGPT Plus and Google AI Pro subscriptions are not assumed to provide developer
+API credit. Every route records the engine that actually answered, and private
+signals stay local unless a future connection is explicitly allowed for that task.
+
+#### Inkling decision (August 2026)
+
+Thinking Machines Lab's [Inkling-Small model card](https://thinkingmachines.ai/model-card/inkling-small/)
+makes it a strong Aero candidate: Apache-2.0 weights, native text/image/audio
+input, agentic tool use, controllable reasoning effort, calibrated forecasting,
+and up to a 1M-token context window. Those qualities fit a specialist that can
+inspect mixed media, plan tool calls, or help generate evaluated customization
+data.
+
+It is not Aero's free desktop default. Inkling-Small has 276B total parameters
+(12B active), and its official NVFP4 deployment still requires at least 180 GB
+of aggregate VRAM. [Tinker pricing](https://tinker-docs.thinkingmachines.ai/tinker/models/)
+also makes hosted inference and training a paid route. Aero therefore keeps the
+built-in/Ollama path as its free core and treats Inkling as a capability-gated
+adapter. Its self-customization ideas influence the evaluation loop, but no
+personal history is used for fine-tuning without explicit consent and a held-out
+evaluation gate.
+
+### Knowledge import
+
+`aero-knowledge.js` parses user-selected ChatGPT exports, Gemini Takeout files,
+and plain text or Markdown. Each record carries its source and title, is scoped
+to the active Lyfe account on that browser, and can be cleared independently.
+Retrieval is bounded and query-driven; importing history does not silently turn
+every old chat into a permanent personal fact.
 
 ## Evaluation and training policy
 
