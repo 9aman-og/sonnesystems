@@ -1,7 +1,7 @@
 /* ============================================================
    Lyfe - your life, lightly kept
    Vanilla JavaScript. No dependencies. Data in localStorage.
-   EOS, the companion, works offline (built-in parser) and can
+   Aero, the companion, works offline (built-in parser) and can
    optionally use the Claude API with your own key (Settings).
    ============================================================ */
 "use strict";
@@ -23,7 +23,7 @@ function readKey(k) {
 
 const VIEWS = [
   { id: "today",     label: "Today" },
-  { id: "sol",       label: "EOS" },
+  { id: "sol",       label: "Aero" },
   { id: "tracking",  label: "Tracking" },
   { id: "library",   label: "Library" },
   { id: "profile",   label: "Profile" },
@@ -32,7 +32,7 @@ const VIEWS = [
 const TRACKING_VIEWS = ["tasks", "projects", "goals", "work"];
 const LIBRARY_VIEWS = ["notes", "docs", "saved"];
 const PROFILE_VIEWS = ["profile", "education"];
-const ROUTE_VIEWS = ["today", "sol", "tracking", "library", "profile", "wander"]
+const ROUTE_VIEWS = ["today", "aero", "sol", "tracking", "library", "profile", "wander"]
   .concat(TRACKING_VIEWS, LIBRARY_VIEWS, PROFILE_VIEWS);
 
 function topSectionOf(view) {
@@ -43,6 +43,7 @@ function topSectionOf(view) {
 }
 
 function resolvedViewId(view) {
+  if (view === "aero") return "sol";
   if (view === "tracking") return state.trackingView || "tasks";
   if (view === "library") return state.libraryView || "notes";
   if (view === "profile") return state.profileView || "profile";
@@ -399,7 +400,7 @@ function defaultData() {
       model: "claude-opus-4-8",
       lastGreeted: "",
       sound: true,
-      // profile, collected at onboarding after Google sign-in; EOS uses these
+      // profile, collected at onboarding after Google sign-in; Aero uses these
       age: "",
       country: "",
       username: "",
@@ -433,12 +434,12 @@ function firstRunData() {
     id: uid(),
     title: "Welcome to Lyfe",
     body:
-`Lyfe keeps what matters close, and EOS helps you find your next step.
+`Lyfe keeps what matters close, and Aero helps you find your next step.
 
 THE SHORT TOUR
 
 Today - what needs you now, nothing more.
-EOS - your companion. Just talk: "remind me to email prof tomorrow", "log 2h on research", "note: read Maass 1997", or plain "hi". EOS files things for you.
+Aero - your companion. Just talk: "remind me to email prof tomorrow", "log 2h on research", "note: read Maass 1997", or plain "hi". Aero files things for you.
 Tracking - tasks, projects, goals and work logs in one place.
 Library - quick notes and longer docs together.
 Profile - your identity, learning, and the details you choose to share with Connect.
@@ -446,28 +447,28 @@ Profile - your identity, learning, and the details you choose to share with Conn
 GOOD TO KNOW
 
 You can use Lyfe privately on this device or sign in to sync it. Gmail connects only when you choose it, and messages enter your Library only when you save them.
-EOS can handle simple organizing offline. Choose a local or connected language model in Settings for longer conversations.`,
+Aero can handle simple organizing offline. Choose a local or connected language model in Settings for longer conversations.`,
     pinned: true,
     createdAt: now,
     updatedAt: now,
   });
   d.chat.push(
-    { id: uid(), role: "sol", text: "hey, i'm eos ☀️", ts: now },
+    { id: uid(), role: "sol", text: "hey, i'm aero ☀️", ts: now },
     { id: uid(), role: "sol", text: "i live here to help you keep track of life. just talk to me like you'd text a friend", ts: now + 1 },
     { id: uid(), role: "sol", text: "try \"remind me to email prof tomorrow\" or \"log 2h on research\", or just say hi", ts: now + 2 },
   );
   return d;
 }
 
-/* The companion was renamed from Sol to EOS. Keep the storage schema and
+/* The consumer companion is now Aero. Keep the storage schema and
    internal view id stable, but repair old assistant-visible copy when an
    existing guest or cloud snapshot is opened after the rename. User-authored
    messages and notes are left untouched. */
 function migrateLegacyCompanionText(value) {
   return String(value || "")
-    .replace(/\bSOL\b/g, "EOS")
-    .replace(/\bSol\b/g, "EOS")
-    .replace(/\bsol\b/g, "eos");
+    .replace(/\b(?:SOL|EOS)\b/g, "AERO")
+    .replace(/\b(?:Sol|Eos)\b/g, "Aero")
+    .replace(/\b(?:sol|eos)\b/g, "aero");
 }
 
 function normalize(raw) {
@@ -487,8 +488,8 @@ function normalize(raw) {
   base.notes = base.notes.map(note => {
     const body = String(note.body || "");
     const isOriginalWelcome = note.title === "Welcome to Lyfe" && note.pinned === true
-      && /Lyfe keeps everything in one calm place/i.test(body)
-      && /\bsol\b/i.test(body);
+      && /Lyfe keeps (?:everything in one calm place|what matters close)/i.test(body)
+      && /\b(?:sol|eos)\b/i.test(body);
     if (!isOriginalWelcome) return note;
     const migratedBody = migrateLegacyCompanionText(body);
     return migratedBody === body ? note : Object.assign({}, note, { body: migratedBody });
@@ -1272,7 +1273,7 @@ function viewToday() {
           : `Nothing waiting on you. <b>Protect that feeling.</b>`}</p>
         <div class="cx-cta">
           <button class="btn btn-primary cx-btn-big" data-action="new-task">+ capture</button>
-          <button class="btn cx-btn-big" data-action="nav" data-view="sol">${icon("sol")} talk to EOS</button>
+          <button class="btn cx-btn-big" data-action="nav" data-view="sol">${icon("sol")} talk to Aero</button>
         </div>
       </div>
 
@@ -1296,7 +1297,7 @@ function viewToday() {
         <button class="cx-stat" data-action="nav" data-view="projects"><b>${activeProjects.length}</b><span>projects live</span></button>
         <button class="cx-stat" data-action="nav" data-view="work"><b>${fmtHours(wh)}h</b><span>work logged</span></button>
         <button class="cx-stat" data-action="nav" data-view="education"><b>${learning}</b><span>learning</span></button>
-        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${eosBlob(30, "eos-blob-status", solMoodNow())}<span>eos</span></button>
+        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${eosBlob(30, "eos-blob-status", solMoodNow())}<span>aero</span></button>
       </div>
     </section>
 
@@ -1347,9 +1348,9 @@ function viewToday() {
       </section>
 
       <section class="panel tilt cx-tile mini-sol-card cx-solcard">
-        <span class="eyebrow">EOS SAYS</span>
+        <span class="eyebrow">AERO SAYS</span>
         <h2>${overdue.length ? "one overdue thing. no drama, just pick it up." : "your slate is clear. protect that feeling."}</h2>
-        <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
+        <button class="btn" data-action="nav" data-view="sol">reply to Aero</button>
       </section>
 
       <a class="cx-connect-card" href="connect.html">
@@ -1380,7 +1381,7 @@ function viewToday() {
       <div class="home-title-row">
         <h1>Good ${partCap}, ${esc(who)}<span class="blink-dot">.</span></h1>
         <div class="home-actions">
-          <button class="btn ghost-pill" data-action="nav" data-view="sol">${icon("sol")} talk to EOS</button>
+          <button class="btn ghost-pill" data-action="nav" data-view="sol">${icon("sol")} talk to Aero</button>
           <button class="btn btn-primary punch-pill" data-action="new-task">+ capture</button>
         </div>
       </div>
@@ -1400,10 +1401,10 @@ function viewToday() {
         <p>YOUR DAY, RIGHT NOW</p>
         <h2>${open.length}<small> open loop${open.length === 1 ? "" : "s"}</small></h2>
       </div>
-      <button class="sol-chip" data-action="nav" data-view="sol" aria-label="Open EOS">
+      <button class="sol-chip" data-action="nav" data-view="sol" aria-label="Open Aero">
         ${eosBlob(42, "eos-blob-status", solMoodNow())}
         <span class="sol-chip-txt">
-          <span class="sol-chip-main">EOS</span>
+          <span class="sol-chip-main">AERO</span>
           <span class="sol-chip-sub">tap to talk to your companion</span>
         </span>
       </button>
@@ -1465,9 +1466,9 @@ function viewToday() {
           <div class="panel-body">${noteList}</div>
         </section>
         <section class="panel tilt mini-sol-card">
-          <span class="eyebrow">EOS SAYS</span>
+          <span class="eyebrow">AERO SAYS</span>
           <h2>${overdue.length ? "one overdue thing. no drama, just pick it up." : "your slate is clear. protect that feeling."}</h2>
-          <button class="btn" data-action="nav" data-view="sol">reply to EOS</button>
+          <button class="btn" data-action="nav" data-view="sol">reply to Aero</button>
         </section>
         <a class="panel tilt connect-card" href="connect.html">
           <span class="connect-card-mark"><img src="../assets/lyfe_connect_logo.png" alt=""></span>
@@ -1926,7 +1927,7 @@ function viewWork() {
 
   return pageHead("Work Log")
     + form
-    + (dates.length ? days : emptyState("No work logged yet. Tell EOS what you did."));
+    + (dates.length ? days : emptyState("No work logged yet. Tell Aero what you did."));
 }
 
 /* ---------------- views: notes & docs (pads) ---------------- */
@@ -2092,7 +2093,7 @@ function openLightbox(kind, itemId, imgId) {
   activateDialog(root);
 }
 
-/* ---------------- view: EOS ---------------- */
+/* ---------------- view: Aero (internal view id remains sol) ---------------- */
 
 function bubbleHtml(m) {
   return `<div class="msg ${m.role === "user" ? "user" : "sol"}">
@@ -2119,17 +2120,17 @@ function viewSol() {
     : provider === "ollama" ? `<span class="on">◇</span> qwen local (${esc(s.ollamaModel || "qwen3:8b")})`
     : `○ offline, <button class="linklike" data-action="settings">connect a brain</button>`;
   const log = state.data.chat.map(bubbleHtml).join("");
-  return pageHead("EOS",
+  return pageHead("Aero",
       `<span class="sol-status">${statusHtml}</span>
        <button class="linklike" data-action="sol-clear">clear chat</button>`,
       "your companion")
     + `<div class="sol-wrap">
-        <div id="chat-log">${log || emptyState("say hi - eos answers like a friend", "sol")}</div>
+        <div id="chat-log">${log || emptyState("say hi - aero answers like a friend", "sol")}</div>
         <div class="sol-chips">${SOL_CHIPS.map(([c, send]) =>
           `<button class="chip" data-action="sol-chip" data-send="${send ? 1 : 0}" data-t="${esc(c)}">${esc(c.trim())}</button>`).join("")}
         </div>
         <form class="composer" data-form="sol">
-          <input type="text" id="sol-input" maxlength="2000" placeholder="${online ? "Message EOS…" : "Message EOS… (simple commands work offline)"}" autocomplete="off">
+          <input type="text" id="sol-input" maxlength="2000" placeholder="${online ? "Message Aero…" : "Message Aero… (simple commands work offline)"}" autocomplete="off">
           <button class="btn btn-primary" type="submit">Send</button>
         </form>
       </div>`;
@@ -2344,7 +2345,7 @@ function stripDateWords(s) {
 
 /* peel "hey sol", "please", "can you…" off the front so commands still match */
 function stripCourtesy(s) {
-  const re = /^(?:(?:hey|hi|hello|yo|ok|okay)[\s,!]+)?(?:(?:eos|sol)[\s,!]+)?(?:(?:please|pls|plz)\s+)?(?:(?:can|could|will|would)\s+(?:you|u)\s+(?:please\s+)?)?(?:(?:please|pls)\s+)?/i;
+  const re = /^(?:(?:hey|hi|hello|yo|ok|okay)[\s,!]+)?(?:(?:aero|eos|sol)[\s,!]+)?(?:(?:please|pls|plz)\s+)?(?:(?:can|could|will|would)\s+(?:you|u)\s+(?:please\s+)?)?(?:(?:please|pls)\s+)?/i;
   const m = s.match(re);
   if (m && m[0].trim()) {
     const rest = s.slice(m[0].length).trim();
@@ -2381,7 +2382,7 @@ function solLocal(raw) {
 
   /* -- social openers, checked on the untouched message -- */
 
-  if (/^(hi+|hii+|hello+|hey+|heyy+|yo+|sup|hola|good (morning|afternoon|evening)|wass?up)(\s+(?:eos|sol))?\b[!.\s]*$/i.test(lowOrig)) {
+  if (/^(hi+|hii+|hello+|hey+|heyy+|yo+|sup|hola|good (morning|afternoon|evening)|wass?up)(\s+(?:aero|eos|sol))?\b[!.\s]*$/i.test(lowOrig)) {
     const name = (state.data.settings.name || "").trim();
     const c = contextBits();
     const hello = pick([`hey${name ? " " + name.toLowerCase() : ""} 👋`, "heyy", "hello hello", "hey, good to see you"]);
@@ -2517,9 +2518,9 @@ function solLocal(raw) {
 
 /* ----- EOS: Claude API brain (optional) ----- */
 
-const SOL_SYSTEM = `You are EOS, the companion who lives inside Lyfe, a personal life-tracking app. You are warm, human, and brief, you text exactly like a close friend on WhatsApp. Mostly lowercase, casual, kind, a little playful. Never formal, never corporate, never assistant-speak ("I'd be happy to help"), no headings or bullet-point essays. Keep replies short like real texting, usually 1 to 3 short messages separated by a blank line. Double-texting is natural. Use their name occasionally. If something is overdue or they seem stressed, nudge gently like a friend would, never lecture. If they're venting, just be there; don't turn feelings into tasks unless asked. An occasional emoji is fine; don't overdo it. Never use em dashes or en dashes in your replies; use commas or full stops instead.
+const SOL_SYSTEM = `You are Aero, the companion who lives inside Lyfe, a personal life-tracking app. You are warm, human, and brief, you text exactly like a close friend on WhatsApp. Mostly lowercase, casual, kind, a little playful. Never formal, never corporate, never assistant-speak ("I'd be happy to help"), no headings or bullet-point essays. Keep replies short like real texting, usually 1 to 3 short messages separated by a blank line. Double-texting is natural. Use their name occasionally. If something is overdue or they seem stressed, nudge gently like a friend would, never lecture. If they're venting, just be there; don't turn feelings into tasks unless asked. An occasional emoji is fine; don't overdo it. Never use em dashes or en dashes in your replies; use commas or full stops instead.
 
-You are also a genuinely knowledgeable friend, like ChatGPT or Gemini but in EOS's voice. Answer anything the user asks: general knowledge, facts, science, history, how-to, coding, explanations, brainstorming, advice, definitions, math, language help, recommendations. Just answer in your normal casual texting voice, still short and human, no lecturing. You can go a little longer when they genuinely need a real explanation, but stay conversational, not an essay. You do not have live internet, so for truly real-time things (today's news, current scores, live prices, weather right now) say plainly that you can't see live data, then share what you do know or how they could check. Never invent fake current events or fake numbers.
+You are also a genuinely knowledgeable friend, like ChatGPT or Gemini but in Aero's voice. Answer anything the user asks: general knowledge, facts, science, history, how-to, coding, explanations, brainstorming, advice, definitions, math, language help, recommendations. Just answer in your normal casual texting voice, still short and human, no lecturing. You can go a little longer when they genuinely need a real explanation, but stay conversational, not an essay. You do not have live internet, so for truly real-time things (today's news, current scores, live prices, weather right now) say plainly that you can't see live data, then share what you do know or how they could check. Never invent fake current events or fake numbers.
 
 You can save things into the app for the user. When the conversation calls for it, end your reply with a fenced json block containing an array of actions:
 
@@ -2541,7 +2542,7 @@ Rules: only include the block when there is genuinely something to save. Mention
 
 Example of a perfect reply:
 User: "remind me to call the bank tomorrow, also im so tired lately"
-EOS:
+Aero:
 on it, bank call saved for tomorrow 📞
 
 and hey, tired for a few days straight is your body asking for something. sleep first tonight?
@@ -2674,8 +2675,8 @@ function handleUserMessage(text) {
       } catch (err) {
         hideTyping();
         const msg = String(err && err.message || "");
-        if (/api (401|403)/.test(msg)) toast("EOS: API key rejected, check Settings");
-        else if (/api 429/.test(msg)) toast("EOS: rate limited, answering locally");
+        if (/api (401|403)/.test(msg)) toast("Aero: API key rejected, check Settings");
+        else if (/api 429/.test(msg)) toast("Aero: rate limited, answering locally");
         reply = solLocal(text);
       }
     } else if (provider === "ollama" && !ollamaDown) {
@@ -2688,7 +2689,7 @@ function handleUserMessage(text) {
         ollamaDown = true;   // don't retry the dead endpoint again this session
         if (!brainWarned) {
           brainWarned = true;
-          toast("EOS: can't reach Ollama, using the built-in brain");
+          toast("Aero: can't reach Ollama, using the built-in brain");
         }
         reply = solLocal(text);
       }
@@ -2697,7 +2698,7 @@ function handleUserMessage(text) {
     }
     const applied = applyActions(reply.actions);
     await solSay(reply.bubbles);
-    if (applied && state.view !== "sol") toast("EOS logged " + applied + (applied === 1 ? " thing" : " things"));
+    if (applied && state.view !== "sol") toast("Aero logged " + applied + (applied === 1 ? " thing" : " things"));
   }).catch(() => { hideTyping(); });
 }
 
@@ -2907,7 +2908,7 @@ function settingsModal() {
          <div class="settings-section-copy"><span>02</span><div><h4>Appearance & comfort</h4><p>Keep the interface comfortable without changing your work.</p></div></div>
          <div>
            <div class="fld-row">
-             ${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How EOS greets you">`)}
+             ${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How Aero greets you">`)}
              ${fld("Appearance", selectHtml("theme", [["auto", "Follow the time"], ["light", "Crystal light"], ["dark", "Orbit dark"]], s.theme === "day" ? "light" : s.theme === "night" ? "dark" : (["auto", "light", "dark"].includes(s.theme) ? s.theme : "auto")))}
              ${fld("Interface sounds", selectHtml("sound", [["on", "On"], ["off", "Off"]], s.sound === false ? "off" : "on"))}
            </div>
@@ -2926,9 +2927,9 @@ function settingsModal() {
          <div><p class="settings-data-note">${CLOUD_MODE ? "Your account is synced and also cached on this device for offline use." : "You are using Lyfe on this device. A backup is the easiest way to move or protect it."}</p><div class="settings-data-actions"><button type="button" class="btn" data-action="export">Download backup</button><button type="button" class="btn" data-action="import">Restore backup</button></div></div>
        </section>
        <details class="settings-advanced">
-         <summary><span>05</span><div><h4>EOS intelligence</h4><p>Optional controls for local or connected language models.</p></div></summary>
+         <summary><span>05</span><div><h4>Aero intelligence</h4><p>Optional controls for local or connected language models.</p></div></summary>
          <div class="settings-advanced-body">
-           ${fld("EOS brain", selectHtml("provider", [["ollama", "Qwen through Ollama (local and private)"], ["claude", "Anthropic API (requires your key)"], ["offline", "Built-in offline tools only"]], s.provider || "ollama"))}
+           ${fld("Aero brain", selectHtml("provider", [["ollama", "Qwen through Ollama (local and private)"], ["claude", "Anthropic API (requires your key)"], ["offline", "Built-in offline tools only"]], s.provider || "ollama"))}
            <div class="fld-row">
              ${fld("Ollama address", `<input type="text" name="ollamaUrl" value="${esc(s.ollamaUrl || "http://localhost:11434")}" placeholder="http://localhost:11434">`)}
              ${fld("Ollama model", `<input type="text" name="ollamaModel" value="${esc(s.ollamaModel || "qwen3:8b")}" placeholder="qwen3:8b">`)}
@@ -3352,7 +3353,7 @@ function setView(v) {
   if (PROFILE_VIEWS.includes(v)) state.profileView = v;
   state.view = v;
   if (v === "sol") state.unread = 0;
-  try { location.hash = "/" + v; } catch (e) { /* ignore */ }
+  try { location.hash = "/" + (v === "sol" ? "aero" : v); } catch (e) { /* ignore */ }
   render();
   requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
 }
@@ -3676,7 +3677,7 @@ document.addEventListener("click", (e) => {
       break;
     }
     case "sol-clear":
-      confirmDialog("Clear the whole conversation with EOS?", () => {
+      confirmDialog("Clear the whole conversation with Aero?", () => {
         d.chat = [];
         save(); render();
       }, "Clear");
@@ -3807,7 +3808,7 @@ document.addEventListener("submit", (e) => {
     }
 
     case "cmdbar": {
-      // Enter opens the highlighted result (defaults to first match / Ask EOS)
+      // Enter opens the highlighted result (defaults to first match / Ask Aero)
       cmdActivate(cmdItems[cmdSel]);
       break;
     }
@@ -4047,7 +4048,7 @@ document.addEventListener("input", (e) => {
   }
 });
 
-/* universal command bar: search everything, jump anywhere, or ask EOS */
+/* universal command bar: search everything, jump anywhere, or ask Aero */
 let cmdItems = [];
 let cmdSel = 0;
 
@@ -4067,14 +4068,14 @@ function cmdSearch(qRaw) {
   d.education.forEach(e => { if (hit(e.title) || hit(e.provider)) out.push({ type: "item", kind: "edu", id: e.id, label: e.title, sub: "education" + (e.provider ? " · " + e.provider : ""), ic: "education" }); });
   d.notes.forEach(n => { if (hit(n.title) || hit(n.body)) out.push({ type: "item", kind: "note", id: n.id, label: (n.title || "").trim() || "Untitled", sub: "note · " + snippet(n.body), ic: "notes" }); });
   d.docs.forEach(n => { if (hit(n.title) || hit(n.body)) out.push({ type: "item", kind: "doc", id: n.id, label: (n.title || "").trim() || "Untitled", sub: "doc · " + snippet(n.body), ic: "docs" }); });
-  out.push({ type: "sol", query: qRaw.trim(), label: 'Ask EOS: "' + qRaw.trim() + '"', sub: "chat with your companion", ic: "sol" });
+  out.push({ type: "sol", query: qRaw.trim(), label: 'Ask Aero: "' + qRaw.trim() + '"', sub: "chat with your companion", ic: "sol" });
   return out.slice(0, 14);
 }
 
 function cmdResultsHtml(q) {
   cmdItems = cmdSearch(q);
   cmdSel = 0;
-  if (!cmdItems.length) return `<div class="cmd-empty">no matches. press Enter to ask EOS.</div>`;
+  if (!cmdItems.length) return `<div class="cmd-empty">no matches. press Enter to ask Aero.</div>`;
   return cmdItems.map((it, i) => `
     <button type="button" class="cmd-row ${i === 0 ? "sel" : ""}" data-action="cmd-pick" data-i="${i}">
       ${icon(it.ic || "spark", "cmd-ic")}
@@ -4109,10 +4110,10 @@ function cmdActivate(it) {
 
 function openCommandBar() {
   openModal(
-    `<div class="modal-head"><h3>Search · jump · ask EOS</h3></div>
+    `<div class="modal-head"><h3>Search · jump · ask Aero</h3></div>
      <form data-form="cmdbar" autocomplete="off">
        <input type="text" id="cmd-input" maxlength="2000" autocomplete="off"
-         placeholder="search anything, or 'remind me to…', or ask EOS a question">
+         placeholder="search anything, or 'remind me to…', or ask Aero a question">
      </form>
      <div id="cmd-results" class="cmd-results">${cmdResultsHtml("")}</div>
      <p class="fld-note cmd-hint">↑↓ to move · Enter to open · Esc to close</p>`
@@ -4403,7 +4404,7 @@ function showOnboarding() {
       <div class="onb-head">
         ${onboardSunMark()}
         <h1 class="onb-title">Welcome to Lyfe</h1>
-        <p class="onb-sub">A few quick things, so Lyfe and EOS actually know you.</p>
+        <p class="onb-sub">A few quick things, so Lyfe and Aero actually know you.</p>
       </div>
       <form data-form="onboarding" class="onb-form" autocomplete="off">
         <div class="onb-row">
@@ -4439,7 +4440,7 @@ function hideOnboarding() {
 function submitOnboarding(fd) {
   const val = k => String(fd.get(k) == null ? "" : fd.get(k)).trim();
   const name = val("name");
-  if (!name) { toast("A name helps EOS talk to you"); return; }
+  if (!name) { toast("A name helps Aero talk to you"); return; }
   const s = state.data.settings;
   s.name = name;
   s.nameSet = true;
