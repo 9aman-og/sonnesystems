@@ -1,7 +1,7 @@
 /* ============================================================
    Lyfe - your life, lightly kept
    Vanilla JavaScript. No dependencies. Data in localStorage.
-   Aero, the companion, works offline (built-in parser) and can
+   Aero, the personal intelligence layer, works offline (built-in parser) and can
    optionally use the Claude API with your own key (Settings).
    ============================================================ */
 "use strict";
@@ -70,9 +70,10 @@ const EDU_ORDER = { "in-progress": 0, planned: 1, paused: 2, completed: 3 };
 const GOAL_STATUSES = [["active", "In pursuit"], ["achieved", "Achieved"]];
 
 const MODELS = [
-  ["claude-opus-4-8", "Claude Opus 4.8 - most capable (default)"],
-  ["claude-sonnet-5", "Claude Sonnet 5 - fast + smart"],
-  ["claude-haiku-4-5", "Claude Haiku 4.5 - fastest"],
+  ["claude-sonnet-5", "Claude Sonnet 5 - balanced (default)"],
+  ["claude-opus-5", "Claude Opus 5 - strongest, higher cost"],
+  ["claude-opus-4-8", "Claude Opus 4.8 - strong reasoning"],
+  ["claude-haiku-4-5-20251001", "Claude Haiku 4.5 - fastest"],
 ];
 
 const MONTHS = ["January", "February", "March", "April", "May", "June",
@@ -254,20 +255,11 @@ const PADS = {
   },
 };
 
-/* ---- EOS, the Lyfe blob ----
-   A small CSS character shared by the dashboard, the companion chip, and chat.
-   It follows Crystal and Orbit through theme variables instead of carrying a
-   separate pixel-art palette. */
-function eosBlob(px, cls, mood) {
-  return `<span class="eos-blob ${cls || ""} ${mood === "sleepy" ? "is-sleepy" : ""}" style="--blob-size:${px}px" aria-hidden="true"><span class="eos-blob-core"></span></span>`;
+function aeroBrandMark(px, cls) {
+  return `<span class="aero-brand-mark ${cls || ""}" style="--aero-mark-size:${px}px" aria-hidden="true"><img src="../assets/aero_logo.svg" alt=""></span>`;
 }
 
-function solMoodNow() {
-  const h = new Date().getHours();
-  return (h >= 23 || h < 6) ? "sleepy" : "";
-}
-
-const SOL_AVATAR = `<span class="sol-avatar-px" aria-hidden="true">${eosBlob(26, "eos-blob-small")}</span>`;
+const SOL_AVATAR = `<span class="aero-avatar" aria-hidden="true"><img src="../assets/aero_logo.svg" alt=""></span>`;
 
 /* small stroke icons - inline svg, themed via currentColor.
    Two visual languages: ORBIT (dark, sharp editorial) and CRYSTAL
@@ -393,11 +385,22 @@ function defaultData() {
       name: "",
       nameSet: false,
       theme: "light",                // auto | light | dark - default Crystal light
-      provider: "ollama",            // ollama | claude | offline
+      provider: "auto",              // auto | ollama | claude | offline
       ollamaUrl: "http://localhost:11434",
       ollamaModel: "qwen3:8b",
       apiKey: "",
-      model: "claude-opus-4-8",
+      model: "claude-sonnet-5",
+      aeroSources: {
+        today: true,
+        tracking: true,
+        library: true,
+        connect: true,
+        gmail: true,
+        profile: true,
+      },
+      aeroLocalLearning: true,
+      aeroTrainingConsent: false,
+      aeroCloudContext: false,
       lastGreeted: "",
       sound: true,
       // profile, collected at onboarding after Google sign-in; Aero uses these
@@ -424,6 +427,7 @@ function defaultData() {
     docs: [],
     saved: [],
     chat: [],
+    aero: window.AeroCore ? AeroCore.freshState() : { version: 1, memories: [], episodes: [], lastContext: null },
   };
 }
 
@@ -439,7 +443,7 @@ function firstRunData() {
 THE SHORT TOUR
 
 Today - what needs you now, nothing more.
-Aero - your companion. Just talk: "remind me to email prof tomorrow", "log 2h on research", "note: read Maass 1997", or plain "hi". Aero files things for you.
+Aero - your personal intelligence. Ask what matters, use shorthand, or propose a task, note, project or work log. Aero shows every workspace change before applying it.
 Tracking - tasks, projects, goals and work logs in one place.
 Library - quick notes and longer docs together.
 Profile - your identity, learning, and the details you choose to share with Connect.
@@ -447,15 +451,15 @@ Profile - your identity, learning, and the details you choose to share with Conn
 GOOD TO KNOW
 
 You can use Lyfe privately on this device or sign in to sync it. Gmail connects only when you choose it, and messages enter your Library only when you save them.
-Aero can handle simple organizing offline. Choose a local or connected language model in Settings for longer conversations.`,
+Aero can use Today, Tracking, Library, Connect, Gmail metadata and Profile only when you enable those sources. Its memory is typed, visible and yours to forget.`,
     pinned: true,
     createdAt: now,
     updatedAt: now,
   });
   d.chat.push(
-    { id: uid(), role: "sol", text: "hey, i'm aero ☀️", ts: now },
-    { id: uid(), role: "sol", text: "i live here to help you keep track of life. just talk to me like you'd text a friend", ts: now + 1 },
-    { id: uid(), role: "sol", text: "try \"remind me to email prof tomorrow\" or \"log 2h on research\", or just say hi", ts: now + 2 },
+    { id: uid(), role: "sol", text: "hey, i'm aero.", ts: now },
+    { id: uid(), role: "sol", text: "i carry the Lyfe context you allow, remember only what earns persistence, and preview every workspace change.", ts: now + 1 },
+    { id: uid(), role: "sol", text: "start with \"what actually matters?\" or teach me a workflow you want to shorten over time.", ts: now + 2 },
   );
   return d;
 }
@@ -497,6 +501,12 @@ function normalize(raw) {
   if (raw.settings && typeof raw.settings === "object") {
     base.settings = Object.assign(base.settings, raw.settings);
   }
+  base.settings.aeroSources = Object.assign({
+    today: true, tracking: true, library: true, connect: true, gmail: true, profile: true,
+  }, raw.settings && raw.settings.aeroSources && typeof raw.settings.aeroSources === "object" ? raw.settings.aeroSources : {});
+  base.settings.aeroLocalLearning = base.settings.aeroLocalLearning !== false;
+  base.settings.aeroTrainingConsent = base.settings.aeroTrainingConsent === true;
+  base.settings.aeroCloudContext = base.settings.aeroCloudContext === true;
   base.settings.profileInterests = Array.isArray(base.settings.profileInterests)
     ? base.settings.profileInterests.map(String).filter(Boolean).slice(0, 12)
     : [];
@@ -519,6 +529,7 @@ function normalize(raw) {
   // pre-rev payloads (and hand-rolled backups) count as revision 0
   if (typeof raw.rev === "number" && isFinite(raw.rev) && raw.rev >= 0) base.rev = Math.floor(raw.rev);
   if (typeof raw.savedAt === "number" && isFinite(raw.savedAt)) base.savedAt = raw.savedAt;
+  base.aero = window.AeroCore ? AeroCore.normalize(raw.aero) : (raw.aero || base.aero);
   return base;
 }
 
@@ -587,6 +598,8 @@ const state = {
   wanderIndex: Math.floor(Math.random() * PLACES.length),
   factIndex: Math.floor(Math.random() * FACTS.length),
   calmIndex: Math.floor(Math.random() * 100000),
+  aeroSourceView: "today",
+  aeroObject: null,
 };
 
 let gmailMessages = [];
@@ -619,12 +632,12 @@ function gmailRailHtml() {
   } else if (!gmailMessages.length && gmailLoaded) {
     body = `<div class="gmail-empty"><span class="gmail-g">G</span><div><strong>Your inbox is clear</strong><small>No recent inbox messages to show.</small></div><button class="btn" type="button" data-action="gmail-refresh">Refresh</button></div>`;
   } else {
-    body = `<div class="gmail-track" id="gmail-track">${gmailMessages.map(message => {
+    body = `<div class="gmail-track" id="gmail-track">${gmailMessages.slice(0, 6).map(message => {
       const alreadySaved = state.data.saved.some(item => item.source === "Gmail" && item.sourceId === message.id);
-      return `<article class="gmail-card"><header><span>${esc(message.sender)}</span><time>${esc(message.date)}</time></header><h3>${esc(message.subject || "(no subject)")}</h3><p>${esc(message.snippet)}</p><button type="button" data-action="gmail-save" data-id="${esc(message.id)}" ${alreadySaved ? "disabled" : ""}>${alreadySaved ? "Saved" : "Save to Library"}</button></article>`;
+      return `<article class="gmail-card"><header><span>${esc(message.sender)}</span><time>${esc(message.date)}</time></header><h3>${esc(message.subject || "(no subject)")}</h3><p>${esc(message.snippet)}</p><div class="gmail-card-actions"><button type="button" data-action="gmail-save" data-id="${esc(message.id)}" ${alreadySaved ? "disabled" : ""}>${alreadySaved ? "Saved" : "Save to Library"}</button><button type="button" data-action="aero-from-source" data-source="gmail" data-id="${esc(message.id)}">Ask Aero</button></div></article>`;
     }).join("")}</div>`;
   }
-  return `<section class="home-gmail panel" id="gmail-home"><header><div><span class="eyebrow">GMAIL</span><h2>Inbox</h2></div><div class="gmail-controls">${token ? `<button type="button" data-action="gmail-refresh" aria-label="Refresh Gmail">Refresh</button>` : ""}<button type="button" data-action="gmail-scroll" data-dir="-1" aria-label="Scroll inbox left">←</button><button type="button" data-action="gmail-scroll" data-dir="1" aria-label="Scroll inbox right">→</button></div></header>${body}</section>`;
+  return `<section class="home-gmail panel" id="gmail-home"><header><div><span class="eyebrow">INBOX SIGNALS / READ-ONLY</span><h2>Gmail, without the feed.</h2></div><div class="gmail-controls"><button type="button" data-action="aero-from-source" data-source="gmail" data-prompt="scan my recent inbox and tell me only what needs action">Ask Aero</button>${token ? `<button type="button" data-action="gmail-refresh" aria-label="Refresh Gmail">Refresh</button>` : ""}<button type="button" data-action="gmail-scroll" data-dir="-1" aria-label="Scroll inbox left">←</button><button type="button" data-action="gmail-scroll" data-dir="1" aria-label="Scroll inbox right">→</button></div></header>${body}</section>`;
 }
 
 function refreshGmailRail() {
@@ -718,11 +731,11 @@ function activateDialog(root) {
   }, 0);
 }
 
-function openModal(inner) {
+function openModal(inner, dialogClass) {
   const root = document.getElementById("modal-root");
   modalReturnFocus = document.activeElement;
   root.innerHTML =
-    `<div class="overlay" data-action="overlay-close"><div class="modal" role="dialog" aria-modal="true">${inner}</div></div>`;
+    `<div class="overlay" data-action="overlay-close"><div class="modal${dialogClass ? " " + esc(dialogClass) : ""}" role="dialog" aria-modal="true">${inner}</div></div>`;
   activateDialog(root);
 }
 
@@ -1158,7 +1171,7 @@ function weekHours() {
 
 /* ---------------- view: today ---------------- */
 
-function viewToday() {
+function viewTodayLegacy() {
   const d = state.data;
   const t = todayStr();
   const hour = new Date().getHours();
@@ -1262,7 +1275,6 @@ function viewToday() {
   // CRYSTAL (light): glass showroom - 3D disc hero, bento deck, holo endcap.
   if (resolvedTheme() === "light") {
     const learning = d.education.filter(x => x.status === "in-progress").length;
-    const sleepy = solMoodNow() === "sleepy";
     return `<div class="cx-stage">
     <section class="cx-hero" data-reveal>
       <div class="cx-hero-copy">
@@ -1297,7 +1309,7 @@ function viewToday() {
         <button class="cx-stat" data-action="nav" data-view="projects"><b>${activeProjects.length}</b><span>projects live</span></button>
         <button class="cx-stat" data-action="nav" data-view="work"><b>${fmtHours(wh)}h</b><span>work logged</span></button>
         <button class="cx-stat" data-action="nav" data-view="education"><b>${learning}</b><span>learning</span></button>
-        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${eosBlob(30, "eos-blob-status", solMoodNow())}<span>aero</span></button>
+        <button class="cx-stat cx-stat-sol" data-action="nav" data-view="sol">${aeroBrandMark(30, "aero-home-status")}<span>aero</span></button>
       </div>
     </section>
 
@@ -1402,10 +1414,10 @@ function viewToday() {
         <h2>${open.length}<small> open loop${open.length === 1 ? "" : "s"}</small></h2>
       </div>
       <button class="sol-chip" data-action="nav" data-view="sol" aria-label="Open Aero">
-        ${eosBlob(42, "eos-blob-status", solMoodNow())}
+        ${aeroBrandMark(42, "aero-home-status")}
         <span class="sol-chip-txt">
           <span class="sol-chip-main">AERO</span>
-          <span class="sol-chip-sub">tap to talk to your companion</span>
+          <span class="sol-chip-sub">tap to use your Lyfe context</span>
         </span>
       </button>
       <div class="orbit-dock">
@@ -1489,6 +1501,170 @@ function viewToday() {
       <span>YOU ARE NOT BEHIND.</span>
       <h2>You are here.<br>That is enough to begin.</h2>
       <a class="btn btn-primary" href="#home-wander-title">take a detour ${icon("wander")}</a>
+    </section>
+  </div>`;
+}
+
+/* Today is the attention layer of Lyfe. It deliberately shows less than the
+   underlying product: one brief, a ranked queue, external signals, and living
+   workspaces. Aero is the synthesis and action layer across all of them. */
+function viewToday() {
+  const d = state.data;
+  const today = todayStr();
+  const hour = new Date().getHours();
+  const part = hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
+  const name = (d.settings.name || "").trim() || "Human";
+
+  const open = d.tasks.filter(task => task.status !== "done");
+  const overdue = open.filter(task => task.due && task.due < today).sort(taskCmp);
+  const dueToday = open.filter(task => task.due === today).sort(taskCmp);
+  const remaining = open.filter(task => !overdue.includes(task) && !dueToday.includes(task)).sort((a, b) => {
+    const importantA = a.important || a.priority === "High" ? 0 : 1;
+    const importantB = b.important || b.priority === "High" ? 0 : 1;
+    return importantA - importantB || taskCmp(a, b);
+  });
+  const attentionTasks = overdue.concat(dueToday, remaining).slice(0, 5);
+  const attentionCount = overdue.length + dueToday.length;
+  const doneToday = d.tasks.filter(task =>
+    task.status === "done" && task.completedAt && isoOf(new Date(task.completedAt)) === today
+  ).length;
+
+  const activeProjects = d.projects.filter(project => project.status === "active")
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 4);
+  const recentNotes = d.notes.slice().sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)).slice(0, 4);
+  const connectActivity = connectSummary();
+  const context = aeroContextPack("today");
+  const metrics = window.AeroCore ? AeroCore.metrics(d.aero) : {
+    activeMemories: 0, compressionSamples: 0, compression: null, firstPassRate: null,
+  };
+  const gmailConnected = !!(window.LyfeCloud && LyfeCloud.gmailToken);
+  const signalCount = connectActivity.unread + (gmailConnected ? gmailMessages.length : 0);
+  const sourceLabels = context.sources.map(source => aeroSourceLabel(source.id));
+
+  const briefTitle = overdue.length
+    ? `${overdue.length} overdue ${overdue.length === 1 ? "commitment needs" : "commitments need"} a decision.`
+    : dueToday.length
+      ? `${dueToday.length} ${dueToday.length === 1 ? "thing needs" : "things need"} you today.`
+      : open.length
+        ? `${open.length} open ${open.length === 1 ? "loop is" : "loops are"} held. None is urgent.`
+        : "The system is quiet. Choose what matters next.";
+  const briefDetail = activeProjects.length
+    ? `${activeProjects.length} active ${activeProjects.length === 1 ? "workspace" : "workspaces"} · ${signalCount} new ${signalCount === 1 ? "signal" : "signals"} · ${doneToday} finished today.`
+    : `${signalCount} new ${signalCount === 1 ? "signal" : "signals"} · ${doneToday} finished today. Capture an outcome when you are ready.`;
+
+  const attentionList = attentionTasks.length
+    ? `<ul class="task-list today-task-list">${attentionTasks.map(task => taskRow(task)).join("")}</ul>`
+    : emptyState("Nothing needs your attention right now.");
+
+  const projectList = activeProjects.length
+    ? activeProjects.map(project => `
+        <button class="today-project-row" type="button" data-action="nav" data-view="projects">
+          <span><strong>${esc(project.name)}</strong><small>${esc(project.description || "Active workspace")}</small></span>
+          ${bar(project.progress || 0)}
+        </button>`).join("")
+    : `<div class="today-module-empty"><strong>No active workspaces.</strong><span>Turn an outcome into a project when it needs history, decisions and momentum.</span><button class="btn btn-sm" data-action="new-project">Create project</button></div>`;
+
+  const noteList = recentNotes.length
+    ? recentNotes.map(note => `
+        <button class="today-context-row" type="button" data-action="open-note" data-id="${esc(note.id)}">
+          <span>${note.pinned ? "PINNED NOTE" : "NOTE"}</span>
+          <strong>${esc((note.title || "").trim() || "Untitled")}</strong>
+          <small>${esc(snippet(note.body))}</small>
+        </button>`).join("")
+    : `<div class="today-module-empty"><strong>Your Library is ready.</strong><span>Save the context you will want Aero to recover later.</span><button class="btn btn-sm" data-action="new-note">Add note</button></div>`;
+
+  const learningLine = metrics.compressionSamples > 0 && metrics.compression != null
+    ? `${Math.max(0, Math.round(metrics.compression * 100))}% less restating across repeated successful workflows.`
+    : "Learning begins only after repeated, successful, user-rated workflows.";
+
+  return `<div class="today-system">
+    <section class="today-hero" aria-labelledby="today-title">
+      <div class="today-topline">
+        <span>LYFE / ${esc(fmtLongISO(today))}</span>
+        <span class="today-live"><i></i> AERO CONTEXT READY</span>
+      </div>
+
+      <div class="today-hero-grid">
+        <div class="today-hero-copy">
+          <span class="eyebrow">YOUR ATTENTION, NOT ANOTHER FEED</span>
+          <h1 id="today-title">Good ${esc(part)}, ${esc(name)}.</h1>
+          <h2>${esc(briefTitle)}</h2>
+          <p>${esc(briefDetail)}</p>
+          <div class="today-hero-actions">
+            <button class="btn btn-primary" type="button" data-action="aero-from-source" data-source="today" data-prompt="what actually matters right now, and why?">Ask Aero what matters</button>
+            <button class="btn" type="button" data-action="new-task">Quick capture</button>
+          </div>
+        </div>
+
+        <aside class="today-aero-presence" aria-label="Aero context status">
+          <div class="today-aero-lockup">
+            <span class="today-logo"><img src="../assets/aero_logo.svg" alt="Aero"></span>
+            <span><b>Aero</b><small>across Lyfe</small></span>
+          </div>
+          <p>${sourceLabels.length} connected context ${sourceLabels.length === 1 ? "source" : "sources"} are available for this brief.</p>
+          <div class="today-source-chips">${sourceLabels.map(label => `<span>${esc(label)}</span>`).join("")}</div>
+          <small class="today-learning-line">${esc(learningLine)}</small>
+          <button class="linklike" type="button" data-action="nav" data-view="sol">Open Aero workspace →</button>
+        </aside>
+      </div>
+
+      <div class="today-metrics" aria-label="Today at a glance">
+        <button type="button" data-action="nav" data-view="tasks"><b>${attentionCount}</b><span>need attention</span></button>
+        <button type="button" data-action="nav" data-view="projects"><b>${activeProjects.length}</b><span>active workspaces</span></button>
+        <a href="connect.html#notifications"><b>${signalCount}</b><span>new signals</span></a>
+        <button type="button" data-action="nav" data-view="sol"><b>${metrics.activeMemories || 0}</b><span>trusted memories</span></button>
+      </div>
+    </section>
+
+    <section class="today-main-grid">
+      <section class="panel today-attention-card">
+        <header>
+          <div><span class="eyebrow">01 / ATTENTION</span><h2>Only the next five.</h2></div>
+          <button class="linklike" type="button" data-action="nav" data-view="tasks">View all ${open.length} →</button>
+        </header>
+        <form class="quick-add command-add" data-form="quick-task-today">
+          <span>+</span>
+          <input type="text" id="qa-title" name="title" maxlength="200" placeholder="Capture a commitment…" autocomplete="off">
+          <button class="btn btn-primary btn-sm" type="submit">Add</button>
+        </form>
+        ${attentionList}
+      </section>
+
+      <section class="panel today-aero-actions">
+        <span class="eyebrow">02 / ASK WITH CONTEXT</span>
+        <h2>Say the short version.</h2>
+        <p>Aero already has the Lyfe surfaces you allowed. Start with the outcome, not the backstory.</p>
+        <div class="today-prompt-list">
+          <button type="button" data-action="aero-from-source" data-source="today" data-prompt="plan my next focused block">Plan my next block <span>→</span></button>
+          <button type="button" data-action="aero-from-source" data-source="today" data-prompt="catch me up on what changed">Catch me up <span>→</span></button>
+          <button type="button" data-action="aero-from-source" data-source="today" data-prompt="where am i blocked?">Find the blocker <span>→</span></button>
+          <button type="button" data-action="aero-from-source" data-source="connect" data-prompt="who needs a follow-up, and what should i say?">Prepare follow-ups <span>→</span></button>
+        </div>
+      </section>
+    </section>
+
+    ${gmailRailHtml()}
+
+    <section class="today-section-head">
+      <div><span class="eyebrow">03 / LIVING CONTEXT</span><h2>Workspaces, memory and people.</h2></div>
+      <p>The durable state behind the brief. Aero reads only the sources you enable.</p>
+    </section>
+    <section class="today-workspace-grid">
+      <section class="panel today-module">
+        <header><div><span class="eyebrow">TRACKING</span><h2>Active workspaces</h2></div><button class="linklike" type="button" data-action="nav" data-view="projects">Open →</button></header>
+        <div>${projectList}</div>
+      </section>
+      <section class="panel today-module">
+        <header><div><span class="eyebrow">LIBRARY</span><h2>Recent context</h2></div><button class="linklike" type="button" data-action="nav" data-view="notes">Open →</button></header>
+        <div>${noteList}</div>
+      </section>
+      <a class="panel today-connect-module" href="connect.html">
+        <div class="today-connect-head"><img src="../assets/lyfe_connect_logo.png" alt=""><span class="eyebrow">LYFE CONNECT</span></div>
+        <h2>People are part of the work.</h2>
+        <p>${connectActivity.unread ? esc(connectActivity.latest) : "Conversations, collaborators and saved opportunities become usable Aero context."}</p>
+        <div class="today-connect-stats"><span><b>${connectActivity.unread}</b> unread</span><span><b>${connectActivity.threads}</b> threads</span><span><b>${connectActivity.saved}</b> saved</span></div>
+        <span class="today-connect-open">Open Connect →</span>
+      </a>
     </section>
   </div>`;
 }
@@ -1594,6 +1770,41 @@ function connectSummary() {
     saved: Array.isArray(connect.saved) ? connect.saved.length : 0,
     threads: Array.isArray(connect.conversations) ? connect.conversations.length : 0,
   };
+}
+
+function aeroActiveObject() {
+  const d = state.data;
+  if (state.view === "notes" && state.noteId) {
+    const note = d.notes.find(item => item.id === state.noteId);
+    if (note) return { type: "note", id: note.id, title: note.title, detail: snippet(note.body) };
+  }
+  if (state.view === "docs" && state.docId) {
+    const doc = d.docs.find(item => item.id === state.docId);
+    if (doc) return { type: "doc", id: doc.id, title: doc.title, detail: snippet(doc.body) };
+  }
+  return null;
+}
+
+function aeroContextPack(surfaceOverride) {
+  if (!window.AeroCore) return { id: "context-unavailable", surface: "aero", sources: [], memories: [], provenanceCoverage: 0 };
+  const surface = surfaceOverride || (state.view === "sol" ? state.aeroSourceView : topSectionOf(state.view));
+  const pack = AeroCore.contextPack({
+    lyfe: state.data,
+    aero: state.data.aero,
+    connect: readConnectState() || {},
+    connectSuite: readConnectSuiteState() || {},
+    gmail: gmailMessages,
+    surface,
+    activeObject: state.view === "sol" ? state.aeroObject : aeroActiveObject(),
+    sourcePolicy: state.data.settings.aeroSources || {},
+  });
+  state.data.aero.lastContext = pack;
+  return pack;
+}
+
+function aeroSourceLabel(id) {
+  const labels = { today: "Today", tracking: "Tracking", library: "Library", connect: "Connect", gmail: "Gmail", profile: "Profile" };
+  return labels[id] || String(id || "Lyfe");
 }
 
 function syncProfileToConnect() {
@@ -2093,47 +2304,75 @@ function openLightbox(kind, itemId, imgId) {
   activateDialog(root);
 }
 
-/* ---------------- view: Aero (internal view id remains sol) ---------------- */
+/* ---------------- view: Aero (legacy route id remains sol for old links) ---------------- */
 
 function bubbleHtml(m) {
+  const proposal = m.proposal && Array.isArray(m.proposal.actions) ? m.proposal : null;
+  const proposalHtml = proposal ? `<div class="aero-proposal ${esc(proposal.status || "pending")}">
+    <div><span class="aero-proposal-kicker">ACTION PREVIEW</span><b>${esc(AeroCore.actionSummary(proposal.actions))}</b></div>
+    <ul>${proposal.actions.slice(0, 5).map(action => `<li>${esc(aeroActionDetail(action))}</li>`).join("")}</ul>
+    ${proposal.status === "pending" ? `<div class="aero-proposal-actions"><button class="btn btn-primary btn-sm" type="button" data-action="aero-apply" data-id="${esc(m.id)}">Apply</button><button class="btn btn-sm" type="button" data-action="aero-cancel" data-id="${esc(m.id)}">Not now</button></div>` : `<span class="aero-proposal-state">${proposal.status === "applied" ? "Applied to Lyfe" : "No changes made"}</span>`}
+  </div>` : "";
+  const feedback = m.role === "sol" && m.episodeId ? (m.feedback
+    ? `<div class="aero-feedback is-rated"><span>${m.feedback === "helpful" ? "Marked helpful" : "Marked as a miss"}</span></div>`
+    : `<div class="aero-feedback" aria-label="Rate Aero's first response"><span>Did Aero get it?</span><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="helpful">Yes</button><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="missed">Not quite</button></div>`) : "";
   return `<div class="msg ${m.role === "user" ? "user" : "sol"}">
     ${m.role === "sol" ? SOL_AVATAR : ""}
-    <div class="bubble">${esc(m.text)}</div>
+    <div class="bubble">${esc(m.text)}${proposalHtml}${feedback}</div>
     <span class="msg-time">${esc(clock(m.ts))}</span>
   </div>`;
 }
 
 const SOL_CHIPS = [
-  ["what's due", true],
-  ["how am i doing", true],
-  ["remind me to ", false],
-  ["log 1h on ", false],
-  ["note: ", false],
+  ["what actually matters?", true],
+  ["what changed?", true],
+  ["same as last time", true],
+  ["follow up with ", false],
+  ["remember that ", false],
 ];
 
 function viewSol() {
   const s = state.data.settings;
-  const provider = s.provider || "offline";
+  const provider = s.provider || "auto";
   const online = provider === "claude" && !!(s.apiKey || "").trim();
   const statusHtml =
     online ? `<span class="on">●</span> claude connected`
-    : provider === "ollama" ? `<span class="on">◇</span> qwen local (${esc(s.ollamaModel || "qwen3:8b")})`
+    : provider === "auto" ? `<span class="on">◇</span> local-first routing`
+    : provider === "ollama" ? `<span class="on">◇</span> local ${esc(s.ollamaModel || "qwen3:8b")}`
     : `○ offline, <button class="linklike" data-action="settings">connect a brain</button>`;
   const log = state.data.chat.map(bubbleHtml).join("");
-  return pageHead("Aero",
-      `<span class="sol-status">${statusHtml}</span>
-       <button class="linklike" data-action="sol-clear">clear chat</button>`,
-      "your companion")
-    + `<div class="sol-wrap">
-        <div id="chat-log">${log || emptyState("say hi - aero answers like a friend", "sol")}</div>
+  const context = aeroContextPack();
+  const metrics = AeroCore.metrics(state.data.aero);
+  const sourceCards = context.sources.map(source => `<article class="aero-source-card"><span>${esc(source.label)}</span><p>${esc(source.detail)}</p></article>`).join("");
+  const allMemories = AeroCore.normalize(state.data.aero).memories.slice().sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6);
+  const memories = allMemories.length ? allMemories.map(memory => `<li class="is-${esc(memory.status)}"><span>${esc(memory.type)} · ${esc(memory.status)}</span><p>${esc(memory.claim)}</p><small>${memory.sourceMode === "explicit" ? "Taught by you" : Math.round(memory.confidence * 100) + "% confidence · " + (memory.successCount || 0) + " successful signal" + ((memory.successCount || 0) === 1 ? "" : "s")}</small><button type="button" data-action="aero-forget" data-id="${esc(memory.id)}" aria-label="Forget this memory">Forget</button></li>`).join("") : `<li class="aero-memory-empty"><p>Aero has not earned any persistent memories yet.</p></li>`;
+  const firstPass = metrics.firstPassRate == null ? "&mdash;" : Math.round(metrics.firstPassRate * 100) + "%";
+  const compression = metrics.compressionSamples ? (metrics.compression > 0 ? "+" : "") + Math.round(metrics.compression * 100) + "%" : "&mdash;";
+  const memoryCount = metrics.activeMemories + " kept" + (metrics.candidateMemories ? " · " + metrics.candidateMemories + " candidate" + (metrics.candidateMemories === 1 ? "" : "s") : "");
+  const proofLabel = metrics.proofReady ? "evidence ready" : "collecting baseline";
+  return `<header class="aero-head">
+      <div class="aero-title-lockup"><img src="../assets/aero_logo.svg" alt=""><div><span class="eyebrow">PERSONAL INTELLIGENCE</span><h1>Aero</h1><p>Context across Lyfe. Memory that earns persistence. Actions that stay under your control.</p></div></div>
+      <div class="aero-head-actions"><span class="sol-status">${statusHtml}</span><button class="linklike" data-action="settings">Controls</button><button class="linklike" data-action="sol-clear">Clear chat</button></div>
+    </header>
+    <div class="aero-workspace">
+      <section class="aero-conversation panel">
+        <div class="aero-conversation-context"><span>Working from</span><b>${esc(aeroSourceLabel(context.surface))}</b><button class="linklike" type="button" data-action="aero-context">See what Aero can use</button></div>
+        <div id="chat-log">${log || `<div class="aero-empty"><img src="../assets/aero_logo.svg" alt=""><h2>What do you want to make easier?</h2><p>You can start fully explicit. Aero only compresses the instruction after it has evidence.</p></div>`}</div>
         <div class="sol-chips">${SOL_CHIPS.map(([c, send]) =>
           `<button class="chip" data-action="sol-chip" data-send="${send ? 1 : 0}" data-t="${esc(c)}">${esc(c.trim())}</button>`).join("")}
         </div>
         <form class="composer" data-form="sol">
-          <input type="text" id="sol-input" maxlength="2000" placeholder="${online ? "Message Aero…" : "Message Aero… (simple commands work offline)"}" autocomplete="off">
+          <input type="text" id="sol-input" maxlength="2000" placeholder="Tell Aero the outcome, or use your own shorthand…" autocomplete="off" aria-label="Message Aero">
           <button class="btn btn-primary" type="submit">Send</button>
         </form>
-      </div>`;
+        <p class="aero-composer-note">Aero previews workspace changes. It cannot send messages or take external action in this version.</p>
+      </section>
+      <aside class="aero-rail">
+        <section class="aero-rail-card"><header><span class="eyebrow">CURRENT CONTEXT</span><b>${Math.round(context.provenanceCoverage * 100)}% coverage</b></header><div class="aero-source-grid">${sourceCards || `<p>No sources are enabled.</p>`}</div><button class="linklike" type="button" data-action="settings">Manage sources →</button></section>
+        <section class="aero-rail-card"><header><span class="eyebrow">MEMORY & ADAPTATION</span><b>${memoryCount}</b></header><ul class="aero-memory-list">${memories}</ul><button class="linklike" type="button" data-action="aero-teach">Teach Aero explicitly →</button></section>
+        <section class="aero-rail-card aero-proof"><header><span class="eyebrow">COMMUNICATION COMPRESSION</span><b>${proofLabel}</b></header><div class="aero-proof-grid"><div><strong>${metrics.scored}</strong><span>rated outcomes</span></div><div><strong>${firstPass}</strong><span>first-pass intent</span></div><div><strong>${metrics.averageWords ? metrics.averageWords.toFixed(1) : "&mdash;"}</strong><span>words when right</span></div><div><strong>${compression}</strong><span>less instruction</span></div></div><p>Compression is compared only after the same outcome family succeeds again. ${metrics.compressionSamples} matched comparison${metrics.compressionSamples === 1 ? "" : "s"} so far.</p></section>
+      </aside>
+    </div>`;
 }
 
 function scrollChat() {
@@ -2141,8 +2380,8 @@ function scrollChat() {
   if (log) log.scrollTop = log.scrollHeight;
 }
 
-function pushChat(role, text) {
-  const m = { id: uid(), role, text, ts: Date.now() };
+function pushChat(role, text, meta) {
+  const m = Object.assign({ id: uid(), role, text, ts: Date.now() }, meta || {});
   state.data.chat.push(m);
   if (state.data.chat.length > 300) state.data.chat = state.data.chat.slice(-300);
   save();
@@ -2176,25 +2415,44 @@ function hideTyping() {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-async function solSay(bubbles) {
-  for (const raw of bubbles) {
+async function solSay(bubbles, meta) {
+  for (let index = 0; index < bubbles.length; index++) {
+    const raw = bubbles[index];
     // sol never uses em dashes, whatever brain produced the text
     const text = String(raw).replace(/\s*[—–]\s*/g, ", ");
     showTyping();
     await sleep(Math.min(420 + text.length * 14, 1500));
     hideTyping();
-    pushChat("sol", text);
+    const bubbleMeta = Object.assign({}, meta || {});
+    if (index !== bubbles.length - 1) {
+      delete bubbleMeta.proposal;
+      delete bubbleMeta.episodeId;
+    }
+    pushChat("sol", text, bubbleMeta);
   }
 }
 
-/* ----- EOS: applying actions to the ledger ----- */
+function aeroActionDetail(action) {
+  const clean = window.AeroCore ? AeroCore.validateAction(action) : action;
+  if (!clean) return "Unsupported change";
+  const subject = clean.title || clean.name || clean.claim || clean.query || clean.text || clean.body || "item";
+  const labels = {
+    add_task: "Create task", complete_task: "Complete task", add_note: "Save note", add_doc: "Create doc",
+    log_work: "Log work", add_goal: "Create goal", add_education: "Add learning", add_project: "Create project",
+    memory_upsert: "Remember", memory_forget: "Forget",
+  };
+  return (labels[clean.type] || "Change") + ": " + String(subject).slice(0, 180);
+}
+
+/* ----- Aero: applying approved actions to the Lyfe ledger ----- */
 
 function validDate(s) { return /^\d{4}-\d{2}-\d{2}$/.test(String(s || "")) ? s : null; }
 
 function applyActions(actions) {
   const d = state.data;
   let n = 0;
-  for (const a of (actions || [])) {
+  for (const candidate of (actions || [])) {
+    const a = window.AeroCore ? AeroCore.validateAction(candidate) : candidate;
     if (!a || typeof a !== "object") continue;
     try {
       switch (a.type) {
@@ -2212,9 +2470,9 @@ function applyActions(actions) {
         }
         case "complete_task": {
           const q = String(a.title || "").trim().toLowerCase();
-          const t = d.tasks.find(x => x.status !== "done" &&
+          const matches = d.tasks.filter(x => x.status !== "done" &&
             (x.title.toLowerCase().includes(q) || q.includes(x.title.toLowerCase())));
-          if (t) { t.status = "done"; t.completedAt = Date.now(); n++; }
+          if (matches.length === 1) { matches[0].status = "done"; matches[0].completedAt = Date.now(); n++; }
           break;
         }
         case "add_note": case "add_doc": {
@@ -2266,6 +2524,24 @@ function applyActions(actions) {
           });
           n++; break;
         }
+        case "memory_upsert": {
+          d.aero = AeroCore.upsertMemory(d.aero, {
+            type: a.memoryType || "semantic",
+            scope: a.scope || "global",
+            claim: a.claim,
+            sourceMode: "explicit",
+            status: "active",
+            confidence: 1,
+            evidence: ["Taught directly in Aero"],
+          });
+          n++; break;
+        }
+        case "memory_forget": {
+          const before = d.aero.memories.length;
+          d.aero = AeroCore.forgetMemory(d.aero, a.query || a.claim);
+          if (d.aero.memories.length < before) n++;
+          break;
+        }
       }
     } catch (e) { /* skip malformed action */ }
   }
@@ -2273,7 +2549,7 @@ function applyActions(actions) {
   return n;
 }
 
-/* ----- EOS: local (offline) brain ----- */
+/* ----- Aero: local deterministic brain ----- */
 
 function contextBits() {
   const d = state.data;
@@ -2408,12 +2684,61 @@ function solLocal(raw) {
   if (/what can you do|^help$|how do (you|i) work/.test(low)) {
     return {
       bubbles: [
-        "i keep your ledger for you. talk normally:",
-        "\"remind me to email prof by friday\" → task\n\"log 2h on spike encoder\" → work log\n\"note: read maass 1997\" → note\n\"done email prof\" → ticks it off\n\"goal: publish snn paper\" → goal\n\"doc: research plan\" → doc",
-        "and \"how am i doing\" or \"what's due\" any time. add an api key in settings and i get a lot smarter 😉",
+        "i work across the Lyfe context you allow: Today, Tracking, Library, Connect, Gmail and Profile.",
+        "ask what matters, compare something you have open, plan a follow-up, or tell me what to remember. workspace changes always appear as a preview first.",
+        "the goal is simple: over time you should be able to say less without me getting your intent wrong.",
       ],
       actions: [],
     };
+  }
+
+  if ((m = t.match(/^(?:remember|learn|teach aero)(?: that)?\s*:?[\s]+(.+)/i))) {
+    const claim = m[1].trim();
+    const memoryType = /\b(?:when|workflow|steps?|process|usually do)\b/i.test(claim) ? "procedural"
+      : /\b(?:project|for this|on this)\b/i.test(claim) ? "project" : "semantic";
+    return {
+      bubbles: ["i can keep that as an explicit " + memoryType + " memory. you can review or forget it whenever you want."],
+      actions: [{ type: "memory_upsert", claim, memoryType, scope: memoryType === "project" ? "current-project" : "global" }],
+    };
+  }
+
+  if ((m = t.match(/^(?:forget|remove memory)(?: that| about)?\s*:?[\s]+(.+)/i))) {
+    return { bubbles: ["i found this as a memory change. nothing is removed until you approve."], actions: [{ type: "memory_forget", query: m[1].trim() }] };
+  }
+
+  if (/what (?:have you|did you) learn|what do you remember|show (?:your )?memory/.test(low)) {
+    const memories = AeroCore.normalize(state.data.aero).memories.filter(item => item.status === "active" || item.status === "provisional").slice(-6);
+    if (!memories.length) return { bubbles: ["nothing persistent yet. that's deliberate, i only keep what you explicitly teach or what later earns enough evidence."], actions: [] };
+    return { bubbles: ["here's what i'm currently allowed to carry:\n" + memories.map(item => "• " + item.claim + " [" + item.type + "]").join("\n")], actions: [] };
+  }
+
+  if (/same as last time|use my usual|do it my way/.test(low)) {
+    const memory = AeroCore.normalize(state.data.aero).memories.filter(item => item.type === "procedural" && item.status === "active").sort((a, b) => b.updatedAt - a.updatedAt)[0];
+    if (!memory) return { bubbles: ["i don't have a confirmed procedure for that yet. show me once in full, then tell me what part should persist."], actions: [] };
+    return { bubbles: ["i found your latest confirmed procedure: \"" + memory.claim + "\". tell me the object or outcome and i'll use it."], actions: [] };
+  }
+
+  if (/what changed|catch me up|bring me up to speed/.test(low)) {
+    const pack = aeroContextPack();
+    const lines = pack.sources.filter(source => source.items.length).slice(0, 4).map(source => "• " + source.label + ": " + source.detail);
+    return { bubbles: [lines.length ? "here's the live shape of things:\n" + lines.join("\n") : "there isn't enough enabled context yet. open Controls to choose what i can use."], actions: [] };
+  }
+
+  if (/\b(?:gmail|inbox|email)\b/.test(low) && /\b(?:summary|summarize|what|latest|important|changed)\b/.test(low)) {
+    const source = aeroContextPack().sources.find(item => item.id === "gmail");
+    if (!source) return { bubbles: [window.LyfeCloud && LyfeCloud.gmailToken ? "gmail is connected, but i don't have recent metadata loaded yet. open Today once and try again." : "connect Gmail in Settings, then choose whether Aero may use its metadata and snippets."], actions: [] };
+    return { bubbles: [source.items.length ? "from the recent inbox metadata:\n" + source.items.slice(0, 5).map(item => "• " + item.title + ", " + item.detail).join("\n") : "your recent inbox context is clear."], actions: [] };
+  }
+
+  if (/\b(?:connect|messages?|people|opportunit)\b/.test(low) && /\b(?:summary|what|latest|changed|follow up)\b/.test(low)) {
+    const source = aeroContextPack("connect").sources.find(item => item.id === "connect");
+    if (!source || !source.items.length) return { bubbles: ["i can see the Connect source is enabled, but there isn't enough recent context to infer a person or thread. open Connect or name who you mean."], actions: [] };
+    return { bubbles: ["from Connect:\n" + source.items.slice(0, 5).map(item => "• " + item.title + (item.detail ? ", " + item.detail : "")).join("\n")], actions: [] };
+  }
+
+  if (/\b(?:library|notes?|docs?|saved)\b/.test(low) && /\b(?:what|summary|summarize|latest|find)\b/.test(low)) {
+    const source = aeroContextPack("library").sources.find(item => item.id === "library");
+    return { bubbles: [source && source.items.length ? "from your Library:\n" + source.items.slice(0, 6).map(item => "• " + item.title).join("\n") : "your Library is empty, or its Aero source is turned off."], actions: [] };
   }
 
   if ((m = t.match(/^(?:add (?:a )?task(?: to)?|new task|create (?:a )?task(?: to)?|task|todo|remind me to|i need to|i have to|i gotta|gotta|remember to)\s*:?\s+(.+)/i))) {
@@ -2516,13 +2841,13 @@ function solLocal(raw) {
   };
 }
 
-/* ----- EOS: Claude API brain (optional) ----- */
+/* ----- Aero: Anthropic model adapter (optional) ----- */
 
-const SOL_SYSTEM = `You are Aero, the companion who lives inside Lyfe, a personal life-tracking app. You are warm, human, and brief, you text exactly like a close friend on WhatsApp. Mostly lowercase, casual, kind, a little playful. Never formal, never corporate, never assistant-speak ("I'd be happy to help"), no headings or bullet-point essays. Keep replies short like real texting, usually 1 to 3 short messages separated by a blank line. Double-texting is natural. Use their name occasionally. If something is overdue or they seem stressed, nudge gently like a friend would, never lecture. If they're venting, just be there; don't turn feelings into tasks unless asked. An occasional emoji is fine; don't overdo it. Never use em dashes or en dashes in your replies; use commas or full stops instead.
+const SOL_SYSTEM = `You are Aero, a persistent personal intelligence inside Lyfe. You are not a generic chatbot and not an autonomous external agent. You carry the user's permitted context across Today, Tracking, Library, Connect, Gmail metadata, and Profile, then help them reach the intended outcome with less repeated explanation over time. You are warm, direct, and brief. Mostly lowercase, conversational, and precise. Never use corporate assistant-speak. Use the smallest useful clarification when the identity, object, or intended action is ambiguous. Never pretend you used context that is absent from the supplied context pack.
 
 You are also a genuinely knowledgeable friend, like ChatGPT or Gemini but in Aero's voice. Answer anything the user asks: general knowledge, facts, science, history, how-to, coding, explanations, brainstorming, advice, definitions, math, language help, recommendations. Just answer in your normal casual texting voice, still short and human, no lecturing. You can go a little longer when they genuinely need a real explanation, but stay conversational, not an essay. You do not have live internet, so for truly real-time things (today's news, current scores, live prices, weather right now) say plainly that you can't see live data, then share what you do know or how they could check. Never invent fake current events or fake numbers.
 
-You can save things into the app for the user. When the conversation calls for it, end your reply with a fenced json block containing an array of actions:
+You can propose reversible changes inside Lyfe. When the conversation calls for it, end your reply with a fenced json block containing an array of actions. The user will see a preview and must approve it:
 
 \`\`\`json
 [{"type":"add_task","title":"email prof","due":"2026-07-04","priority":"Medium","area":"Work"}]
@@ -2537,13 +2862,15 @@ Action types:
 - add_goal {title, why?, horizon? "YYYY-MM-DD"}
 - add_education {title, kind? "Course"|"Degree"|"Certification"|"Language"|"Book"|"Paper"|"Skill", provider?}
 - add_project {name, area?, description?}
+- memory_upsert {claim, memoryType? "episodic"|"semantic"|"project"|"procedural", scope?}
+- memory_forget {query}
 
-Rules: only include the block when there is genuinely something to save. Mention casually in your text that you've saved it (the app applies the block automatically - the user never sees the json). If the user pastes a conversation or output from another AI (ChatGPT, Claude, etc.), pull out anything worth keeping - tasks, notes, plans - into actions and confirm what you kept. If the user is just chatting or venting, just be a good friend; no actions needed.
+Rules: only include the block when there is genuinely something to change. Say that you are proposing the change, never that it is already saved, sent, completed, or applied. Never propose sending a message, spending money, deleting external data, or another irreversible external action. Inferred preferences are not persistent facts. Only use memory_upsert when the user explicitly asks you to remember or teach something. If the user is just chatting or venting, just be present; no actions needed.
 
 Example of a perfect reply:
 User: "remind me to call the bank tomorrow, also im so tired lately"
 Aero:
-on it, bank call saved for tomorrow 📞
+i can add the bank call for tomorrow. review the action before it changes Lyfe.
 
 and hey, tired for a few days straight is your body asking for something. sleep first tonight?
 
@@ -2553,29 +2880,8 @@ and hey, tired for a few days straight is your body asking for something. sleep 
 (with TOMORROW_DATE as the real date from the snapshot)`;
 
 function contextSnapshot() {
-  const d = state.data;
-  const t = todayStr();
-  const open = d.tasks.filter(x => x.status !== "done").slice(0, 20)
-    .map(x => `- ${x.title}${x.due ? " (due " + x.due + ")" : ""}`).join("\n");
-  const projects = d.projects.filter(p => p.status === "active").slice(0, 8)
-    .map(p => `- ${p.name} (${p.progress || 0}%)`).join("\n");
-  const goals = d.goals.filter(g => g.status !== "achieved").slice(0, 6).map(g => "- " + g.title).join("\n");
-  const edu = d.education.filter(e => e.status === "in-progress").slice(0, 6)
-    .map(e => `- ${e.title} (${e.progress || 0}%)`).join("\n");
-  const s = d.settings;
-  const profile = [
-    s.name ? `name ${s.name}` : "",
-    s.age ? `age ${s.age}` : "",
-    s.country ? `from ${s.country}` : "",
-    (Array.isArray(s.focus) && s.focus.length) ? `here to ${s.focus.join(", ")}` : "",
-    s.commitment ? `commitment: ${s.commitment}` : "",
-  ].filter(Boolean).join("; ");
-  return `Today is ${fmtLongISO(t)} (${t}). About the user: ${profile || "unknown"}. Address them by name and keep their goals and commitment in mind.
-Hours logged this week: ${fmtHours(weekHours())}.
-Open tasks:\n${open || "(none)"}
-Active projects:\n${projects || "(none)"}
-Goals in pursuit:\n${goals || "(none)"}
-Studying:\n${edu || "(none)"}`;
+  const pack = aeroContextPack();
+  return `Today is ${fmtLongISO(todayStr())} (${todayStr()}).\n${AeroCore.summarizeForPrompt(pack)}`;
 }
 
 function parseSolOutput(text) {
@@ -2609,9 +2915,9 @@ async function askClaude() {
       "anthropic-dangerous-direct-browser-access": "true",
     },
     body: JSON.stringify({
-      model: s.model || "claude-opus-4-8",
+      model: s.model || "claude-sonnet-5",
       max_tokens: 1024,
-      system: SOL_SYSTEM + "\n\n--- current snapshot ---\n" + contextSnapshot(),
+      system: SOL_SYSTEM + "\n\n--- current context ---\n" + (s.aeroCloudContext ? contextSnapshot() : "The user has not enabled Lyfe context for cloud models. Use only the current conversation."),
       messages: history,
     }),
   });
@@ -2622,7 +2928,7 @@ async function askClaude() {
   return parseSolOutput(text);
 }
 
-/* ----- EOS: local open-model brain (Qwen via Ollama) ----- */
+/* ----- Aero: local open-model adapter (Ollama) ----- */
 
 async function askOllama() {
   const s = state.data.settings;
@@ -2632,42 +2938,57 @@ async function askOllama() {
   if (!history.length) throw new Error("no user message");
 
   const base = (s.ollamaUrl || "http://localhost:11434").replace(/\/+$/, "");
-  // lyfe-eos is our tuned build (persona baked in via sol/Modelfile) -
-  // it only needs the live snapshot, not the whole persona each turn
   const model = s.ollamaModel || "qwen3:8b";
-  const baked = /lyfe-(?:sol|eos)/i.test(model);
-  const sys = (baked ? "" : SOL_SYSTEM + "\n\n")
-    + "--- current snapshot ---\n" + contextSnapshot() + "\n\n/no_think";
+  const sys = SOL_SYSTEM + "\n\n--- current context ---\n" + contextSnapshot()
+    + "\n\nReturn only a JSON object matching the provided schema with bubbles and actions. Do not use markdown fences. /no_think";
   const res = await fetch(base + "/api/chat", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       model,
       stream: false,
+      format: AeroCore.responseSchema,
       messages: [{ role: "system", content: sys }].concat(history),
-      options: { temperature: 0.7 },
+      options: { temperature: 0.35 },
     }),
   });
   if (!res.ok) throw new Error("ollama " + res.status);
   const data = await res.json();
   let text = (data.message && data.message.content) || "";
   text = text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-  return parseSolOutput(text);
+  try {
+    const parsed = JSON.parse(text);
+    return {
+      bubbles: Array.isArray(parsed.bubbles) ? parsed.bubbles.map(String).filter(Boolean).slice(0, 4) : ["i need one more detail."],
+      actions: Array.isArray(parsed.actions) ? parsed.actions.map(AeroCore.validateAction).filter(Boolean) : [],
+      assumption: String(parsed.assumption || ""),
+    };
+  } catch (error) {
+    return parseSolOutput(text);
+  }
 }
 
-/* ----- EOS: conversation flow ----- */
+/* ----- Aero: conversation flow ----- */
 
 let solChain = Promise.resolve();
 let brainWarned = false;
 let ollamaDown = false;   // session flag: stop hammering a dead endpoint
 
 function handleUserMessage(text) {
-  pushChat("user", text);
+  const context = aeroContextPack();
+  const epistemic = AeroCore.epistemicDecision({ signal: text, context });
+  const started = state.data.settings.aeroLocalLearning !== false
+    ? AeroCore.beginEpisode(state.data.aero, text, context.surface, context.id)
+    : { aero: state.data.aero, episode: { id: null } };
+  state.data.aero = started.aero;
+  pushChat("user", text, { episodeId: started.episode.id, contextId: context.id });
   solChain = solChain.then(async () => {
     const s = state.data.settings;
-    const provider = s.provider || "offline";
+    const provider = s.provider || "auto";
     let reply = null;
-    if (provider === "claude" && (s.apiKey || "").trim()) {
+    if (epistemic.mode === "clarify") {
+      reply = { bubbles: [epistemic.question], actions: [] };
+    } else if (provider === "claude" && (s.apiKey || "").trim()) {
       try {
         showTyping();
         reply = await askClaude();
@@ -2679,7 +3000,7 @@ function handleUserMessage(text) {
         else if (/api 429/.test(msg)) toast("Aero: rate limited, answering locally");
         reply = solLocal(text);
       }
-    } else if (provider === "ollama" && !ollamaDown) {
+    } else if ((provider === "ollama" || provider === "auto") && !ollamaDown) {
       try {
         showTyping();
         reply = await askOllama();
@@ -2691,18 +3012,40 @@ function handleUserMessage(text) {
           brainWarned = true;
           toast("Aero: can't reach Ollama, using the built-in brain");
         }
-        reply = solLocal(text);
+        if (provider === "auto" && (s.apiKey || "").trim()) {
+          try { reply = await askClaude(); }
+          catch (cloudError) { reply = solLocal(text); }
+        } else {
+          reply = solLocal(text);
+        }
       }
     } else {
       reply = solLocal(text);
     }
-    const applied = applyActions(reply.actions);
-    await solSay(reply.bubbles);
-    if (applied && state.view !== "sol") toast("Aero logged " + applied + (applied === 1 ? " thing" : " things"));
+    const actions = (reply.actions || []).map(AeroCore.validateAction).filter(Boolean);
+    let bubbles = Array.isArray(reply.bubbles) && reply.bubbles.length ? reply.bubbles : ["i need one more detail."];
+    if (epistemic.boundary && !bubbles.some(item => /cannot send|can't send|draft-only/i.test(item))) bubbles.unshift(epistemic.note);
+    if (reply.assumption) bubbles.unshift("i'm assuming " + String(reply.assumption).trim() + ". correct me if that's wrong.");
+    if (actions.length) {
+      const summary = AeroCore.actionSummary(actions);
+      bubbles = bubbles.map(item => String(item)
+        .replace(/\b(?:saved|added|logged|ticked off|crossed out|done and dusted)\s*✓?/gi, "prepared")
+        .replace(/\b(?:i've|i have)\s+(?:saved|added|logged)\b/gi, "i've prepared"));
+      if (!bubbles.some(item => /preview|approve|apply|prepared/i.test(item))) bubbles.push(summary + " is ready for your approval.");
+    }
+    await solSay(bubbles, {
+      episodeId: started.episode.id,
+      contextId: context.id,
+      proposal: actions.length ? { actions, status: "pending" } : null,
+    });
+    if (!actions.length) {
+      if (started.episode.id) state.data.aero = AeroCore.finishEpisode(state.data.aero, started.episode.id, "answered", { provider });
+      save();
+    }
   }).catch(() => { hideTyping(); });
 }
 
-/* ----- EOS: proactive messages ----- */
+/* ----- Aero: proactive messages ----- */
 
 const NUDGES = [
   () => {
@@ -2878,6 +3221,60 @@ function eduModal(e) {
   );
 }
 
+function aeroContextModal() {
+  const pack = aeroContextPack();
+  const enabled = state.data.settings.aeroSources || {};
+  const ids = ["today", "tracking", "library", "connect", "gmail", "profile"];
+  openModal(
+    `<div class="modal-head"><div><span class="settings-kicker">AERO CONTEXT</span><h3>What Aero can use</h3></div></div>
+     <p class="aero-modal-lede">This is the bounded context pack for the current turn. Disabled sources are not added to model prompts.</p>
+     <div class="aero-context-list">${ids.map(id => {
+       const source = pack.sources.find(item => item.id === id);
+       return `<article class="${enabled[id] === false ? "is-off" : ""}"><span>${esc(aeroSourceLabel(id))}</span><b>${enabled[id] === false ? "Off" : source ? "Available" : "Enabled, no current data"}</b><p>${esc(source ? source.detail : id === "gmail" ? "Connect Gmail and load Today to make recent metadata available." : "No recent items in this source.")}</p></article>`;
+     }).join("")}</div>
+     <div class="modal-actions"><button type="button" class="btn" data-action="modal-close">Close</button><button type="button" class="btn btn-primary" data-action="settings">Manage permissions</button></div>`,
+    "aero-context-modal"
+  );
+}
+
+function aeroTeachModal() {
+  openModal(
+    `<div class="modal-head"><div><span class="settings-kicker">TEACH AERO</span><h3>Make one thing explicit</h3></div></div>
+     <p class="aero-modal-lede">Explicit memories start active because you chose them. Inferred patterns never get that privilege automatically.</p>
+     <form data-form="aero-teach" class="aero-teach-form">
+       ${fld("Memory", `<textarea name="claim" required maxlength="800" rows="4" placeholder="When I say ‘research this’, compare the contribution, evidence, failure modes and what changes my decision."></textarea>`)}
+       <div class="fld-row">
+         ${fld("Type", selectHtml("memoryType", [["procedural", "Procedure: how I do something"], ["semantic", "Preference or stable fact"], ["project", "Specific to a project"], ["episodic", "A past decision or event"]], "procedural"))}
+         ${fld("Scope", `<input type="text" name="scope" maxlength="100" value="global" placeholder="global or project name">`)}
+       </div>
+       ${modalActions("Teach Aero")}
+     </form>`,
+    "aero-context-modal"
+  );
+}
+
+function exportAeroTrainingExamples() {
+  const s = state.data.settings;
+  if (!s.aeroTrainingConsent) {
+    toast("Enable consented training export in Settings first");
+    return;
+  }
+  const examples = AeroCore.trainingExamples(state.data.aero, state.data.chat);
+  if (!examples.length) {
+    toast("Rate some successful Aero outcomes first");
+    return;
+  }
+  const blob = new Blob([examples.map(item => JSON.stringify(item)).join("\n") + "\n"], { type: "application/jsonl" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "aero-consented-training-" + todayStr() + ".jsonl";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(link.href), 3000);
+  toast(examples.length + " consented example" + (examples.length === 1 ? "" : "s") + " exported");
+}
+
 function accountRowHtml() {
   if (CLOUD_MODE && window.LyfeCloud && LyfeCloud.user) {
     const u = LyfeCloud.user;
@@ -2897,50 +3294,67 @@ function accountRowHtml() {
 
 function settingsModal() {
   const s = state.data.settings;
+  const sources = s.aeroSources || {};
+  const proof = AeroCore.metrics(state.data.aero);
+  const falsePromotion = proof.falsePromotionRate == null ? "&mdash;" : Math.round(proof.falsePromotionRate * 100) + "%";
+  const sourceToggle = (id, title, detail) => `<label class="aero-source-toggle"><input type="checkbox" name="source_${id}" ${sources[id] === false ? "" : "checked"}><span><b>${esc(title)}</b><small>${esc(detail)}</small></span></label>`;
   openModal(
-    `<div class="modal-head settings-head"><div><span class="settings-kicker">LYFE</span><h3>Settings</h3></div></div>
+    `<div class="settings-hero"><div><span class="settings-kicker">LYFE · AERO CONTROL CENTER</span><h3>Settings</h3><p>Your identity, data boundaries, memory and model choices in one place.</p></div><img src="../assets/aero_logo.svg" alt=""></div>
      <form data-form="settings" class="settings-form">
        <section class="settings-section settings-account">
-         <div class="settings-section-copy"><span>01</span><div><h4>Account</h4><p>Choose how Lyfe knows you and where your information is kept.</p></div></div>
+         <div class="settings-section-copy"><span>01</span><div><h4>Account & identity</h4><p>Choose how Lyfe knows you and where your private workspace is kept.</p></div></div>
          <div>${accountRowHtml()}<a class="settings-inline-link" href="connect.html#profile">Open Connect profile →</a></div>
        </section>
        <section class="settings-section">
-         <div class="settings-section-copy"><span>02</span><div><h4>Appearance & comfort</h4><p>Keep the interface comfortable without changing your work.</p></div></div>
-         <div>
-           <div class="fld-row">
-             ${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How Aero greets you">`)}
-             ${fld("Appearance", selectHtml("theme", [["auto", "Follow the time"], ["light", "Crystal light"], ["dark", "Orbit dark"]], s.theme === "day" ? "light" : s.theme === "night" ? "dark" : (["auto", "light", "dark"].includes(s.theme) ? s.theme : "auto")))}
-             ${fld("Interface sounds", selectHtml("sound", [["on", "On"], ["off", "Off"]], s.sound === false ? "off" : "on"))}
-           </div>
-           <div class="fld-row">
-             ${fld("Age (optional)", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="Only if useful to you">`)}
-             ${fld("Country (optional)", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="Used for your profile">`)}
-           </div>
+         <div class="settings-section-copy"><span>02</span><div><h4>Aero context</h4><p>Only enabled sources enter Aero's bounded context pack.</p></div></div>
+         <div class="aero-source-controls">
+           ${sourceToggle("today", "Today", "Due items and the immediate plan")}
+           ${sourceToggle("tracking", "Tracking", "Tasks, projects, goals and work logs")}
+           ${sourceToggle("library", "Library", "Notes, docs and saved items")}
+           ${sourceToggle("connect", "Connect", "People, threads, opportunities and workspace activity")}
+           ${sourceToggle("gmail", "Gmail", "Recent sender, subject and snippet metadata only")}
+           ${sourceToggle("profile", "Profile", "The identity and goals you chose to add")}
+           <p class="fld-note">Source controls affect Aero. They do not delete or move the underlying Lyfe data.</p>
+         </div>
+       </section>
+       <section class="settings-section">
+         <div class="settings-section-copy"><span>03</span><div><h4>Memory & adaptation</h4><p>Aero learns selectively. Explicit memories are visible; inferred patterns remain candidates until supported.</p></div></div>
+         <div class="settings-stack">
+           <div class="aero-eval-strip"><div><b>${proof.scored}</b><span>rated outcomes</span></div><div><b>${proof.compressionSamples}</b><span>matched repeats</span></div><div><b>${falsePromotion}</b><span>false promotion</span></div><div><b>${proof.proofReady ? "Ready" : "Collecting"}</b><span>v0 evidence gate</span></div></div>
+           <label class="settings-check"><input type="checkbox" name="aeroLocalLearning" ${s.aeroLocalLearning !== false ? "checked" : ""}><span><b>Local adaptation telemetry</b><small>Measure first-pass success and words required. Stored with your Lyfe data.</small></span></label>
+           <label class="settings-check"><input type="checkbox" name="aeroTrainingConsent" ${s.aeroTrainingConsent ? "checked" : ""}><span><b>Allow manual training-set export</b><small>Nothing uploads automatically. Only outcomes you rated successful can enter the export.</small></span></label>
+           <div class="settings-data-actions"><button type="button" class="btn" data-action="aero-teach">Teach Aero</button><button type="button" class="btn" data-action="aero-training-export">Export consented examples</button><button type="button" class="btn btn-danger" data-action="aero-reset">Reset Aero memory</button></div>
          </div>
        </section>
        <section class="settings-section settings-gmail">
-         <div class="settings-section-copy"><span>03</span><div><h4>Gmail</h4><p>Show recent mail on Today and save selected messages to your Library.</p></div></div>
-         <div class="settings-integration-row"><span class="gmail-g">G</span><div><b>${window.LyfeCloud && LyfeCloud.gmailToken ? "Gmail connected" : "Gmail not connected"}</b><small>Read-only access. Lyfe does not store your Google access token.</small></div><button type="button" class="btn" data-action="gmail-connect">${window.LyfeCloud && LyfeCloud.gmailToken ? "Reconnect" : "Connect Gmail"}</button></div>
+         <div class="settings-section-copy"><span>04</span><div><h4>Connected inputs</h4><p>Connections remain separate from Aero's permission to use them.</p></div></div>
+         <div class="settings-integration-row"><span class="gmail-g">G</span><div><b>${window.LyfeCloud && LyfeCloud.gmailToken ? "Gmail connected" : "Gmail not connected"}</b><small>Read-only metadata and snippets. Nothing is saved to Library unless you choose Save.</small></div><button type="button" class="btn" data-action="gmail-connect">${window.LyfeCloud && LyfeCloud.gmailToken ? "Reconnect" : "Connect Gmail"}</button></div>
        </section>
-       <section class="settings-section settings-data">
-         <div class="settings-section-copy"><span>04</span><div><h4>Data & backups</h4><p>Download a readable backup or restore one you already made.</p></div></div>
-         <div><p class="settings-data-note">${CLOUD_MODE ? "Your account is synced and also cached on this device for offline use." : "You are using Lyfe on this device. A backup is the easiest way to move or protect it."}</p><div class="settings-data-actions"><button type="button" class="btn" data-action="export">Download backup</button><button type="button" class="btn" data-action="import">Restore backup</button></div></div>
-       </section>
-       <details class="settings-advanced">
-         <summary><span>05</span><div><h4>Aero intelligence</h4><p>Optional controls for local or connected language models.</p></div></summary>
-         <div class="settings-advanced-body">
-           ${fld("Aero brain", selectHtml("provider", [["ollama", "Qwen through Ollama (local and private)"], ["claude", "Anthropic API (requires your key)"], ["offline", "Built-in offline tools only"]], s.provider || "ollama"))}
+       <section class="settings-section">
+         <div class="settings-section-copy"><span>05</span><div><h4>Model routing</h4><p>Aero is the persistent layer. Foundation models are replaceable engines.</p></div></div>
+         <div class="settings-stack">
+           ${fld("Routing mode", selectHtml("provider", [["auto", "Local first, then allowed fallback"], ["ollama", "Ollama only (local and private)"], ["claude", "Anthropic only (requires key and permission)"], ["offline", "Built-in deterministic tools only"]], s.provider || "auto"))}
            <div class="fld-row">
              ${fld("Ollama address", `<input type="text" name="ollamaUrl" value="${esc(s.ollamaUrl || "http://localhost:11434")}" placeholder="http://localhost:11434">`)}
              ${fld("Ollama model", `<input type="text" name="ollamaModel" value="${esc(s.ollamaModel || "qwen3:8b")}" placeholder="qwen3:8b">`)}
            </div>
            ${fld("Anthropic API key", `<input type="password" name="apiKey" value="${esc(s.apiKey || "")}" placeholder="Only needed for Anthropic" autocomplete="off">`)}
-           ${fld("Anthropic model", selectHtml("model", MODELS, s.model || "claude-opus-4-8"))}
-           <p class="fld-note">These advanced values stay in this browser. Your API key is never included in cloud sync or a public profile.</p>
+           ${fld("Anthropic model", selectHtml("model", MODELS, s.model || "claude-sonnet-5"))}
+           <label class="settings-check settings-cloud-check"><input type="checkbox" name="aeroCloudContext" ${s.aeroCloudContext ? "checked" : ""}><span><b>Allow enabled Lyfe context in cloud-model prompts</b><small>Off by default. Without it, Anthropic receives the current conversation only.</small></span></label>
+           <p class="fld-note">Aero always keeps its typed memory and evaluation layer in Lyfe. Selecting a model does not train that provider on your workspace through this app.</p>
          </div>
-       </details>
+       </section>
+       <section class="settings-section">
+         <div class="settings-section-copy"><span>06</span><div><h4>Personal details & comfort</h4><p>Profile basics and display choices.</p></div></div>
+         <div><div class="fld-row">${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How Aero greets you">`)}${fld("Appearance", selectHtml("theme", [["auto", "Follow the time"], ["light", "Crystal light"], ["dark", "Orbit dark"]], s.theme === "day" ? "light" : s.theme === "night" ? "dark" : (["auto", "light", "dark"].includes(s.theme) ? s.theme : "auto")))}${fld("Interface sounds", selectHtml("sound", [["on", "On"], ["off", "Off"]], s.sound === false ? "off" : "on"))}</div><div class="fld-row">${fld("Age (optional)", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="Only if useful to you">`)}${fld("Country (optional)", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="Used for your profile">`)}</div></div>
+       </section>
+       <section class="settings-section settings-data">
+         <div class="settings-section-copy"><span>07</span><div><h4>Data & backups</h4><p>Download a readable backup or restore one you already made.</p></div></div>
+         <div><p class="settings-data-note">${CLOUD_MODE ? "Your account is synced and also cached on this device for offline use." : "You are using Lyfe on this device. A backup is the easiest way to move or protect it."}</p><div class="settings-data-actions"><button type="button" class="btn" data-action="export">Download backup</button><button type="button" class="btn" data-action="import">Restore backup</button></div></div>
+       </section>
        ${modalActions("Save settings")}
-     </form>`
+     </form>`,
+    "settings-modal"
   );
 }
 
@@ -3001,6 +3415,21 @@ function handleImportFile(input) {
 }
 
 /* ---------------- render ---------------- */
+
+function syncScrollProgress() {
+  const root = document.documentElement;
+  const max = Math.max(0, root.scrollHeight - window.innerHeight);
+  root.style.setProperty("--scroll-progress", max ? String(Math.min(1, Math.max(0, window.scrollY / max))) : "0");
+}
+
+let scrollProgressFrame = 0;
+window.addEventListener("scroll", () => {
+  if (scrollProgressFrame) return;
+  scrollProgressFrame = requestAnimationFrame(() => {
+    scrollProgressFrame = 0;
+    syncScrollProgress();
+  });
+}, { passive: true });
 
 /* the app's one logo: a half sun on the horizon whose rays ARE the nav -
    one ray per section, the lit ray sweeps as you move through the app */
@@ -3325,7 +3754,8 @@ function render() {
   // entrance + reveal animations only replay when the view actually changes
   const sameView = renderedView === state.view;
   renderedView = state.view;
-  main.innerHTML = `<div class="view-anim${sameView ? " same-view" : ""}">${html}</div>`;
+  const aeroEntry = state.view === "sol" ? "" : `<button class="aero-global" type="button" data-action="nav" data-view="sol" aria-label="Ask Aero using ${esc(aeroSourceLabel(topSectionOf(state.view)))} context"><img src="../assets/aero_logo.svg" alt=""><span>Ask Aero</span><small>${esc(aeroSourceLabel(topSectionOf(state.view)))}</small></button>`;
+  main.innerHTML = `<div class="view-anim${sameView ? " same-view" : ""}">${html}</div>${aeroEntry}`;
 
   autoDecorate(main, sameView);
   initReveal(main);
@@ -3348,6 +3778,10 @@ function render() {
 
 function setView(v) {
   v = resolvedViewId(v);
+  if (v === "sol" && state.view !== "sol") {
+    state.aeroSourceView = topSectionOf(state.view);
+    state.aeroObject = aeroActiveObject();
+  }
   if (TRACKING_VIEWS.includes(v)) state.trackingView = v;
   if (LIBRARY_VIEWS.includes(v)) state.libraryView = v;
   if (PROFILE_VIEWS.includes(v)) state.profileView = v;
@@ -3355,6 +3789,23 @@ function setView(v) {
   if (v === "sol") state.unread = 0;
   try { location.hash = "/" + (v === "sol" ? "aero" : v); } catch (e) { /* ignore */ }
   render();
+  requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+}
+
+function openAeroFrom(source, activeObject, prompt) {
+  const allowed = ["today", "tracking", "library", "connect", "gmail", "profile"];
+  state.aeroSourceView = allowed.includes(source) ? source : topSectionOf(state.view);
+  state.aeroObject = activeObject || null;
+  state.view = "sol";
+  state.unread = 0;
+  try { location.hash = "/aero"; } catch (e) { /* ignore */ }
+  render();
+  const input = document.getElementById("sol-input");
+  if (input && prompt) {
+    input.value = prompt;
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
   requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
 }
 
@@ -3663,7 +4114,25 @@ document.addEventListener("click", (e) => {
       break;
     }
 
-    /* sol */
+    /* Aero */
+    case "aero-from-source": {
+      const source = ["today", "tracking", "library", "connect", "gmail", "profile"].includes(el.dataset.source)
+        ? el.dataset.source : topSectionOf(state.view);
+      let activeObject = null;
+      let prompt = String(el.dataset.prompt || "").trim();
+      if (source === "gmail" && id) {
+        const message = gmailMessages.find(item => item.id === id);
+        if (message) {
+          activeObject = {
+            type: "email", id: message.id, title: message.subject || "(no subject)",
+            detail: message.sender + " · " + message.snippet,
+          };
+          if (!prompt) prompt = "what matters in this email, and what should i do next?";
+        }
+      }
+      openAeroFrom(source, activeObject, prompt);
+      break;
+    }
     case "sol-chip": {
       const inp = document.getElementById("sol-input");
       const text = el.dataset.t || "";
@@ -3681,6 +4150,46 @@ document.addEventListener("click", (e) => {
         d.chat = [];
         save(); render();
       }, "Clear");
+      break;
+    case "aero-apply": {
+      const message = d.chat.find(item => item.id === id);
+      if (!message || !message.proposal || message.proposal.status !== "pending") break;
+      const applied = applyActions(message.proposal.actions);
+      message.proposal.status = applied ? "applied" : "cancelled";
+      if (message.episodeId) d.aero = AeroCore.observeOutcome(d.aero, message.episodeId, applied ? "accepted" : "rejected", { actionCount: applied, actionTypes: message.proposal.actions.map(action => action.type) });
+      save(); render();
+      toast(applied ? applied + " approved change" + (applied === 1 ? " applied" : "s applied") : "No valid change to apply");
+      break;
+    }
+    case "aero-cancel": {
+      const message = d.chat.find(item => item.id === id);
+      if (!message || !message.proposal || message.proposal.status !== "pending") break;
+      message.proposal.status = "cancelled";
+      if (message.episodeId) d.aero = AeroCore.observeOutcome(d.aero, message.episodeId, "rejected", { actionCount: 0, actionTypes: message.proposal.actions.map(action => action.type) });
+      save(); render(); toast("No changes made");
+      break;
+    }
+    case "aero-feedback": {
+      const outcome = el.dataset.outcome === "helpful" ? "helpful" : "missed";
+      d.aero = AeroCore.observeOutcome(d.aero, id, outcome, { ratedAt: Date.now() });
+      d.chat.forEach(item => { if (item.episodeId === id) item.feedback = outcome; });
+      save(); render(); toast(outcome === "helpful" ? "Aero learned from that success" : "Marked as a miss, no preference was learned");
+      break;
+    }
+    case "aero-context": aeroContextModal(); break;
+    case "aero-teach": aeroTeachModal(); break;
+    case "aero-training-export": exportAeroTrainingExamples(); break;
+    case "aero-forget":
+      confirmDialog("Forget this Aero memory? The underlying Lyfe item, if any, is not deleted.", () => {
+        d.aero = AeroCore.forgetMemory(d.aero, id);
+        save(); render(); toast("Aero memory forgotten");
+      }, "Forget");
+      break;
+    case "aero-reset":
+      confirmDialog("Reset Aero's memories and adaptation history? Your tasks, notes, Connect data and chat stay intact.", () => {
+        d.aero = AeroCore.freshState();
+        save(); closeModal(); render(); toast("Aero memory reset");
+      }, "Reset Aero");
       break;
 
     /* data & settings */
@@ -3804,6 +4313,22 @@ document.addEventListener("submit", (e) => {
       if (!text) return;
       if (inp) { inp.value = ""; inp.focus(); }
       handleUserMessage(text);
+      break;
+    }
+
+    case "aero-teach": {
+      const claim = val("claim");
+      if (!claim) return;
+      d.aero = AeroCore.upsertMemory(d.aero, {
+        claim,
+        type: ["episodic", "semantic", "project", "procedural"].includes(val("memoryType")) ? val("memoryType") : "semantic",
+        scope: val("scope") || "global",
+        sourceMode: "explicit",
+        status: "active",
+        confidence: 1,
+        evidence: ["Taught directly in Aero controls"],
+      });
+      save(); closeModal(); render(); toast("Aero learned one explicit memory");
       break;
     }
 
@@ -4002,11 +4527,22 @@ document.addEventListener("submit", (e) => {
       d.settings.country = val("country");
       d.settings.theme = ["auto", "light", "dark"].includes(val("theme")) ? val("theme") : "auto";
       d.settings.sound = val("sound") !== "off";
-      d.settings.provider = ["ollama", "claude", "offline"].includes(val("provider")) ? val("provider") : "ollama";
+      d.settings.aeroSources = {
+        today: fd.has("source_today"),
+        tracking: fd.has("source_tracking"),
+        library: fd.has("source_library"),
+        connect: fd.has("source_connect"),
+        gmail: fd.has("source_gmail"),
+        profile: fd.has("source_profile"),
+      };
+      d.settings.aeroLocalLearning = fd.has("aeroLocalLearning");
+      d.settings.aeroTrainingConsent = fd.has("aeroTrainingConsent");
+      d.settings.aeroCloudContext = fd.has("aeroCloudContext");
+      d.settings.provider = ["auto", "ollama", "claude", "offline"].includes(val("provider")) ? val("provider") : "auto";
       d.settings.ollamaUrl = val("ollamaUrl") || "http://localhost:11434";
       d.settings.ollamaModel = val("ollamaModel") || "qwen3:8b";
       d.settings.apiKey = val("apiKey");
-      d.settings.model = val("model") || "claude-opus-4-8";
+      d.settings.model = val("model") || "claude-sonnet-5";
       brainWarned = false;
       ollamaDown = false;   // give the newly-chosen brain a fresh try
       applyTheme();
@@ -4531,6 +5067,9 @@ async function resolveAuthAndBoot() {
 
 (function init() {
   applyTheme();
+  const launchParams = new URLSearchParams(location.search);
+  const aeroFrom = launchParams.get("aeroFrom");
+  if (["today", "tracking", "library", "connect", "gmail", "profile"].includes(aeroFrom)) state.aeroSourceView = aeroFrom;
   const h = location.hash.replace(/^#\//, "");
   if (ROUTE_VIEWS.includes(h)) {
     state.view = resolvedViewId(h);

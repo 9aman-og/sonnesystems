@@ -1,10 +1,13 @@
 # Lyfe - your life, lightly kept
 
 One calm place for everything: what you are tracking, what you want to keep,
-what you are learning, and **EOS**, a companion you can just talk to.
+what you are learning, and **Aero**, the personal intelligence that works across it.
 
-No frameworks, no build step, no dependencies. Three files that will still
-open in twenty years.
+No frameworks, no build step, no runtime package dependencies. The small static
+files are intended to remain readable and portable.
+
+The clean-room product architecture and evaluation gate are documented in
+[`AERO.md`](AERO.md).
 
 ## Opening it
 
@@ -43,7 +46,7 @@ Files added for this: `manifest.webmanifest`, `sw.js`, `icon-192/512*.png`.
 | Section  | What it holds |
 |----------|---------------|
 | Today    | What needs you now, Pins / Projects / Pending shortcuts, Connect activity, and a small Wander discovery break |
-| EOS      | Your adaptive blob companion. Talk naturally and EOS files things for you |
+| Aero     | Permissioned context, typed memory, approved actions, and outcome feedback across Lyfe |
 | Connect  | The separate Lyfe Connect social and collaboration workspace |
 | Tracking | Tasks, projects, goals, and a dated work log, organized as tabs |
 | Library  | Searchable notes, pinned thoughts, and longer docs |
@@ -65,9 +68,24 @@ and Connect, but tasks, notes, learning, and private workspace data never move.
 A workspace page can offer its approved title and note to Lyfe as a task, but
 Lyfe asks for confirmation before copying anything.
 
-## EOS, the companion
+## Aero, the personal intelligence layer
 
-EOS understands plain text and logs it for you:
+Aero is not a separate research system or a generic autonomous agent. It is the
+consumer intelligence layer inside Lyfe. EOS and EOS-F1 remain separate Sonne
+Systems research work; no EOS or unpublished research code is used here.
+
+Aero's current vertical slice includes:
+
+- a bounded context pack spanning Today, Tracking, Library, Connect, Gmail
+  metadata, and Profile, with a separate permission for every source;
+- episodic, semantic, project, and procedural memory;
+- visible memory states: candidate, provisional, active, and disputed;
+- an epistemic governor that answers, previews, or asks one focused question;
+- reversible in-Lyfe action previews that require approval;
+- local outcome telemetry for first-pass intent and instruction length;
+- manual, consent-gated JSONL export of examples explicitly rated helpful.
+
+The built-in deterministic adapter understands common plain-text workflows:
 
 - `remind me to email prof tomorrow` → task, due tomorrow
 - `log 2h on spike encoder` → work log entry
@@ -75,29 +93,34 @@ EOS understands plain text and logs it for you:
 - `done email prof` → ticks the task off
 - `goal: publish SNN paper` / `doc: research plan` / `learning: Spanish`
 - `how am i doing` / `what's due` → a status rundown
-- or just say `hi` - EOS says hi back, greets you whenever you open the app
+- or just say `hi` - Aero says hi back, greets you whenever you open the app
   after a break, and checks in on its own while the app is open
 - vent to it ("i'm so tired") and it responds like a friend, not a form
 
-EOS never uses em dashes. Three brains, picked in **Settings**:
+Aero routes between replaceable model adapters in **Settings**:
 
-1. **Qwen via Ollama (default, local, free).** Install [ollama.com](https://ollama.com),
-   run `ollama pull qwen3.5:9b` (or use `qwen3.5:27b`/`35b` on stronger hardware), and EOS
-   becomes a real open-source LLM running on your own machine. Private, no keys.
-   If you open Lyfe as a `file://` page rather than localhost, start Ollama with
-   `OLLAMA_ORIGINS=*` so the browser may call it. EOS is prompt-tuned for Lyfe
-   (persona + action protocol); true LoRA fine-tuning would need a training run.
+1. **Ollama.** A configurable local open model receives the permitted context
+   pack and a strict structured-action schema.
 2. **Claude API.** Paste an Anthropic key; strongest understanding. The key is
-   stored only in this browser and sent only to `api.anthropic.com`.
-3. **Offline parser.** No model at all; the built-in commands above still work.
+   stored only in this browser and context is withheld unless separately enabled.
+3. **Offline deterministic tools.** No model at all; the built-in commands above
+   still work.
 
-Whichever brain is picked, if it is unreachable the built-in parser answers,
-so EOS never goes silent.
+If a selected model is unreachable, Aero falls back to the deterministic tools.
+The app does not claim that exporting examples trains a foundation model. Run a
+separate reviewed training experiment only after the evaluation set and consented
+dataset are large enough to justify one.
+
+Run the clean-room Aero checks with:
+
+```powershell
+node aero-core.test.js
+```
 
 ## Your data
 
 Guest data is stored in the browser's `localStorage` under the key `lyfe.v1`.
-It stays on that device except for EOS's optional API calls. If the optional
+It stays on that device except for Aero's optional, user-configured model calls. If the optional
 Supabase integration is configured, signing in enables private cross-device
 sync; the Anthropic API key is stripped before any sync write.
 
@@ -128,12 +151,14 @@ Dark in Settings to pin one. Cards lift softly under the cursor with an
 iridescent light that follows it, and a thin holo rail tracks your scroll;
 set your OS to reduced motion to turn all animation off.
 
-EOS appears as a small liquid blob that changes with Crystal and Orbit, with a
-gentle float, blink, and sleepy eyes after 11pm. The home screen uses Pins,
-Projects, and Pending shortcuts in place of the old decorative ticker.
+Aero uses the same product logo and identity across Crystal, Orbit, Connect, the
+sign-in screen, settings, and the Sonne Systems product pages. The home screen
+uses Pins, Projects, and Pending shortcuts in place of the old decorative ticker.
 
 ## Files
 
 - `index.html` - shell + sun logo
 - `styles.css` - the look (Orbit dark + Crystal light identities, hover lift, chat)
-- `app.js` - all logic; plain JavaScript, no dependencies
+- `app.js` - Lyfe UI and product workflows; plain JavaScript, no dependencies
+- `aero-core.js` - clean-room context, memory, governance, and evaluation logic
+- `aero-core.test.js` - deterministic Aero behavior checks
