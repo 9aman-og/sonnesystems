@@ -3,9 +3,12 @@
  *
  * The deployment requires Supabase JWT verification. It accepts only the
  * current prompt, never the Lyfe context pack, Gmail, memory, imported files,
- * or conversation history. GROQ_API_KEY and AERO_ALLOWED_EMAILS are hosted
- * Edge Function secrets and must never be added to the browser bundle.
+ * or conversation history. Provider credentials and the owner allowlist live
+ * in encrypted Supabase Vault (with env vars supported for local development)
+ * and must never be added to the browser bundle.
  */
+
+import postgres from "npm:postgres@3.4.3";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const DEFAULT_MODEL = "openai/gpt-oss-120b";
@@ -13,6 +16,7 @@ const MAX_BODY_BYTES = 16_000;
 const MAX_PROMPT_CHARS = 4_000;
 const WINDOW_MS = 60_000;
 const REQUESTS_PER_WINDOW = 20;
+const PROVIDER_CONFIG_TTL_MS = 5 * 60_000;
 const ALLOWED_ORIGINS = new Set([
   "https://sonnesystems.com",
   "http://127.0.0.1:4173",
@@ -79,6 +83,15 @@ You may propose reversible Lyfe changes using the response actions array. The lo
 Use memory_upsert only when the user explicitly asks Aero to remember something. If information is missing and materially changes the answer, ask one focused question. Keep bubbles under four short paragraphs.`;
 
 const buckets = new Map<string, number[]>();
+const databaseUrl = String(Deno.env.get("SUPABASE_DB_URL") || "");
+const vaultSql = databaseUrl
+  ? postgres(databaseUrl, { prepare: false, max: 1, idle_timeout: 15, connect_timeout: 5 })
+  : null;
+let providerConfigCache: {
+  groqKey: string;
+  allowedUserIds: Set<string>;
+  loadedAt: number;
+} | null = null;
 
 function headers(origin: string | null) {
   const allowed = origin && ALLOWED_ORIGINS.has(origin) ? origin : "https://sonnesystems.com";
@@ -114,12 +127,33 @@ function claimsFromAuthorization(value: string | null) {
   }
 }
 
-function allowedEmail(email: unknown) {
-  const allowlist = String(Deno.env.get("AERO_ALLOWED_EMAILS") || "")
-    .split(",")
-    .map((item) => item.trim().toLowerCase())
-    .filter(Boolean);
-  return allowlist.includes(String(email || "").trim().toLowerCase());
+async function providerConfig() {
+  if (providerConfigCache && Date.now() - providerConfigCache.loadedAt < PROVIDER_CONFIG_TTL_MS) {
+    return providerConfigCache;
+  }
+
+  let groqKey = String(Deno.env.get("GROQ_API_KEY") || "").trim();
+  let allowed = String(Deno.env.get("AERO_ALLOWED_USER_IDS") || "").trim();
+
+  if ((!groqKey || !allowed) && vaultSql) {
+    const rows = await vaultSql<Array<{ name: string; decrypted_secret: string }>>`
+      select name, decrypted_secret
+      from vault.decrypted_secrets
+      where name in ('aero_groq_api_key', 'aero_allowed_user_ids')
+    `;
+    for (const row of rows) {
+      if (row.name === "aero_groq_api_key") groqKey = String(row.decrypted_secret || "").trim();
+      if (row.name === "aero_allowed_user_ids") allowed = String(row.decrypted_secret || "").trim();
+    }
+  }
+
+  const value = {
+    groqKey,
+    allowedUserIds: new Set(allowed.split(",").map((item) => item.trim()).filter(Boolean)),
+    loadedAt: Date.now(),
+  };
+  providerConfigCache = value;
+  return value;
 }
 
 function withinRateLimit(subject: string) {
@@ -164,8 +198,17 @@ Deno.serve(async (req: Request) => {
   if (origin && !ALLOWED_ORIGINS.has(origin)) return json(origin, 403, { error: "origin_not_allowed" });
 
   const claims = claimsFromAuthorization(req.headers.get("authorization"));
-  if (!claims || !allowedEmail(claims.email)) return json(origin, 403, { error: "not_allowed" });
-  if (!withinRateLimit(String(claims.sub))) return json(origin, 429, { error: "rate_limited" });
+  if (!claims) return json(origin, 403, { error: "not_allowed" });
+  const subject = String(claims.sub);
+  if (!withinRateLimit(subject)) return json(origin, 429, { error: "rate_limited" });
+
+  let config: Awaited<ReturnType<typeof providerConfig>>;
+  try {
+    config = await providerConfig();
+  } catch (_) {
+    return json(origin, 503, { error: "provider_not_configured" });
+  }
+  if (!config.allowedUserIds.has(subject)) return json(origin, 403, { error: "not_allowed" });
 
   const declaredSize = Number(req.headers.get("content-length") || 0);
   if (declaredSize > MAX_BODY_BYTES) return json(origin, 413, { error: "request_too_large" });
@@ -185,7 +228,7 @@ Deno.serve(async (req: Request) => {
   const kind = text(payload.kind, 40) || "general";
   if (!prompt) return json(origin, 400, { error: "prompt_required" });
 
-  const groqKey = String(Deno.env.get("GROQ_API_KEY") || "");
+  const groqKey = config.groqKey;
   if (!groqKey) return json(origin, 503, { error: "provider_not_configured" });
 
   const model = String(Deno.env.get("GROQ_MODEL") || DEFAULT_MODEL);

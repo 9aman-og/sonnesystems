@@ -92,16 +92,19 @@ email resend limits in place to prevent abuse.
 
 ## Aero Groq gateway
 
-The `aero-groq` Edge Function is the only place that may hold a Groq API key.
-It requires a valid Supabase user JWT and an email listed in the private
-`AERO_ALLOWED_EMAILS` function secret. The public Lyfe bundle contains only the
-Supabase publishable key.
+Supabase Vault is the only place that may hold the production Groq API key.
+It requires a valid Supabase user JWT whose immutable user ID is listed in the private
+`aero_allowed_user_ids` Vault secret. The Edge Function reads both values over its
+private database connection. The public Lyfe bundle contains only the Supabase
+publishable key.
 
-Required hosted function secrets:
+Required encrypted Vault secrets:
 
-- `GROQ_API_KEY`: a Groq Console API key
-- `GROQ_MODEL`: normally `openai/gpt-oss-120b`
-- `AERO_ALLOWED_EMAILS`: comma-separated approved Lyfe accounts
+- `aero_groq_api_key`: a Groq Console API key
+- `aero_allowed_user_ids`: comma-separated immutable Supabase Auth user IDs
+
+`GROQ_API_KEY` and `AERO_ALLOWED_USER_IDS` environment variables remain supported
+for local development only. The hosted model defaults to `openai/gpt-oss-120b`.
 
 Keep Groq on its Free plan without a payment method and keep the Supabase
 organization on its Free plan. Do not enable a paid developer tier, prepaid

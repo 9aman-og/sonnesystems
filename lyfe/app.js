@@ -564,7 +564,7 @@ function storedRev() {
   catch (e) { return -1; }
 }
 
-function save(force) {
+function save(force, immediateCloud) {
   try {
     const stored = storedRev();
     if (!force && stored > (state.data.rev || 0)) {
@@ -576,8 +576,13 @@ function save(force) {
     state.data.savedAt = Date.now();
     localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data));
     padDirty = false;
-    // when signed in, mirror the write up to the cloud (debounced, fails soft)
-    if (CLOUD_MODE && window.LyfeCloud) LyfeCloud.pushDebounced(state.data, state.data.rev);
+    // Most edits are safely debounced. Action decisions and learning signals
+    // flush immediately so a fast reload cannot resurrect a dismissed preview
+    // or lose feedback that should personalize Aero.
+    if (CLOUD_MODE && window.LyfeCloud) {
+      if (immediateCloud) LyfeCloud.push(state.data, state.data.rev).catch(function () { /* local cache remains authoritative offline */ });
+      else LyfeCloud.pushDebounced(state.data, state.data.rev);
+    }
     return true;
   } catch (e) {
     toast("Could not save - storage may be full");
@@ -4228,7 +4233,7 @@ document.addEventListener("click", (e) => {
       const applied = applyActions(message.proposal.actions);
       message.proposal.status = applied ? "applied" : "cancelled";
       if (message.episodeId) d.aero = AeroCore.observeOutcome(d.aero, message.episodeId, applied ? "accepted" : "rejected", { actionCount: applied, actionTypes: message.proposal.actions.map(action => action.type) });
-      save(); render();
+      save(false, true); render();
       toast(applied ? applied + " approved change" + (applied === 1 ? " applied" : "s applied") : "No valid change to apply");
       break;
     }
@@ -4237,14 +4242,14 @@ document.addEventListener("click", (e) => {
       if (!message || !message.proposal || message.proposal.status !== "pending") break;
       message.proposal.status = "cancelled";
       if (message.episodeId) d.aero = AeroCore.observeOutcome(d.aero, message.episodeId, "rejected", { actionCount: 0, actionTypes: message.proposal.actions.map(action => action.type) });
-      save(); render(); toast("No changes made");
+      save(false, true); render(); toast("No changes made");
       break;
     }
     case "aero-feedback": {
       const outcome = el.dataset.outcome === "helpful" ? "helpful" : "missed";
       d.aero = AeroCore.observeOutcome(d.aero, id, outcome, { ratedAt: Date.now() });
       d.chat.forEach(item => { if (item.episodeId === id) item.feedback = outcome; });
-      save(); render(); toast(outcome === "helpful" ? "Aero learned from that success" : "Marked as a miss, no preference was learned");
+      save(false, true); render(); toast(outcome === "helpful" ? "Aero learned from that success" : "Marked as a miss, no preference was learned");
       break;
     }
     case "aero-context": aeroContextModal(); break;
