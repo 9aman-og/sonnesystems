@@ -265,6 +265,7 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
 .venture-card:hover::before { transform: scale(1.16) translate(-3%, 4%); }
 .venture-lyfe { background: linear-gradient(145deg, #0b1741, #354dbc 68%, #7b83f8); }
 .venture-alt { background: linear-gradient(145deg, #071a4f, #2542b2 62%, #765cf2); }
+.venture-aero { background: radial-gradient(circle at 77% 14%, rgba(255,255,225,.74), transparent 18%), radial-gradient(ellipse at 22% 100%, rgba(132,226,70,.68), transparent 36%), linear-gradient(145deg, #56d7f5, #0aa9df 55%, #0874c4); }
 .venture-eos { background: radial-gradient(circle at 78% 16%, rgba(202,255,154,.22), transparent 30%), linear-gradient(145deg, #071a1e, #0d3c42 58%, #315b55); }
 .venture-store { background: #172b46; }
 .venture-card h3 { margin: 16px 0 10px; font-size: clamp(2.5rem, 4vw, 4.6rem); line-height: .94; letter-spacing: -.065em; font-weight: 500; }
@@ -276,6 +277,8 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
 .available-pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: #9cffc5; box-shadow: 0 0 11px #9cffc5; }
 .venture-app-icon { width: 78px; height: 78px; display: grid; place-items: center; overflow: hidden; border: 1px solid rgba(255,255,255,.34); border-radius: 24%; background: rgba(255,255,255,.11); box-shadow: inset 0 1px rgba(255,255,255,.42), 0 18px 50px rgba(4,8,28,.28); backdrop-filter: blur(15px); }
 .venture-app-icon img { width: 100%; height: 100%; object-fit: cover; }
+.venture-aero-icon { border-color: rgba(255,255,255,.7); border-radius: 50%; background: rgba(255,255,255,.3); box-shadow: inset 0 1px rgba(255,255,255,.9), 0 18px 50px rgba(0,73,133,.3); }
+.venture-aero-icon img { object-fit: contain; padding: 4px; filter: drop-shadow(0 5px 9px rgba(0,74,132,.22)); }
 .venture-mark { position: relative; display: grid; place-items: center; width: 70px; height: 70px; color: currentColor; }
 .alt-mark i { position: absolute; width: 30px; height: 48px; border: 2px solid currentColor; border-radius: 50%; transform: translateX(-10px) rotate(-24deg); }
 .alt-mark i:nth-child(2) { transform: translateX(10px) rotate(24deg); }
@@ -340,6 +343,7 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
 .venture-detail { min-height: 90vh; display: flex; align-items: center; padding: clamp(100px, 12vw, 180px) 0; }
 .venture-detail-lyfe { color: #fff; background: radial-gradient(circle at 16% 22%, rgba(160,201,255,.2), transparent 28%), linear-gradient(145deg, #07112d, #223c9e 62%, #6872e9); }
 .venture-detail-alt { color: #fff; background: radial-gradient(circle at 18% 20%, rgba(92,224,255,.22), transparent 26%), linear-gradient(145deg, #061535, #2542b2 60%, #765cf2); }
+.venture-detail-aero { color: #123f57; background: radial-gradient(circle at 80% 12%, rgba(255,255,226,.9), transparent 18%), radial-gradient(ellipse at 13% 100%, rgba(123,219,71,.72), transparent 36%), linear-gradient(145deg, #d9fbff, #64daf4 50%, #159fdb); }
 .venture-detail-eos { color: #fff; background: radial-gradient(circle at 18% 20%, rgba(202,255,154,.18), transparent 28%), linear-gradient(145deg, #071619, #0a3439 58%, #244e48); }
 .venture-detail-store { color: #fff; background: #14273f; }
 .venture-detail-grid { display: grid; grid-template-columns: 1fr .75fr; gap: clamp(50px, 10vw, 150px); align-items: center; }
@@ -353,6 +357,30 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
     linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.025));
   backdrop-filter: blur(22px);
 }
+.aero-product-stage {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 74% 18%, rgba(255,255,255,.92) 0 2%, rgba(255,246,146,.36) 7%, transparent 20%),
+    linear-gradient(180deg, rgba(238,255,255,.66), rgba(78,210,236,.28));
+  border-color: rgba(255,255,255,.62);
+  box-shadow: inset 0 1px rgba(255,255,255,.8), 0 25px 70px rgba(0,94,147,.16);
+}
+.aero-product-stage::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: -10%;
+  right: -10%;
+  bottom: -28%;
+  height: 55%;
+  border-radius: 50% 50% 0 0;
+  background: radial-gradient(ellipse at 25% 20%, rgba(219,255,113,.85), transparent 26%), linear-gradient(145deg, #89dd4c, #119961);
+  box-shadow: inset 0 14px 28px rgba(235,255,181,.4);
+}
+.aero-product-stage .venture-logo-lockup { color: #0a5f88; text-shadow: 0 1px #fff; }
+.aero-stage-bubble { position: absolute; z-index: 1; border: 2px solid rgba(255,255,255,.68); border-radius: 50%; background: radial-gradient(circle at 30% 24%, rgba(255,255,255,.94), rgba(94,232,255,.15) 38%, rgba(0,121,197,.08)); box-shadow: inset -7px -9px 13px rgba(0,121,197,.09), 0 8px 20px rgba(0,83,137,.12); }
+.aero-stage-bubble.bubble-one { width: 54px; height: 54px; left: 9%; top: 20%; }
+.aero-stage-bubble.bubble-two { width: 28px; height: 28px; right: 12%; bottom: 19%; }
 .lyfe-product-stage::before {
   content: "";
   position: absolute;
@@ -399,6 +427,9 @@ body.is-leaving .page-flash { opacity: 1; transform: translateX(100%); transitio
 .eos-f1-orbit span { position: relative; z-index: 2; width: 15px; height: 15px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 12px #fff, 0 0 46px var(--lime), 0 0 100px rgba(202,255,154,.65); animation: focus-core-pulse 3.8s ease-in-out infinite; }
 .venture-detail-copy h2 { margin: 14px 0 28px; font-size: clamp(2.9rem, 5.7vw, 6rem); line-height: .95; letter-spacing: -.065em; font-weight: 500; }
 .venture-detail-copy > p:not(.signal-label) { color: rgba(255,255,255,.66); font-size: 1.08rem; }
+.venture-detail-aero .venture-detail-copy > p:not(.signal-label) { color: rgba(18,63,87,.74); }
+.venture-detail-aero .available-pill { border-color: rgba(18,63,87,.26); }
+.venture-detail-aero .available-pill::before { background: #48b840; box-shadow: 0 0 11px rgba(72,184,64,.7); }
 .venture-detail-copy .development-pill { margin-bottom: 38px; }
 .venture-detail-copy .available-pill { margin-bottom: 38px; }
 .venture-detail-copy .button { margin-top: 20px; }
