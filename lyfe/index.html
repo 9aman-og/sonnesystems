@@ -44,7 +44,7 @@
 <link rel="dns-prefetch" href="https://upload.wikimedia.org">
 <link rel="dns-prefetch" href="https://picsum.photos">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Unbounded:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=aero-core-10">
+<link rel="stylesheet" href="styles.css?v=aero-core-14">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -82,10 +82,7 @@
     </section>
     <section class="auth-card">
       <div class="auth-mark" aria-hidden="true">
-        <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round">
-          <circle cx="32" cy="32" r="10"/>
-          <path d="M32 6v6M32 52v6M6 32h6M52 32h6M13 13l4 4M47 47l4 4M13 51l4-4M47 17l4-4"/>
-        </svg>
+        <img src="../assets/lyfe_logo.png" alt="">
       </div>
       <h2 class="auth-title">Welcome to Lyfe</h2>
       <p class="auth-tag">your day, in one place</p>
@@ -125,7 +122,7 @@
 <script src="cloud.js?v=aero-core-12"></script>
 <script src="aero-core.js?v=aero-core-12"></script>
 <script src="aero-knowledge.js?v=aero-core-10"></script>
-<script src="app.js?v=aero-core-12"></script>
+<script src="app.js?v=aero-core-14"></script>
 <script>
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */
@@ -138,7 +135,7 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     }, { once: true });
   }
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js?v=aero-core-12").catch(function () { /* offline install optional */ });
+    navigator.serviceWorker.register("sw.js?v=aero-core-14").catch(function () { /* offline install optional */ });
   });
 }
 </script>

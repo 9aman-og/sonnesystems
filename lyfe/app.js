@@ -5056,8 +5056,8 @@ const COMMON_COUNTRIES = [
   "South Africa", "Nigeria", "Kenya", "New Zealand", "Pakistan", "Bangladesh",
 ];
 
-function onboardSunMark() {
-  return `<span class="auth-mark" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><circle cx="32" cy="32" r="10"/><path d="M32 6v6M32 52v6M6 32h6M52 32h6M13 13l4 4M47 47l4 4M13 51l4-4M47 17l4-4"/></svg></span>`;
+function lyfeAuthMark() {
+  return `<span class="auth-mark" aria-hidden="true"><img src="../assets/lyfe_logo.png" alt=""></span>`;
 }
 
 function showOnboarding() {
@@ -5066,31 +5066,49 @@ function showOnboarding() {
   const s = state.data.settings;
   const suggestedName = s.name || (window.LyfeCloud && LyfeCloud.user ? LyfeCloud.user.name : "") || "";
   el.innerHTML =
-    `<div class="onb-card">
-      <div class="onb-head">
-        ${onboardSunMark()}
-        <h1 class="onb-title">Welcome to Lyfe</h1>
-        <p class="onb-sub">A few quick things, so Lyfe and Aero actually know you.</p>
-      </div>
-      <form data-form="onboarding" class="onb-form" autocomplete="off">
-        <div class="onb-row">
-          ${fld("Your name", `<input type="text" name="name" maxlength="60" required value="${esc(suggestedName)}" placeholder="What should we call you?">`)}
-          ${fld("Age", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="e.g. 20">`)}
+    `<div class="onb-shell">
+      <aside class="onb-story">
+        <div class="onb-brand"><img src="../assets/lyfe_logo.png" alt=""><span>Lyfe</span></div>
+        <div class="onb-story-main">
+          <span class="onb-kicker">YOUR SPACE, YOUR DEFAULTS</span>
+          <h2>Start with what matters.</h2>
+          <p>Give Lyfe a little direction now. Aero can make the rest feel lighter from day one.</p>
+          <div class="onb-story-points">
+            <div><b>01</b><span><strong>Personal from the start</strong><small>Your priorities shape what Lyfe surfaces.</small></span></div>
+            <div><b>02</b><span><strong>Always adjustable</strong><small>Change any answer later in Settings.</small></span></div>
+          </div>
         </div>
-        ${fld("Country", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="Where are you?" list="onb-countries">
-          <datalist id="onb-countries">${COMMON_COUNTRIES.map(c => `<option value="${esc(c)}"></option>`).join("")}</datalist>`)}
-        <div class="onb-group">
-          <span class="onb-label" id="onb-focus-label">What are you here to do?</span>
-          <div class="onb-chips" role="group" aria-labelledby="onb-focus-label">${FOCUS_OPTIONS.map(g =>
-            `<button type="button" class="onb-chip${(s.focus || []).includes(g) ? " sel" : ""}" data-action="onboard-focus" data-v="${esc(g)}" aria-pressed="${(s.focus || []).includes(g)}">${esc(g)}</button>`).join("")}</div>
+        <p class="onb-privacy">Private to your Lyfe account.</p>
+      </aside>
+      <section class="onb-card" aria-labelledby="onb-title">
+        <div class="onb-head">
+          <div class="onb-head-top">
+            ${lyfeAuthMark()}
+            <span class="onb-step">ONE-TIME SETUP</span>
+          </div>
+          <h1 class="onb-title" id="onb-title">Make Lyfe yours</h1>
+          <p class="onb-sub">A few private details. Change them anytime.</p>
         </div>
-        <div class="onb-group">
-          <span class="onb-label" id="onb-commit-label">How committed are you?</span>
-          <div class="onb-seg" role="group" aria-labelledby="onb-commit-label">${COMMIT_OPTIONS.map(([v, l]) =>
-            `<button type="button" class="onb-segbtn${s.commitment === v ? " sel" : ""}" data-action="onboard-commit" data-v="${v}" aria-pressed="${s.commitment === v}">${esc(l)}</button>`).join("")}</div>
-        </div>
-        <button type="submit" class="auth-btn onb-submit">Enter Lyfe</button>
-      </form>
+        <form data-form="onboarding" class="onb-form" autocomplete="off">
+          <div class="onb-row">
+            ${fld("Your name", `<input type="text" name="name" maxlength="60" required value="${esc(suggestedName)}" placeholder="What should we call you?" autocomplete="name">`)}
+            ${fld("Age", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="e.g. 20" inputmode="numeric">`)}
+          </div>
+          ${fld("Country", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="Where are you?" list="onb-countries" autocomplete="country-name">
+            <datalist id="onb-countries">${COMMON_COUNTRIES.map(c => `<option value="${esc(c)}"></option>`).join("")}</datalist>`)}
+          <div class="onb-group">
+            <span class="onb-label" id="onb-focus-label">What matters right now? <small>Select any that fit</small></span>
+            <div class="onb-chips" role="group" aria-labelledby="onb-focus-label">${FOCUS_OPTIONS.map(g =>
+              `<button type="button" class="onb-chip${(s.focus || []).includes(g) ? " sel" : ""}" data-action="onboard-focus" data-v="${esc(g)}" aria-pressed="${(s.focus || []).includes(g)}">${esc(g)}</button>`).join("")}</div>
+          </div>
+          <div class="onb-group">
+            <span class="onb-label" id="onb-commit-label">Choose your pace</span>
+            <div class="onb-seg" role="group" aria-labelledby="onb-commit-label">${COMMIT_OPTIONS.map(([v, l]) =>
+              `<button type="button" class="onb-segbtn${s.commitment === v ? " sel" : ""}" data-action="onboard-commit" data-v="${v}" aria-pressed="${s.commitment === v}">${esc(l)}</button>`).join("")}</div>
+          </div>
+          <button type="submit" class="auth-btn onb-submit">Enter Lyfe</button>
+        </form>
+      </section>
     </div>`;
   el.hidden = false;
   document.body.classList.add("gated");   // reuse the gate's app-hiding
