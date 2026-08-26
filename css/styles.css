@@ -125,7 +125,6 @@ p { text-wrap: pretty; }
 .menu-toggle span { width: 14px; height: 1px; background: currentColor; box-shadow: 0 5px currentColor; transition: transform .22s, box-shadow .22s; }
 .menu-open .menu-toggle span { transform: translateY(2.5px) rotate(45deg); box-shadow: 0 0 currentColor; }
 .menu-open .menu-toggle span::after { content: ""; position: absolute; width: 14px; height: 1px; background: currentColor; transform: rotate(90deg); }
-.scroll-progress { position: absolute; left: 0; bottom: 0; width: var(--scroll-progress, 0%); height: 2px; background: linear-gradient(90deg, var(--coral), var(--blue), var(--violet)); }
 
 /* ---------- Motion and controls ---------- */
 [data-reveal] { opacity: 0; transform: translateY(28px); transition: opacity .72s var(--ease), transform .72s var(--ease); }
