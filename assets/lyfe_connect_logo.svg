@@ -1,53 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">Lyfe Connect</title>
-  <desc id="desc">Two luminous conversation orbits meet around a living shared core.</desc>
+  <desc id="desc">Two open conversations meeting at a shared point.</desc>
   <defs>
-    <radialGradient id="connect-field" cx="28%" cy="18%" r="100%">
-      <stop offset="0" stop-color="#56dfff"/>
-      <stop offset=".28" stop-color="#167de4"/>
-      <stop offset=".65" stop-color="#2931a5"/>
-      <stop offset="1" stop-color="#17166d"/>
-    </radialGradient>
-    <linearGradient id="connect-left" x1="49" y1="70" x2="142" y2="186" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#e9ffff"/>
-      <stop offset=".42" stop-color="#55e7ff"/>
-      <stop offset="1" stop-color="#1688f0"/>
-    </linearGradient>
-    <linearGradient id="connect-right" x1="118" y1="68" x2="213" y2="188" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#f8f3ff"/>
-      <stop offset=".5" stop-color="#a78bff"/>
-      <stop offset="1" stop-color="#5d4cff"/>
-    </linearGradient>
-    <radialGradient id="connect-core" cx="34%" cy="25%" r="78%">
-      <stop offset="0" stop-color="#f3ff7a"/>
-      <stop offset=".42" stop-color="#a4ef25"/>
-      <stop offset="1" stop-color="#17b86b"/>
-    </radialGradient>
-    <filter id="connect-shadow" x="-30%" y="-30%" width="160%" height="175%">
-      <feDropShadow dx="0" dy="11" stdDeviation="10" flood-color="#10145d" flood-opacity=".44"/>
-    </filter>
-    <filter id="connect-glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="0" stdDeviation="7" flood-color="#59efff" flood-opacity=".58"/>
-    </filter>
+    <linearGradient id="connect-field" x1="56" y1="42" x2="456" y2="470" gradientUnits="userSpaceOnUse"><stop stop-color="#eefaff"/><stop offset=".5" stop-color="#e8e8ff"/><stop offset="1" stop-color="#d7d0ff"/></linearGradient>
+    <linearGradient id="connect-left" x1="96" y1="154" x2="248" y2="354" gradientUnits="userSpaceOnUse"><stop stop-color="#14bfe8"/><stop offset="1" stop-color="#2c5bdf"/></linearGradient>
+    <linearGradient id="connect-right" x1="260" y1="154" x2="421" y2="355" gradientUnits="userSpaceOnUse"><stop stop-color="#7967f1"/><stop offset="1" stop-color="#4932c3"/></linearGradient>
   </defs>
-
-  <rect x="15" y="15" width="226" height="226" rx="62" fill="url(#connect-field)" filter="url(#connect-shadow)"/>
-  <rect x="22" y="22" width="212" height="212" rx="55" fill="none" stroke="#8ff4ff" stroke-width="3" opacity=".48"/>
-  <path d="M39 67c22-27 52-40 89-40-29 7-50 18-64 34-9 1-17 3-25 6Z" fill="#fff" opacity=".35"/>
-
-  <path d="M132 91c-13-18-34-29-57-25-29 5-49 31-45 61 5 31 34 52 65 47 24-4 43-24 43-49 0-11-3-21-9-29"
-    fill="none" stroke="url(#connect-left)" stroke-width="24" stroke-linecap="round" filter="url(#connect-glow)"/>
-  <path d="M124 164c14 18 35 28 58 24 30-5 49-31 45-61-5-31-34-52-65-47-24 4-43 24-43 49 0 11 3 21 9 29"
-    fill="none" stroke="url(#connect-right)" stroke-width="24" stroke-linecap="round"/>
-
-  <circle cx="78" cy="120" r="9" fill="#eaffff"/>
-  <circle cx="179" cy="135" r="9" fill="#f4efff"/>
-  <g filter="url(#connect-glow)">
-    <circle cx="128" cy="128" r="15" fill="url(#connect-core)" stroke="#eaff78" stroke-width="2"/>
-    <path d="M121 129l5 5 11-13" fill="none" stroke="#f7ffca" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-
-  <path d="M58 180l-7 22 24-14" fill="url(#connect-left)" opacity=".92"/>
-  <path d="M198 76l7-22-24 14" fill="url(#connect-right)" opacity=".92"/>
-  <rect x="15" y="15" width="226" height="226" rx="62" fill="none" stroke="#d9fbff" stroke-width="4" opacity=".7"/>
+  <rect x="28" y="28" width="456" height="456" rx="116" fill="url(#connect-field)"/>
+  <rect x="29" y="29" width="454" height="454" rx="115" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="3"/>
+  <path d="M235 151h-55c-54 0-94 43-94 98s40 98 94 98h24l31 30v-76" fill="none" stroke="url(#connect-left)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M277 361h55c54 0 94-43 94-98s-40-98-94-98h-24l-31-30v76" fill="none" stroke="url(#connect-right)" stroke-width="36" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="256" r="27" fill="#11141b"/>
+  <circle cx="256" cy="256" r="10" fill="#62e9ff"/>
 </svg>

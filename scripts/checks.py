@@ -112,8 +112,17 @@ def check_brand_and_indexing():
         PROBLEMS.append("brand: scalable Sonne Systems logo is missing")
     else:
         svg = svg_path.read_text(encoding="utf-8")
-        if svg.count("<circle") != 3 or svg.count("<use") != 20:
-            PROBLEMS.append("brand: scalable logo must contain three rings and twenty spokes")
+        if 'viewBox="0 0 512 512"' not in svg or "<title" not in svg or svg.count("<circle") < 2:
+            PROBLEMS.append("brand: scalable Sonne logo is missing its accessible radial system")
+
+    for filename in ("aero_logo.svg", "lyfe_logo.svg", "lyfe_connect_logo.svg"):
+        product_logo = ROOT / "assets" / filename
+        if not product_logo.exists():
+            PROBLEMS.append(f"brand: assets/{filename} is missing")
+        else:
+            svg = product_logo.read_text(encoding="utf-8")
+            if 'viewBox="0 0 512 512"' not in svg or "<title" not in svg:
+                PROBLEMS.append(f"brand: assets/{filename} is not an accessible scalable mark")
 
     ico_path = ROOT / "favicon.ico"
     if not ico_path.exists() or ico_path.read_bytes()[:4] != b"\x00\x00\x01\x00":
@@ -174,6 +183,7 @@ def check_brand_and_indexing():
             "https://sonnesystems.com/",
             "https://sonnesystems.com/research.html",
             "https://sonnesystems.com/ventures.html",
+            "https://sonnesystems.com/aero/",
             "https://sonnesystems.com/lyfe/",
             "https://sonnesystems.com/lyfe/connect.html",
             "https://sonnesystems.com/about.html",
@@ -192,6 +202,9 @@ def check_lyfe_shell():
     required = {
         "index.html",
         "app.js",
+        "aero-core.js",
+        "aero-harness.js",
+        "aero-knowledge.js",
         "cloud.js",
         "styles.css",
         "sw.js",

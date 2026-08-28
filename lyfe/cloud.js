@@ -47,6 +47,7 @@
   var sb = null;        // supabase client (created lazily)
   var current = null;   // { id, email, name }
   var googleProviderToken = ""; // memory-only: never copied into Lyfe data
+  var gmailConnecting = false;
   var lastAuthError = "";
   var authListenerAttached = false;
   var pushTimer = null;
@@ -74,7 +75,16 @@
       authListenerAttached = true;
       sb.auth.onAuthStateChange(function (event, session) {
         current = userFrom(session);
-        googleProviderToken = String(session && session.provider_token || "");
+        // Supabase access-token refresh events commonly omit provider_token.
+        // Keep the last Google token in memory until Google rejects it or the
+        // person signs out; never copy it into Lyfe data or localStorage.
+        if (session && session.provider_token) {
+          googleProviderToken = String(session.provider_token);
+          gmailConnecting = false;
+        } else if (!session) {
+          googleProviderToken = "";
+          gmailConnecting = false;
+        }
         if (session) {
           lastAuthError = "";
           cleanUrl();
@@ -212,7 +222,7 @@
         var session = res && res.data ? res.data.session : null;
         if (session) {
           current = userFrom(session);
-          googleProviderToken = String(session.provider_token || "");
+          if (session.provider_token) googleProviderToken = String(session.provider_token);
           cleanUrl();
           return "cloud";
         }
@@ -236,23 +246,34 @@
     },
 
     async connectGmail() {
+      if (gmailConnecting) return null;
       lastAuthError = "";
       await refreshProviderSettings();
       if (!googleEnabled) throw new Error("Gmail connection is not ready on this deployment yet.");
       await ensureClient();
+      gmailConnecting = true;
       var result = await sb.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: location.origin + location.pathname,
           scopes: "openid email profile https://www.googleapis.com/auth/gmail.readonly",
-          queryParams: { access_type: "offline", prompt: "consent" }
+          queryParams: { access_type: "offline", prompt: "consent", include_granted_scopes: "true" }
         }
       });
-      if (result && result.error) throw result.error;
+      if (result && result.error) {
+        gmailConnecting = false;
+        throw result.error;
+      }
       return result;
     },
 
     get gmailToken() { return googleProviderToken; },
+    get gmailConnecting() { return gmailConnecting; },
+
+    clearGmailToken() {
+      googleProviderToken = "";
+      gmailConnecting = false;
+    },
 
     async invokeAero(payload) {
       if (!configured || !aeroGatewayEnabled) throw cloudError("The Groq route is not enabled on this deployment.", 503, "gateway_disabled");
@@ -286,7 +307,7 @@
       if (result && result.error) throw result.error;
       var session = result && result.data ? result.data.session : null;
       current = userFrom(session);
-      googleProviderToken = String(session && session.provider_token || "");
+      if (session && session.provider_token) googleProviderToken = String(session.provider_token);
       return result;
     },
 

@@ -15,21 +15,22 @@ research code, private datasets, or claims that have not been publicly earned.
 
 The v0 is built to test that promise rather than claim general autonomy.
 
-## Today keeps Lyfe's character
+## Product and interface system
 
-Today retains Lyfe's dynamic Crystal/Orbit identities, animated hero, changing
-copy, gamification, heat map, Wander, Calm, Gmail, Projects, Library and Connect.
-The product should become more intelligent without flattening the expressive
-surface that makes Lyfe feel alive.
+Lyfe retains its dynamic text, useful motion, heat map, Wander, Calm, Gmail,
+Projects, Library, and Connect. The Y3K product system uses graphite navigation,
+pearl content, electric cyan status, system typography, and short page
+transitions. Material is reserved for navigation, commands, and approvals so
+the content remains legible and calm.
 
 Aero is available from the hero, global command, Gmail signals, Connect and the
 dedicated Aero workspace. These entry points hand the active Lyfe source into
 Aero so the person can use shorthand without turning Today into a generic AI
 dashboard.
 
-The malformed decorative center blob was replaced by the Frutiger Aero mark
-inside the existing animated rings, petals and pointer-responsive scene. The
-scene still moves; the brand object is now stable and recognizable.
+The Aero mark is a forward air signal inside a graphite field. It has no stars
+or orbit ring. Lyfe, Connect, Aero, and Sonne each have a related but distinct
+vector mark.
 
 ## Runtime architecture
 
@@ -90,6 +91,34 @@ The v0 action allow-list is limited to reversible Lyfe changes: tasks, projects,
 goals, learning, notes, documents, work logs, and explicit memory controls.
 Every proposed change is rendered before application. External sends, payments,
 publishing, and destructive external actions are not valid v0 action types.
+
+### Durable harness
+
+`aero-harness.js` keeps execution control outside the model loop. Its v0.3 run
+contract provides:
+
+- a canonical plan digest that binds approval to the exact nested action plan;
+- an allow-listed capability for each step and a denied state for unknown tools;
+- hard step, retry, cloud-call, and duration budgets;
+- a narrow fresh executor context for one step at a time;
+- idempotency keys and durable checkpoints that prevent completed writes from
+  replaying;
+- explicit task state updated only from independently audited facts;
+- a read-only acceptance audit that the executor cannot self-certify;
+- compensation on failed audits, followed by fail-closed termination;
+- an event ledger and receipt for every run.
+
+This design follows the strongest current result from long-horizon harness
+research: separate task-state management, execution, and auditing. Aero applies
+that pattern to personal work while adding exact approval binding and a consumer
+review surface.
+
+### Attention governor
+
+Aero normally initiates at most one conversation message per day. A second is
+allowed only for an urgent, distinct signal after a cooldown. Everything else
+goes to Updates as quiet work notification. Brief, important-only, quiet, and
+off modes are available in Settings.
 
 ### Model routing
 
@@ -160,6 +189,7 @@ Run the clean-room behavioral checks:
 
 ```powershell
 node aero-core.test.js
+node aero-harness.test.js
 node cloud.test.js
 ```
 

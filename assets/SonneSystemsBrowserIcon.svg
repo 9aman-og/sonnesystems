@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Sonne Systems</title>
+  <desc id="desc">A precise black radial system on a pearl field.</desc>
+  <defs>
+    <linearGradient id="field" x1="54" y1="42" x2="456" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffffff"/>
+      <stop offset=".56" stop-color="#edf0f5"/>
+      <stop offset="1" stop-color="#d6dbe5"/>
+    </linearGradient>
+  </defs>
+  <rect x="28" y="28" width="456" height="456" rx="116" fill="url(#field)"/>
+  <rect x="29" y="29" width="454" height="454" rx="115" fill="none" stroke="#fff" stroke-opacity=".86" stroke-width="3"/>
+  <g fill="none" stroke="#111319" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="170" stroke-width="18"/>
+    <circle cx="256" cy="256" r="70" stroke-width="18"/>
+    <path d="M256 86v100M256 326v100M86 256h100M326 256h100M136 136l72 72M304 304l72 72M376 136l-72 72M208 304l-72 72" stroke-width="20"/>
+  </g>
+</svg>
