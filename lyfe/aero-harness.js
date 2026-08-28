@@ -26,7 +26,7 @@
   var ACTION_FIELDS = [
     "type", "title", "name", "body", "text", "why", "description", "provider",
     "kind", "area", "priority", "date", "due", "horizon", "claim", "scope",
-    "memoryType", "query", "hours",
+    "memoryType", "memoryKey", "dependsOn", "supersedes", "query", "hours",
   ];
   var ALLOWED_ACTIONS = Object.keys(ACTION_LABELS);
 
@@ -153,11 +153,16 @@
     if (ALLOWED_ACTIONS.indexOf(type) < 0) return { ok: false, code: "ACTION_UNSUPPORTED", message: "Unsupported action: " + (type || "missing type") };
     var unknown = Object.keys(action).filter(function (key) { return ACTION_FIELDS.indexOf(key) < 0; });
     if (unknown.length) return { ok: false, code: "ACTION_UNKNOWN_FIELD", message: "Action contains unsupported fields: " + unknown.join(", ") };
-    var invalidValue = Object.keys(action).some(function (key) { return key !== "hours" && action[key] != null && typeof action[key] !== "string"; });
+    var invalidValue = Object.keys(action).some(function (key) {
+      if (key === "hours" || action[key] == null) return false;
+      if (key === "dependsOn" || key === "supersedes") return !Array.isArray(action[key]) || action[key].some(function (value) { return typeof value !== "string" || !text(value, 101) || value.length > 100; });
+      return typeof action[key] !== "string";
+    });
     if (invalidValue) return { ok: false, code: "ACTION_VALUE_TYPE", message: "Action values must match the local schema" };
     if (action.hours != null && (!isFinite(Number(action.hours)) || Number(action.hours) < 0 || Number(action.hours) > 24)) return { ok: false, code: "ACTION_HOURS_RANGE", message: "Work hours must be between 0 and 24" };
     if (["date", "due", "horizon"].some(function (key) { return action[key] && !/^\d{4}-\d{2}-\d{2}$/.test(action[key]); })) return { ok: false, code: "ACTION_DATE_FORMAT", message: "Dates must use YYYY-MM-DD" };
     if (action.memoryType && ["episodic", "semantic", "project", "procedural"].indexOf(action.memoryType) < 0) return { ok: false, code: "ACTION_MEMORY_TYPE", message: "Memory type is unsupported" };
+    if (list(action.dependsOn).length > 24 || list(action.supersedes).length > 12) return { ok: false, code: "ACTION_MEMORY_LINKS", message: "Memory lineage exceeds the local limit" };
     var has = function (key) { return !!text(action[key], 2_100); };
     var valid = true;
     if (["add_task", "complete_task", "add_goal", "add_education"].indexOf(type) >= 0) valid = has("title");

@@ -150,6 +150,11 @@ Every memory keeps source, confidence, timestamps, scope, evidence, and dispute
 state. Imported chats remain retrievable knowledge and do not silently become
 personal facts.
 
+Memory v0.2 also keeps revision lineage, source references, dependency edges,
+and a bounded transaction journal. Explicit corrections supersede older slot
+revisions, disputed or stale memories stay out of prompts, and invalidation
+cascades to downstream memories. See [`AERO-MEMORY.md`](AERO-MEMORY.md).
+
 ## Model routing
 
 Routing optimizes for the smallest sufficient capability:
@@ -200,9 +205,12 @@ The current build proves the bounded personal action loop in the browser and
 connects it to Lyfe context, typed memory, projects, Gmail metadata, model
 routing, and communication-compression telemetry. It does not yet prove
 world-leading long-horizon benchmark performance. The auditor and compensator
-still share one browser process, and rollback tokens are not yet journaled into
-a server-owned crash-recovery store. Arbitrary external tools are not enabled.
-The next evidence gates are process-isolated auditing, durable cross-restart
-recovery, stale-memory dependency invalidation, and repeated Lyfe-native tasks
-with environment graders. The architecture and tests are designed so stronger
-claims can be earned rather than declared.
+still share one browser process, and action rollback tokens are not yet
+journaled into a server-owned crash-recovery store. Transactional memory now
+handles conservative conflict, lineage, cascading invalidation, local recovery,
+and privacy deletion, but its journal is also browser-local. Arbitrary external
+tools are not enabled. The next evidence gates are process-isolated auditing,
+durable cross-restart recovery, learned conflict detection with a held-out false-
+conflict set, and repeated Lyfe-native tasks with environment graders. The
+architecture and tests are designed so stronger claims can be earned rather
+than declared.

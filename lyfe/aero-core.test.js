@@ -88,4 +88,4 @@ const examples = Aero.trainingExamples(state, [
 ]);
 assert.equal(examples.length, 2, "manual training export requires explicit helpful feedback, not Apply alone");
 
-console.log("Aero Core v0 checks passed");
+console.log("Aero Core v0.2 checks passed");

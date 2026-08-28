@@ -184,8 +184,8 @@ button { font-family: inherit; cursor: pointer; color: inherit; }
   z-index: 300;
   padding: 9px 13px;
   border-radius: 10px;
-  color: var(--bg-deep);
-  background: var(--accent);
+  color: #fff;
+  background: #143ca3;
   font-weight: 700;
   text-decoration: none;
   transform: translateY(-160%);
@@ -5030,6 +5030,8 @@ body.signed-in #signin-sep { display: none; }
 .aero-memory-list li small { display: block; margin-top: 6px; color: var(--ink-3); font-size: 8.8px; line-height: 1.35; }
 .aero-memory-list li.is-candidate { border-style: dashed; }
 .aero-memory-list li.is-disputed { border-color: color-mix(in srgb, var(--rose) 40%, var(--hair)); }
+.aero-memory-list li.is-superseded, .aero-memory-list li.is-invalidated { opacity: .66; border-style: dashed; }
+.aero-memory-list li.is-superseded > span, .aero-memory-list li.is-invalidated > span { color: var(--ink-3); }
 .aero-memory-list li button { position: absolute; top: 9px; right: 8px; border: 0; color: var(--ink-3); background: transparent; font-size: 9.5px; cursor: pointer; }
 .aero-memory-list li button:hover { color: var(--rose); }
 .aero-memory-list .aero-memory-empty { padding-right: 10px; }

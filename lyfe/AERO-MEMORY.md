@@ -1,0 +1,101 @@
+# Aero transactional memory
+
+## Product rule
+
+Aero memory is not a transcript and it is not an append-only bag of facts. A
+memory may influence a response only while its source, authority, validity, and
+dependencies remain current.
+
+## v0.2 data model
+
+Every memory carries:
+
+- one typed scope: episodic, semantic, project, or procedural;
+- a stable memory key for conservative conflict detection;
+- source mode and structured source references;
+- status, confidence, valid-from and valid-until times;
+- revision and commit identifiers;
+- supersedes / superseded-by lineage;
+- dependency and invalidated-by edges;
+- evidence, contradictions, and outcome counts.
+
+The prompt receives only `active` and `provisional` memories. Candidate,
+disputed, superseded, and invalidated records remain inspectable but cannot
+quietly steer Aero.
+
+## Conflict policy
+
+The conflict governor is deliberately asymmetric:
+
+1. A direct user statement can supersede an earlier memory in the same stable
+   slot.
+2. An inferred memory cannot supersede a direct statement. It is held as
+   disputed.
+3. Direct confirmation of a disputed claim resolves competing active revisions
+   into one current memory.
+4. Claims without a structurally clear shared slot are allowed to coexist. Aero
+   does not invent a contradiction from semantic similarity alone.
+
+The v0.2 automatic slot parser is intentionally narrow. It recognizes stable
+copular facts such as “my timezone is …”. Product or tool code can supply an
+explicit `memoryKey`, `supersedes`, and `dependsOn` when the relationship is
+known. A future semantic conflict detector must remain advisory until its false
+conflict rate is measured.
+
+## Transaction and recovery model
+
+Each mutation creates a bounded journal transaction with the affected before and
+after images, revision, source references, reason, and a chained integrity
+fingerprint. The chain detects changed, deleted-head, and reordered entries.
+Corrections can invalidate dependent memories recursively across multiple hops.
+Missing, stale, and cyclic dependencies are held out before they can reach a
+prompt.
+
+The latest clean transaction can be restored when its affected memories have
+not moved to a newer revision. Recovery fails closed when the journal is
+corrupted or newer work depends on the current state.
+
+“Forget” is different: it removes the memory and scrubs its claim from historic
+journal images. That privacy deletion is marked non-reversible. Dependants are
+kept only as invalidated records so the system can explain why they stopped
+applying without retaining the forgotten claim.
+
+The fingerprint detects accidental local corruption; it is not a cryptographic
+authorization signature. Cross-device crash recovery still needs a server-owned
+transaction journal and isolated verifier.
+
+## Evidence basis
+
+- [STALE](https://arxiv.org/html/2605.06527) shows that retrieving an update is
+  not enough: assistants must resolve implicit conflicts and invalidate
+  downstream beliefs.
+- [MemTxn](https://arxiv.org/html/2607.27834) motivates source-supported memory
+  commits, version resolution, a durable snapshot journal, and application-
+  visible recovery.
+- [EOPA](https://arxiv.org/html/2608.04416v1) supports outcome-driven online
+  preference adaptation without retraining the base model.
+
+## Evaluation
+
+`aero-memory.test.js` covers 22 deterministic lineage, authority, cascade,
+recovery, privacy, integrity, migration, and idempotency groups, followed by a
+fixed-seed sweep of 240 mixed mutations. Every mutation rechecks journal,
+single-live-revision, and dependency-safety invariants.
+
+`aero-memory.benchmark.js` runs 17 declared transactional-memory scenarios. Aero
+v0.2 passes 17/17; an intentionally simple append-only control passes 2/17. This
+is an invariant control experiment, not a measurement of a named competitor and
+not proof of general real-world memory quality.
+
+```powershell
+node aero-memory.test.js
+node aero-memory.benchmark.js
+```
+
+## Next evidence gates
+
+- natural-language conflict detection with a held-out false-conflict set;
+- server-owned, encrypted journal persistence and crash simulation;
+- temporal question answering across longer histories;
+- user studies measuring correction effort and harmful stale-memory rate;
+- dependency extraction that never promotes an inferred edge without evidence.

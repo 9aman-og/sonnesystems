@@ -44,7 +44,7 @@
 <link rel="dns-prefetch" href="https://upload.wikimedia.org">
 <link rel="dns-prefetch" href="https://picsum.photos">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Unbounded:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=aero-core-25">
+<link rel="stylesheet" href="styles.css?v=aero-core-26">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -120,10 +120,10 @@
 <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
 <script src="supabase-config.js?v=aero-core-12"></script>
 <script src="cloud.js?v=aero-core-13"></script>
-<script src="aero-core.js?v=aero-core-12"></script>
+<script src="aero-core.js?v=aero-core-13"></script>
 <script src="aero-knowledge.js?v=aero-core-10"></script>
-<script src="aero-harness.js?v=aero-core-25"></script>
-<script src="app.js?v=aero-core-25"></script>
+<script src="aero-harness.js?v=aero-core-26"></script>
+<script src="app.js?v=aero-core-26"></script>
 <script>
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */
@@ -136,7 +136,7 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     }, { once: true });
   }
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js?v=aero-core-25").catch(function () { /* offline install optional */ });
+    navigator.serviceWorker.register("sw.js?v=aero-core-26").catch(function () { /* offline install optional */ });
   });
 }
 </script>

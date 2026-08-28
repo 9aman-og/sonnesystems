@@ -2597,10 +2597,21 @@ function viewSol() {
   const metrics = AeroCore.metrics(state.data.aero);
   const sourceCards = context.sources.map(source => `<article class="aero-source-card"><span>${esc(source.label)}</span><p>${esc(source.detail)}</p></article>`).join("");
   const allMemories = AeroCore.normalize(state.data.aero).memories.slice().sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6);
-  const memories = allMemories.length ? allMemories.map(memory => `<li class="is-${esc(memory.status)}"><span>${esc(memory.type)} · ${esc(memory.status)}</span><p>${esc(memory.claim)}</p><small>${memory.sourceMode === "explicit" ? "Taught by you" : Math.round(memory.confidence * 100) + "% confidence · " + (memory.successCount || 0) + " successful signal" + ((memory.successCount || 0) === 1 ? "" : "s")}</small><button type="button" data-action="aero-forget" data-id="${esc(memory.id)}" aria-label="Forget this memory">Forget</button></li>`).join("") : `<li class="aero-memory-empty"><p>Aero is not carrying anything yet.</p></li>`;
+  const memories = allMemories.length ? allMemories.map(memory => {
+    const source = memory.sourceMode === "explicit"
+      ? "Taught by you"
+      : Math.round(memory.confidence * 100) + "% confidence · " + (memory.successCount || 0) + " successful signal" + ((memory.successCount || 0) === 1 ? "" : "s");
+    const lineage = memory.status === "superseded" ? " · replaced by a newer memory"
+      : memory.status === "invalidated" ? " · dependency changed"
+      : "";
+    return `<li class="is-${esc(memory.status)}"><span>${esc(memory.type)} · ${esc(memory.status)} · r${Math.max(0, Number(memory.revision || 0))}</span><p>${esc(memory.claim)}</p><small>${esc(source + lineage)}</small><button type="button" data-action="aero-forget" data-id="${esc(memory.id)}" aria-label="Forget this memory">Forget</button></li>`;
+  }).join("") : `<li class="aero-memory-empty"><p>Aero is not carrying anything yet.</p></li>`;
   const firstPass = metrics.firstPassRate == null ? "&mdash;" : Math.round(metrics.firstPassRate * 100) + "%";
   const compression = metrics.compressionSamples ? (metrics.compression > 0 ? "+" : "") + Math.round(metrics.compression * 100) + "%" : "&mdash;";
-  const memoryCount = metrics.activeMemories + " kept" + (metrics.candidateMemories ? " · " + metrics.candidateMemories + " candidate" + (metrics.candidateMemories === 1 ? "" : "s") : "");
+  const staleMemoryCount = (metrics.disputedMemories || 0) + (metrics.invalidatedMemories || 0);
+  const memoryCount = metrics.activeMemories + " kept"
+    + (metrics.candidateMemories ? " · " + metrics.candidateMemories + " candidate" + (metrics.candidateMemories === 1 ? "" : "s") : "")
+    + (staleMemoryCount ? " · " + staleMemoryCount + " held back" : "");
   const proofLabel = metrics.proofReady ? "working" : "learning your baseline";
   const notificationCount = aeroUnreadNotificationCount();
   return `<header class="aero-head">
@@ -2828,10 +2839,14 @@ function applyActions(actions) {
             type: a.memoryType || "semantic",
             scope: a.scope || "global",
             claim: a.claim,
+            memoryKey: a.memoryKey,
+            dependsOn: a.dependsOn,
+            supersedes: a.supersedes,
             sourceMode: "explicit",
             status: "active",
             confidence: 1,
             evidence: ["Taught directly in Aero"],
+            sourceRefs: [{ kind: "user-explicit", id: "approved-aero-action", label: "Approved in Aero", at: Date.now() }],
           });
           n++; break;
         }
@@ -5089,6 +5104,7 @@ document.addEventListener("submit", (e) => {
         status: "active",
         confidence: 1,
         evidence: ["Taught directly in Aero controls"],
+        sourceRefs: [{ kind: "user-explicit", id: "aero-memory-controls", label: "Taught in Aero controls", at: Date.now() }],
       });
       save(); closeModal(); render(); toast("Aero learned one explicit memory");
       break;

@@ -73,6 +73,13 @@ Explicit memories are active because the user chose them. Inferred memory starts
 as a visible candidate. Promotion requires at least three successful signals on
 two distinct days with no failure. Corrections can dispute a promoted memory.
 
+Memory v0.2 adds revision and commit identifiers, conservative conflict keys,
+supersession lineage, dependency edges, and a bounded transaction journal.
+Direct corrections replace older revisions; inference cannot override a direct
+statement; and a changed source invalidates dependent memories recursively.
+Privacy deletion scrubs the forgotten claim from journal snapshots. The full
+policy and recovery semantics are in [`AERO-MEMORY.md`](AERO-MEMORY.md).
+
 ### Epistemic governor
 
 The governor selects a mode before model routing:
@@ -191,6 +198,8 @@ Run the clean-room behavioral checks:
 
 ```powershell
 node aero-core.test.js
+node aero-memory.test.js
+node aero-memory.benchmark.js
 node aero-harness.test.js
 node aero-harness.benchmark.js
 node cloud.test.js
