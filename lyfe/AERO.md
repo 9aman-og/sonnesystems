@@ -94,19 +94,21 @@ publishing, and destructive external actions are not valid v0 action types.
 
 ### Durable harness
 
-`aero-harness.js` keeps execution control outside the model loop. Its v0.3 run
+`aero-harness.js` keeps execution control outside the model loop. Its v0.4 run
 contract provides:
 
-- a canonical plan digest that binds approval to the exact nested action plan;
+- a SHA-256 contract digest that binds approval to intent, exact payload values,
+  route, capability, acceptance criteria, budget, policy, and rollback mode;
 - an allow-listed capability for each step and a denied state for unknown tools;
 - hard step, retry, cloud-call, and duration budgets;
-- a narrow fresh executor context for one step at a time;
-- idempotency keys and durable checkpoints that prevent completed writes from
-  replaying;
+- immutable actions and a narrow fresh executor context for one step at a time;
+- single-use, expiring approval and fresh approval for recovery;
 - explicit task state updated only from independently audited facts;
-- a read-only acceptance audit that the executor cannot self-certify;
-- compensation on failed audits, followed by fail-closed termination;
-- an event ledger and receipt for every run.
+- structured read-only evidence that the executor cannot self-certify;
+- reverse compensation of every applied step when any later step fails;
+- a distinct rollback-failed state when restoration cannot be proved;
+- a completion certificate binding the exact contract to the evidence ledger;
+- an event ledger and typed failure receipt for every run.
 
 This design follows the strongest current result from long-horizon harness
 research: separate task-state management, execution, and auditing. Aero applies
@@ -190,6 +192,7 @@ Run the clean-room behavioral checks:
 ```powershell
 node aero-core.test.js
 node aero-harness.test.js
+node aero-harness.benchmark.js
 node cloud.test.js
 ```
 

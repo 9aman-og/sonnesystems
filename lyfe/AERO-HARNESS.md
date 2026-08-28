@@ -59,23 +59,81 @@ Primary references:
                         |                           |
                      verified                 failed audit
                         |                           |
-                   next step              compensate and stop
+                   next step       reverse-compensate every write
+                        |                           |
+                        v                           v
+              evidence certificate          atomic abort
 
 The model may suggest. It never grants itself authority, expands its own
 capabilities, or certifies that its own work succeeded.
 
-## v0.3 execution invariants
+## v0.4 execution invariants
 
 1. Every action type is allow-listed.
-2. Every step has one narrow capability and one acceptance condition.
-3. Approval is bound to the canonical digest of the complete nested plan.
-4. Approval expires after 30 minutes.
-5. The executor receives one action and a narrow fresh context.
-6. Completed idempotency keys cannot replay.
-7. Only the auditor can add a verified fact to durable task state.
-8. A failed audit invokes compensation and stops downstream execution.
-9. Unknown tools, routes, capabilities, or authority states fail closed.
-10. Runs have fixed step, retry, cloud-call, and wall-time budgets.
+2. Every concrete payload value is checked against the local action schema.
+3. Every step has one narrow capability, route, risk class, and acceptance condition.
+4. SHA-256 binds approval to intent, exact values, capability, route, acceptance,
+   budget, idempotency keys, policy version, and rollback mode.
+5. Approval expires after 30 minutes and is consumed once.
+6. The executor receives one immutable action and a narrow fresh context.
+7. A separate read-only auditor must return structured environment evidence.
+8. Self-reported success and evidence-free success fail closed.
+9. A later failure compensates every applied step in reverse order.
+10. Compensation failure is surfaced as a distinct critical state; it is never
+    reported as a clean rollback.
+11. Only current, verified audit evidence can cross the transaction boundary.
+12. Completion requires a tamper-evident certificate binding the action contract,
+    evidence ledger, and full step coverage.
+13. A failed run can retry only after a clean rollback and fresh user approval.
+14. Unknown actions, fields, routes, capabilities, authority states, or budget
+    changes fail closed.
+
+## What the 2026 evidence changed
+
+The v0.4 design is a direct response to several recent results:
+
+- [LongHorizon-Harness](https://arxiv.org/html/2608.01964) shows large gains from
+  explicit state, fresh-context execution, and an independent read-only auditor.
+- [StructAgent](https://arxiv.org/html/2607.11388v1) strengthens that pattern with
+  verifier-backed state transitions, checkpoints, and targeted recovery.
+- [Cordon](https://arxiv.org/html/2606.17573v1) and
+  [Agentic Transaction](https://arxiv.org/html/2608.13900v1) show why per-call
+  guardrails are insufficient: multi-step work needs a semantic commit boundary,
+  staged effects, lineage, and all-or-nothing recovery.
+- [Evidence-Carrying Termination](https://arxiv.org/html/2608.23623) motivates a
+  typed completion certificate in which every completion claim is bound to
+  in-scope trace evidence.
+- Microsoft's [action-bound approval protocol](https://microsoft.github.io/agent-governance-toolkit/adr/0030-action-bound-approval-protocol/)
+  binds consent to the exact canonical request, expiry, subject, target, and
+  operation, then revalidates immediately before execution.
+- [Capability Gates Are Not Authorization](https://arxiv.org/html/2606.28679)
+  explains why exposing a tool cannot authorize its concrete argument values.
+- [STALE](https://arxiv.org/html/2605.06527) and
+  [MemTxn](https://arxiv.org/html/2607.27834) identify the next memory frontier:
+  conflict-aware commits, cascading invalidation, version resolution, and
+  application-visible recovery.
+- [EOPA](https://arxiv.org/html/2608.04416v1) supports evidence-driven online
+  preference adaptation without retraining; [PAUSE](https://arxiv.org/html/2607.27354v1)
+  demonstrates that stateful personal-assistant behavior remains difficult even
+  for leading proprietary systems.
+
+## Deterministic invariant benchmark
+
+`aero-harness.benchmark.js` executes 18 adversarial scenarios across approval
+binding, tool security, verification, recovery, and termination. On the current
+release, Aero v0.4 passes 18/18. An intentionally minimal direct model-to-tool
+loop passes 0/18 because it has none of these controls.
+
+This is a harness control experiment, not a benchmark of OpenClaw, Hermes, or
+any other third-party system. It proves that the implementation enforces its
+declared local invariants. It does not prove better real-world task performance.
+
+Run it with:
+
+```powershell
+node aero-harness.test.js
+node aero-harness.benchmark.js
+```
 
 ## Memory governance
 
@@ -141,5 +199,10 @@ documents, unpublished methods, evaluation results, or internal claims.
 The current build proves the bounded personal action loop in the browser and
 connects it to Lyfe context, typed memory, projects, Gmail metadata, model
 routing, and communication-compression telemetry. It does not yet prove
-world-leading long-horizon benchmark performance. The architecture and tests
-are designed so that claim can be earned rather than declared.
+world-leading long-horizon benchmark performance. The auditor and compensator
+still share one browser process, and rollback tokens are not yet journaled into
+a server-owned crash-recovery store. Arbitrary external tools are not enabled.
+The next evidence gates are process-isolated auditing, durable cross-restart
+recovery, stale-memory dependency invalidation, and repeated Lyfe-native tasks
+with environment graders. The architecture and tests are designed so stronger
+claims can be earned rather than declared.

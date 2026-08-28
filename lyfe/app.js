@@ -2544,13 +2544,16 @@ function speakAeroMessage(messageId) {
 function bubbleHtml(m) {
   const proposal = m.proposal && Array.isArray(m.proposal.actions) ? m.proposal : null;
   const actionCount = proposal ? proposal.actions.length : 0;
+  const proposalState = proposal && proposal.status === "applied" ? "Applied"
+    : proposal && proposal.status === "failed" ? "Needs attention"
+    : "Not applied";
   const proposalHtml = proposal ? `<div class="aero-proposal ${esc(proposal.status || "pending")}">
     <div class="aero-proposal-copy"><span class="aero-proposal-kicker">AERO PLAN</span><b>${esc(AeroCore.actionSummary(proposal.actions))}</b></div>
-    <footer><strong>${actionCount} ${actionCount === 1 ? "change" : "changes"}</strong>${proposal.status === "pending" ? `<button class="btn btn-primary btn-sm" type="button" data-action="aero-review-proposal" data-id="${esc(m.id)}">Review plan</button>` : `<span class="aero-proposal-state">${proposal.status === "applied" ? "Applied" : "Not applied"}</span>`}</footer>
+    <footer><strong>${actionCount} ${actionCount === 1 ? "change" : "changes"}</strong>${proposal.status === "pending" ? `<button class="btn btn-primary btn-sm" type="button" data-action="aero-review-proposal" data-id="${esc(m.id)}">Review plan</button>` : `<span class="aero-proposal-state">${proposalState}</span>`}</footer>
   </div>` : "";
   const feedback = m.role === "sol" && m.episodeId ? (m.feedback
     ? `<div class="aero-feedback is-rated"><span>${m.feedback === "helpful" ? "Marked helpful" : "Marked as a miss"}</span></div>`
-    : `<div class="aero-feedback" aria-label="Rate Aero's first response"><span>Did Aero get it?</span><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="helpful">Yes</button><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="missed">Not quite</button></div>`) : "";
+    : `<div class="aero-feedback" role="group" aria-label="Rate Aero's first response"><span>Did Aero get it?</span><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="helpful">Yes</button><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="missed">Not quite</button></div>`) : "";
   const routeReceipt = m.role === "sol" && m.route && m.route.engine
     ? `<div class="aero-route-receipt"><span>${esc(m.route.engine)}</span><b>${esc(m.route.reason || "local route")}</b>${m.route.steps > 1 ? `<small>${m.route.steps} steps</small>` : ""}</div>` : "";
   const attachments = Array.isArray(m.attachments) && m.attachments.length
@@ -2849,14 +2852,22 @@ function aeroLedgerSnapshot() {
   const d = state.data;
   return {
     tasks: d.tasks.length,
+    taskIds: d.tasks.map(task => task.id),
     openTasks: d.tasks.filter(task => task.status !== "done").map(task => task.id),
     notes: d.notes.length,
+    noteIds: d.notes.map(note => note.id),
     docs: d.docs.length,
+    docIds: d.docs.map(doc => doc.id),
     worklog: d.worklog.length,
+    worklogIds: d.worklog.map(entry => entry.id),
     goals: d.goals.length,
+    goalIds: d.goals.map(goal => goal.id),
     education: d.education.length,
+    educationIds: d.education.map(item => item.id),
     projects: d.projects.length,
+    projectIds: d.projects.map(project => project.id),
     memories: d.aero && Array.isArray(d.aero.memories) ? d.aero.memories.length : 0,
+    memoryIds: d.aero && Array.isArray(d.aero.memories) ? d.aero.memories.map(memory => memory.id) : [],
   };
 }
 
@@ -2866,7 +2877,7 @@ function aeroRollbackSnapshot() {
     tasks: data.tasks,
     notes: data.notes,
     docs: data.docs,
-    worklogs: data.worklogs,
+    worklog: data.worklog,
     goals: data.goals,
     education: data.education,
     projects: data.projects,
@@ -2877,17 +2888,35 @@ function aeroRollbackSnapshot() {
 function verifyAeroAction(action, before) {
   const d = state.data;
   const type = action && action.type;
-  if (type === "add_task") return d.tasks.length === before.tasks + 1;
-  if (type === "complete_task") return d.tasks.some(task => before.openTasks.includes(task.id) && task.status === "done");
-  if (type === "add_note") return d.notes.length === before.notes + 1;
-  if (type === "add_doc") return d.docs.length === before.docs + 1;
-  if (type === "log_work") return d.worklog.length === before.worklog + 1;
-  if (type === "add_goal") return d.goals.length === before.goals + 1;
-  if (type === "add_education") return d.education.length === before.education + 1;
-  if (type === "add_project") return d.projects.length === before.projects + 1;
-  if (type === "memory_upsert") return d.aero.memories.length >= before.memories;
-  if (type === "memory_forget") return d.aero.memories.length < before.memories;
-  return false;
+  const exact = (left, right) => String(left || "").trim().toLowerCase() === String(right || "").trim().toLowerCase();
+  const added = (items, ids, predicate) => items.find(item => !ids.includes(item.id) && predicate(item));
+  let record = null;
+  if (type === "add_task") record = added(d.tasks, before.taskIds, item => exact(item.title, action.title) && item.status === "open");
+  if (type === "complete_task") {
+    const query = String(action.title || "").trim().toLowerCase();
+    record = d.tasks.find(item => before.openTasks.includes(item.id) && item.status === "done"
+      && (item.title.toLowerCase().includes(query) || query.includes(item.title.toLowerCase())));
+  }
+  if (type === "add_note") record = added(d.notes, before.noteIds, item => (!action.title || exact(item.title, action.title)) && (!action.body || exact(item.body, action.body)));
+  if (type === "add_doc") record = added(d.docs, before.docIds, item => (!action.title || exact(item.title, action.title)) && (!action.body || exact(item.body, action.body)));
+  if (type === "log_work") record = added(d.worklog, before.worklogIds, item => exact(item.text, action.text) && (action.hours == null || Number(item.hours) === Number(action.hours)));
+  if (type === "add_goal") record = added(d.goals, before.goalIds, item => exact(item.title, action.title));
+  if (type === "add_education") record = added(d.education, before.educationIds, item => exact(item.title, action.title));
+  if (type === "add_project") record = added(d.projects, before.projectIds, item => exact(item.name, action.name || action.title));
+  if (type === "memory_upsert") record = d.aero.memories.find(item => exact(item.claim, action.claim) && item.status === "active");
+  if (type === "memory_forget") {
+    const query = String(action.query || action.claim || "").trim().toLowerCase();
+    const stillPresent = d.aero.memories.some(item => item.id.toLowerCase() === query || item.claim.toLowerCase().includes(query));
+    if (!stillPresent && d.aero.memories.length < before.memories) record = { id: `forgot:${query}` };
+  }
+  return record ? { verified: true, ref: String(record.id), observation: postconditionForAeroAction(action) } : { verified: false, ref: "", observation: "" };
+}
+
+function postconditionForAeroAction(action) {
+  if (action && action.type === "complete_task") return "The intended task is marked complete.";
+  if (action && action.type === "memory_forget") return "The selected memory is no longer active.";
+  if (action && action.type === "log_work") return "One matching work-log entry exists.";
+  return "One matching Lyfe record exists.";
 }
 
 function applyAeroActionStep(action) {
@@ -2898,17 +2927,29 @@ function applyAeroActionStep(action) {
 }
 
 function auditAeroActionStep(step, execution) {
-  const verified = !!(execution && execution.applied > 0 && verifyAeroAction(step.action, execution.before));
+  const observation = execution && execution.applied > 0
+    ? verifyAeroAction(step.action, execution.before)
+    : { verified: false, ref: "", observation: "" };
   return {
-    verified,
-    facts: verified ? [step.acceptance] : [],
+    verified: observation.verified,
+    integrity: "clean",
+    auditor: "lyfe-ledger-readback",
+    facts: observation.verified ? [step.acceptance] : [],
+    evidence: observation.verified ? [{
+      type: "postcondition-readback",
+      source: "lyfe-local-ledger",
+      ref: observation.ref,
+      claim: observation.observation,
+      observedAt: Date.now(),
+    }] : [],
   };
 }
 
 function compensateAeroActionStep(execution) {
-  if (!execution || !execution.rollback) return;
+  if (!execution || !execution.rollback) return false;
   Object.keys(execution.rollback).forEach(key => { state.data[key] = execution.rollback[key]; });
   save(false, true);
+  return true;
 }
 
 /* ----- Aero: local deterministic brain ----- */
@@ -4764,6 +4805,7 @@ document.addEventListener("click", (e) => {
       const message = d.chat.find(item => item.id === id);
       if (!message || !message.proposal || message.proposal.status !== "pending") break;
       let applied = 0;
+      let executionFailure = null;
       const runIndex = message.proposal.runId ? d.aeroRuns.findIndex(run => run.id === message.proposal.runId) : -1;
       if (runIndex >= 0 && window.AeroHarness) {
         const approved = AeroHarness.approve(d.aeroRuns[runIndex]);
@@ -4774,13 +4816,21 @@ document.addEventListener("click", (e) => {
         });
         d.aeroRuns[runIndex] = result.run;
         applied = result.applied;
+        executionFailure = result.run && result.run.failure ? result.run.failure : null;
       } else {
         applied = applyActions(message.proposal.actions);
       }
-      message.proposal.status = applied ? "applied" : "cancelled";
+      message.proposal.status = applied ? "applied" : executionFailure ? "failed" : "cancelled";
       if (message.episodeId) d.aero = AeroCore.observeOutcome(d.aero, message.episodeId, applied ? "accepted" : "rejected", { actionCount: applied, actionTypes: message.proposal.actions.map(action => action.type) });
       closeModal(); save(false, true); render();
-      toast(applied ? applied + " approved change" + (applied === 1 ? " applied" : "s applied") : "No valid change to apply");
+      const rollbackFailed = executionFailure && executionFailure.code === "ROLLBACK_FAILED";
+      toast(applied
+        ? applied + " approved change" + (applied === 1 ? " applied" : "s applied")
+        : rollbackFailed
+          ? "Aero could not prove every change was restored. Review this run before continuing."
+          : executionFailure
+            ? "No change was kept. Aero stopped safely."
+            : "No valid change to apply");
       break;
     }
     case "aero-cancel": {
