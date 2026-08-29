@@ -6,15 +6,15 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from . import config
 from .db import init_db
 from .middleware import BodyLimitMiddleware, RateLimitMiddleware, SecurityHeadersMiddleware
-from .routers import auth, contact, health
+from .routers import aero, auth, contact, health
 
 
 def create_app() -> FastAPI:
     init_db()
     app = FastAPI(
         title="Sonne Systems API",
-        version="1.0.0",
-        description="Backend for sonnesystems.com: auth, contact, newsletter.",
+        version="1.1.0",
+        description="Backend for sonnesystems.com: auth, Aero execution, contact, newsletter.",
         docs_url=None if config.production() else "/docs",
         redoc_url=None if config.production() else "/redoc",
     )
@@ -32,6 +32,7 @@ def create_app() -> FastAPI:
     app.add_middleware(SecurityHeadersMiddleware)
     app.include_router(health.router)
     app.include_router(auth.router)
+    app.include_router(aero.router)
     app.include_router(contact.router)
     return app
 

@@ -5696,6 +5696,7 @@ h1, h2, h3 { font-family: var(--display); font-weight: 650; letter-spacing: -.04
 .aero-review-list article:last-child { border-bottom: 0; }
 .aero-review-list span { color: var(--ink-3); font: 650 9px/1.5 var(--mono); }
 .aero-review-list p { margin: 0; font-size: 13px; }
+.aero-review-list p small { display: block; margin-top: 5px; color: var(--ink-3); font: 500 10px/1.45 var(--sans); }
 .aero-review-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 22px; }
 .aero-review-footer > div { display: flex; gap: 8px; }
 

@@ -2,3 +2,6 @@ project_id = "rfjqqixgevlgjeybeedw"
 
 [functions.aero-groq]
 verify_jwt = true
+
+[functions.aero-execute]
+verify_jwt = true

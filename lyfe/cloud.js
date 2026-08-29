@@ -27,6 +27,11 @@
      await .pushConnect(data, rev)
      .pushConnectDebounced(data, rev)
      await .invokeAero({prompt,date,kind})
+     await .prepareAeroRun({requestKey,intent,actions})
+     await .commitAeroRun({runId,contractDigest,approvalToken})
+     await .cancelAeroRun({runId,contractDigest})
+     await .inspectAeroRun(runId)
+     await .forgetAeroRun({runId,contractDigest})
    ============================================================ */
 (function () {
   "use strict";
@@ -37,6 +42,7 @@
   var configured = /^https:\/\/.+\.supabase\.co\/?$/.test(SB_URL) && SB_ANON.length > 20;
   var googleEnabled = CFG.googleEnabled === true;
   var aeroGatewayEnabled = CFG.aeroGatewayEnabled === true;
+  var aeroExecutionEnabled = CFG.aeroExecutionEnabled === true;
   var providerSettingsChecked = false;
 
   // Exact pin keeps an upstream release from changing the app between deploys.
@@ -200,10 +206,61 @@
     return body;
   }
 
+  async function callAeroExecution(payload, retry) {
+    var token = await currentAccessToken();
+    if (!token) throw cloudError("Sign in before applying an account change.", 401, "sign_in_required");
+    var response = await fetch(SB_URL.replace(/\/$/, "") + "/functions/v1/aero-execute", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + token,
+        apikey: SB_ANON,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload || {}),
+    });
+    if (response.status === 401 && retry !== false) {
+      var refreshed = await sb.auth.refreshSession();
+      if (!(refreshed && refreshed.error)) return callAeroExecution(payload, false);
+    }
+    var body = {};
+    try { body = await response.json(); } catch (e) { /* a shaped error follows */ }
+    if (!response.ok) {
+      var code = String(body && body.error || "execution_unavailable");
+      var messages = {
+        sign_in_required: "Sign in before applying an account change.",
+        authentication_required: "Your session expired. Sign in again.",
+        not_allowed: "This Aero execution route is private to its approved account.",
+        execution_not_configured: "The protected Aero execution route is not configured yet.",
+        state_missing: "Lyfe needs to finish its first account sync before Aero can apply this.",
+        state_changed: "Lyfe changed after this plan was prepared. Review the current version again.",
+        approval_expired: "This approval expired. Review the plan again.",
+        approval_replayed: "That approval was already used.",
+        approval_invalid: "The approval no longer matches this exact plan.",
+        contract_changed: "The plan changed after review, so Aero stopped.",
+        idempotency_conflict: "This request no longer matches its prepared plan.",
+        run_integrity_failed: "Aero could not verify the stored run, so nothing changed.",
+        journal_integrity_failed: "Aero could not verify the run journal, so nothing changed.",
+        rate_limited: "Aero is sending too quickly. Try again in a minute.",
+      };
+      throw cloudError(messages[code] || "The protected Aero execution route is unavailable.", response.status, code);
+    }
+    return body;
+  }
+
+  function emitCloudConflict(result) {
+    if (!(result && result.data && typeof result.rev === "number")) return;
+    try {
+      window.dispatchEvent(new CustomEvent("lyfe:cloudconflict", {
+        detail: { data: result.data, rev: result.rev }
+      }));
+    } catch (e) { /* the caller can still recover on its next pull */ }
+  }
+
   var LyfeCloud = {
     configured: configured,
     get googleEnabled() { return googleEnabled; },
     get aeroGatewayEnabled() { return aeroGatewayEnabled; },
+    get aeroExecutionEnabled() { return aeroExecutionEnabled; },
     get user() { return current; },
     get lastError() { return lastAuthError; },
 
@@ -280,6 +337,31 @@
       return callAeroGateway(payload, true);
     },
 
+    async prepareAeroRun(payload) {
+      if (!configured || !aeroExecutionEnabled) throw cloudError("The protected Aero execution route is not enabled.", 503, "execution_disabled");
+      return callAeroExecution(Object.assign({ op: "prepare" }, payload || {}), true);
+    },
+
+    async commitAeroRun(payload) {
+      if (!configured || !aeroExecutionEnabled) throw cloudError("The protected Aero execution route is not enabled.", 503, "execution_disabled");
+      return callAeroExecution(Object.assign({ op: "commit" }, payload || {}), true);
+    },
+
+    async cancelAeroRun(payload) {
+      if (!configured || !aeroExecutionEnabled) throw cloudError("The protected Aero execution route is not enabled.", 503, "execution_disabled");
+      return callAeroExecution(Object.assign({ op: "cancel" }, payload || {}), true);
+    },
+
+    async inspectAeroRun(runId) {
+      if (!configured || !aeroExecutionEnabled) throw cloudError("The protected Aero execution route is not enabled.", 503, "execution_disabled");
+      return callAeroExecution({ op: "inspect", runId: runId }, true);
+    },
+
+    async forgetAeroRun(payload) {
+      if (!configured || !aeroExecutionEnabled) throw cloudError("The protected Aero execution route is not enabled.", 503, "execution_disabled");
+      return callAeroExecution(Object.assign({ op: "forget" }, payload || {}), true);
+    },
+
     async signInEmail(email) {
       lastAuthError = "";
       await ensureClient();
@@ -327,10 +409,26 @@
 
     async push(data, rev) {
       if (!sb || !current) return false;
+      var requestedRev = Number(rev || 0);
+      var snapshot = sanitize(data);
+      if (aeroExecutionEnabled) {
+        if (!Number.isSafeInteger(requestedRev) || requestedRev < 1) throw cloudError("The Lyfe revision is invalid.", 409, "invalid_revision");
+        var committed = await sb.rpc("lyfe_compare_and_swap_state", {
+          p_expected_rev: requestedRev - 1,
+          p_data: snapshot,
+        });
+        if (committed.error) throw committed.error;
+        var result = committed.data || {};
+        if (!result.applied) {
+          emitCloudConflict(result);
+          return false;
+        }
+        return result;
+      }
       var r = await sb.from(TABLE).upsert({
         user_id: current.id,
-        data: sanitize(data),
-        rev: rev,
+        data: snapshot,
+        rev: requestedRev,
         updated_at: new Date().toISOString()
       }, { onConflict: "user_id" });
       if (r.error) throw r.error;
@@ -339,12 +437,20 @@
 
     pushDebounced: function (data, rev) {
       clearTimeout(pushTimer);
+      var snapshot = sanitize(data);
+      var snapshotRev = Number(rev || 0);
       pushTimer = setTimeout(function () {
-        LyfeCloud.push(data, rev).catch(function () {
+        LyfeCloud.push(snapshot, snapshotRev).catch(function () {
           /* offline: the local cache already holds this write, it will
              re-push on the next save once the connection is back */
         });
       }, 800);
+    },
+
+    flush: async function (data, rev) {
+      clearTimeout(pushTimer);
+      pushTimer = null;
+      return LyfeCloud.push(data, rev);
     },
 
     subscribe: function (onRemote) {

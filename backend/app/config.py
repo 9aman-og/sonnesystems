@@ -1,5 +1,6 @@
 """Environment-driven settings (12-factor style). No framework magic."""
 import os
+import base64
 from pathlib import Path
 
 TOKEN_TTL_DAYS = 30
@@ -16,6 +17,21 @@ def _bounded_int(name: str, default: int, minimum: int, maximum: int) -> int:
 
 
 MAX_BODY_BYTES = _bounded_int("SONNE_MAX_BODY_BYTES", 65_536, 4_096, 1_048_576)
+AERO_APPROVAL_TTL_SECONDS = _bounded_int("SONNE_AERO_APPROVAL_TTL_SECONDS", 300, 30, 900)
+AERO_LEASE_TTL_SECONDS = _bounded_int("SONNE_AERO_LEASE_TTL_SECONDS", 120, 30, 600)
+AERO_RECOVERY_TTL_SECONDS = _bounded_int("SONNE_AERO_RECOVERY_TTL_SECONDS", 300, 30, 900)
+
+
+def aero_journal_key() -> bytes | None:
+    """Return the 32-byte base64url key used for Aero journal encryption."""
+    raw = os.environ.get("SONNE_AERO_JOURNAL_KEY", "").strip()
+    if not raw:
+        return None
+    try:
+        key = base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4))
+    except (ValueError, TypeError):
+        return None
+    return key if len(key) == 32 else None
 
 
 def db_path() -> str:

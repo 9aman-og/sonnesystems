@@ -204,13 +204,27 @@ documents, unpublished methods, evaluation results, or internal claims.
 The current build proves the bounded personal action loop in the browser and
 connects it to Lyfe context, typed memory, projects, Gmail metadata, model
 routing, and communication-compression telemetry. It does not yet prove
-world-leading long-horizon benchmark performance. The auditor and compensator
-still share one browser process, and action rollback tokens are not yet
-journaled into a server-owned crash-recovery store. Transactional memory now
+world-leading long-horizon benchmark performance. The public product's auditor
+and compensator still share one browser process. A tested FastAPI reference
+boundary provides encrypted server-owned contracts, one-use authority,
+deterministic patches, event chaining, completion certificates, and cross-
+restart recovery for reversible Lyfe records.
+
+The signed-in production path is now implemented behind a disabled rollout
+flag: an authenticated Supabase Edge Function closes the action schema and
+materializes an exact target from the current account revision; Postgres then
+locks the run and Lyfe row, verifies the payload and evidence chain, consumes a
+short-lived approval hash, and commits the target with compare-and-swap in one
+transaction. Completed, stale, and cancelled runs remove duplicated Lyfe state
+and action subjects while retaining their digests and evidence. The browser
+keeps the raw approval token in memory only. This path remains off until its
+migration, function, and database advisors are verified on the linked project.
+
+Transactional memory now
 handles conservative conflict, lineage, cascading invalidation, local recovery,
 and privacy deletion, but its journal is also browser-local. Arbitrary external
-tools are not enabled. The next evidence gates are process-isolated auditing,
-durable cross-restart recovery, learned conflict detection with a held-out false-
-conflict set, and repeated Lyfe-native tasks with environment graders. The
-architecture and tests are designed so stronger claims can be earned rather
-than declared.
+tools are not enabled. The next evidence gates are deploying and integrating
+the signed-in boundary, WebAuthn user-presence approval, server-owned memory
+transactions, learned conflict detection with a held-out false-conflict set,
+and repeated Lyfe-native tasks with environment graders. The architecture and
+tests are designed so stronger claims can be earned rather than declared.

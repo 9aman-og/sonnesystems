@@ -115,3 +115,39 @@ The function accepts only the current prompt, date, and intent family. It has
 an origin allowlist, input limits, a per-user burst limit, a fixed model,
 structured output validation, a 25-second timeout, and no prompt logging.
 Deploy with JWT verification enabled. Do not configure this function as public.
+
+## Aero signed-in execution rollout
+
+`aero-execute` is separate from the model gateway. It never calls a model. It
+accepts only the eight reversible Lyfe record operations, verifies the signed-in
+user again with Supabase Auth, and invokes service-role-only database functions
+that bind an exact target to the current Lyfe revision. The service-role key is
+provided to hosted Edge Functions by Supabase and must never be copied into
+`supabase-config.js`, a frontend environment, a log, or source control.
+
+Roll out in this order so an old or partially deployed client cannot enter the
+new path:
+
+```powershell
+supabase login
+supabase link --project-ref rfjqqixgevlgjeybeedw
+supabase db push --linked --dry-run
+supabase db push --linked
+supabase db advisors --linked --type security --level warn --fail-on error
+supabase db advisors --linked --type performance --level warn --fail-on error
+supabase functions deploy aero-execute --project-ref rfjqqixgevlgjeybeedw --use-api
+```
+
+Do not pass `--no-verify-jwt`. Before the database push, run the repository CI
+tests and `deno check supabase/functions/aero-execute/index.ts`. After deploying,
+test prepare, cancel, exact commit, replay denial, revision conflict, journal
+inspection, and privacy deletion with the approved account. Only then change
+`aeroExecutionEnabled` to `true` in `supabase-config.js` and publish Lyfe.
+
+The migration keeps run data in the non-exposed `aero_private` schema with RLS,
+grants journal mutation only to `service_role`, and adds a revision trigger plus
+compare-and-swap RPC for ordinary signed-in Lyfe sync. Prepared plans retain an
+exact target only during their two-minute approval window. Completed, stale,
+and cancelled runs retain
+digests and a minimal receipt, not a duplicated Lyfe document. This rollout uses
+Supabase Free and does not require billing.

@@ -738,6 +738,13 @@ function switchAeroThread(id) {
 let aeroDraftImages = [];
 let aeroRecognition = null;
 let aeroListening = false;
+// One-use server authority is intentionally memory-only. Persisting this map
+// would turn a review token into a replayable account credential.
+const aeroServerAuthority = new Map();
+const AERO_SERVER_ACTIONS = new Set([
+  "add_task", "complete_task", "add_note", "add_doc", "log_work",
+  "add_goal", "add_education", "add_project",
+]);
 
 let gmailMessages = [];
 let gmailLoading = false;
@@ -2724,7 +2731,13 @@ async function solSay(bubbles, meta) {
   }
 }
 
-function aeroReviewProposalModal(message) {
+function aeroServerEligible(actions) {
+  return !!(CLOUD_MODE && window.LyfeCloud && LyfeCloud.aeroExecutionEnabled
+    && Array.isArray(actions) && actions.length
+    && actions.every(action => action && AERO_SERVER_ACTIONS.has(action.type)));
+}
+
+function aeroLocalReviewProposalModal(message) {
   if (!message || !message.proposal || !Array.isArray(message.proposal.actions)) return;
   const proposal = message.proposal;
   const count = proposal.actions.length;
@@ -2737,6 +2750,145 @@ function aeroReviewProposalModal(message) {
      <div class="aero-review-footer"><strong>${count} ${count === 1 ? "change" : "changes"}</strong><div><button type="button" class="btn" data-action="aero-cancel" data-id="${esc(message.id)}">Not now</button><button type="button" class="btn btn-primary" data-action="aero-apply" data-id="${esc(message.id)}">Apply changes</button></div></div>`,
     "aero-review-modal"
   );
+}
+
+function aeroServerReviewHtml(message, prepared) {
+  const review = Array.isArray(prepared.review) ? prepared.review : [];
+  const count = review.length;
+  return `<div class="aero-review-head"><div class="aero-review-brand"><img src="../assets/aero_logo.svg" alt=""><span>AERO</span></div><h3>${esc(AeroCore.actionSummary(message.proposal.actions))}</h3></div>
+    <div class="aero-review-runtime"><span>Atomic account run</span><b>${count} step${count === 1 ? "" : "s"}</b><b>1 database commit</b><b>Exact approval</b></div>
+    <div class="aero-review-list">${review.map((step, index) => `<article><span>${String(index + 1).padStart(2, "0")}</span><p>${esc(aeroActionDetail({ type: step.type, title: step.subject }))}<small>${esc(step.acceptance || "One matching Lyfe record exists.")}</small></p></article>`).join("")}</div>
+    <div class="aero-review-footer"><strong>${count} ${count === 1 ? "change" : "changes"}, all or nothing</strong><div><button type="button" class="btn" data-action="aero-cancel" data-id="${esc(message.id)}">Not now</button><button type="button" class="btn btn-primary" data-action="aero-apply" data-id="${esc(message.id)}">Apply exact plan</button></div></div>`;
+}
+
+async function aeroReviewProposalModal(message) {
+  if (!message || !message.proposal || !Array.isArray(message.proposal.actions)) return;
+  if (!aeroServerEligible(message.proposal.actions)) {
+    aeroLocalReviewProposalModal(message);
+    return;
+  }
+  openModal(
+    `<div class="aero-review-head"><div class="aero-review-brand"><img src="../assets/aero_logo.svg" alt=""><span>AERO</span></div><h3>Securing this plan</h3></div>
+     <div class="aero-review-runtime"><span>Checking the current Lyfe revision</span><b>Binding exact changes</b><b>No change yet</b></div>
+     <div class="aero-review-footer"><strong>Preparing review</strong><button type="button" class="btn" data-action="modal-close">Close</button></div>`,
+    "aero-review-modal"
+  );
+  try {
+    const flushed = await LyfeCloud.flush(state.data, state.data.rev);
+    if (flushed === false) throw Object.assign(new Error("Lyfe changed in another signed-in session. Open the plan again."), { code: "state_changed" });
+    const requestKey = (`aero-${message.id}-r${state.data.rev}`).slice(0, 160);
+    const messageIndex = state.data.chat.findIndex(item => item.id === message.id);
+    const userIntent = state.data.chat.slice(0, messageIndex).reverse().find(item => item.role === "user");
+    const prepared = await LyfeCloud.prepareAeroRun({
+      requestKey,
+      intent: String(userIntent && userIntent.text || "Apply this Aero plan").slice(0, 1_000),
+      actions: message.proposal.actions,
+    });
+    const current = state.data.chat.find(item => item.id === message.id);
+    if (!current || !current.proposal || current.proposal.status !== "pending") {
+      if (prepared && prepared.runId && prepared.contractDigest) {
+        LyfeCloud.cancelAeroRun({ runId: prepared.runId, contractDigest: prepared.contractDigest }).catch(() => {});
+      }
+      closeModal();
+      return;
+    }
+    aeroServerAuthority.set(message.id, {
+      runId: prepared.runId,
+      contractDigest: prepared.contractDigest,
+      approvalToken: prepared.approvalToken,
+      approvalExpiresAt: prepared.approvalExpiresAt,
+      baseRev: prepared.baseRev,
+    });
+    openModal(aeroServerReviewHtml(current, prepared), "aero-review-modal");
+  } catch (error) {
+    const copy = error && error.message ? error.message : "The protected review route is unavailable.";
+    openModal(
+      `<div class="aero-review-head"><div class="aero-review-brand"><img src="../assets/aero_logo.svg" alt=""><span>AERO</span></div><h3>Nothing changed</h3></div>
+       <p class="settings-data-note">${esc(copy)}</p>
+       <div class="aero-review-footer"><strong>Stopped safely</strong><button type="button" class="btn" data-action="modal-close">Close</button></div>`,
+      "aero-review-modal"
+    );
+  }
+}
+
+async function applyServerAeroProposal(messageId) {
+  const binding = aeroServerAuthority.get(messageId);
+  const message = state.data.chat.find(item => item.id === messageId);
+  if (!message || !message.proposal || message.proposal.status !== "pending") return;
+  if (!binding || !binding.approvalToken) {
+    await aeroReviewProposalModal(message);
+    return;
+  }
+  const applyButton = Array.from(document.querySelectorAll('[data-action="aero-apply"]'))
+    .find(button => button.dataset.id === messageId);
+  if (applyButton) { applyButton.disabled = true; applyButton.textContent = "Applying exact plan…"; }
+  try {
+    const result = await LyfeCloud.commitAeroRun({
+      runId: binding.runId,
+      contractDigest: binding.contractDigest,
+      approvalToken: binding.approvalToken,
+    });
+    aeroServerAuthority.delete(messageId);
+    state.data = normalize(result.state);
+    state.data.rev = Number(result.rev || state.data.rev || 0);
+    const current = state.data.chat.find(item => item.id === messageId);
+    const actionCount = current && current.proposal ? current.proposal.actions.length : message.proposal.actions.length;
+    if (current && current.proposal) {
+      current.proposal.status = "applied";
+      current.proposal.execution = "server-atomic";
+      current.proposal.receipt = {
+        runId: binding.runId,
+        digest: result.certificate && result.certificate.digest || "",
+        atomic: true,
+      };
+      if (current.episodeId) {
+        state.data.aero = AeroCore.observeOutcome(state.data.aero, current.episodeId, "accepted", {
+          actionCount,
+          actionTypes: current.proposal.actions.map(action => action.type),
+          execution: "server-atomic",
+        });
+      }
+    }
+    closeModal();
+    save(false, false);
+    try { await LyfeCloud.flush(state.data, state.data.rev); } catch (_) { /* the completion itself is already durable */ }
+    render();
+    toast(actionCount + " approved change" + (actionCount === 1 ? " applied atomically" : "s applied atomically"));
+  } catch (error) {
+    aeroServerAuthority.delete(messageId);
+    closeModal();
+    if (error && error.code === "state_changed") {
+      try {
+        const remote = await LyfeCloud.pull();
+        if (remote) onCloudRemote(remote, true);
+      } catch (_) { /* a later focus or realtime event will recover */ }
+    }
+    render();
+    toast(error && error.message ? error.message : "Aero stopped before changing Lyfe");
+  }
+}
+
+async function cancelServerAeroProposal(messageId) {
+  const binding = aeroServerAuthority.get(messageId);
+  const message = state.data.chat.find(item => item.id === messageId);
+  if (!message || !message.proposal || message.proposal.status !== "pending") return;
+  aeroServerAuthority.delete(messageId);
+  if (binding) {
+    try {
+      await LyfeCloud.cancelAeroRun({ runId: binding.runId, contractDigest: binding.contractDigest });
+    } catch (_) { /* the memory-only authority is gone and expires server-side */ }
+  }
+  message.proposal.status = "cancelled";
+  if (message.episodeId) {
+    state.data.aero = AeroCore.observeOutcome(state.data.aero, message.episodeId, "rejected", {
+      actionCount: 0,
+      actionTypes: message.proposal.actions.map(action => action.type),
+    });
+  }
+  closeModal();
+  save(false, true);
+  render();
+  toast("No changes made");
 }
 
 function aeroActionDetail(action) {
@@ -4819,6 +4971,10 @@ document.addEventListener("click", (e) => {
     case "aero-apply": {
       const message = d.chat.find(item => item.id === id);
       if (!message || !message.proposal || message.proposal.status !== "pending") break;
+      if (aeroServerEligible(message.proposal.actions)) {
+        applyServerAeroProposal(id);
+        break;
+      }
       let applied = 0;
       let executionFailure = null;
       const runIndex = message.proposal.runId ? d.aeroRuns.findIndex(run => run.id === message.proposal.runId) : -1;
@@ -4851,6 +5007,10 @@ document.addEventListener("click", (e) => {
     case "aero-cancel": {
       const message = d.chat.find(item => item.id === id);
       if (!message || !message.proposal || message.proposal.status !== "pending") break;
+      if (aeroServerAuthority.has(id)) {
+        cancelServerAeroProposal(id);
+        break;
+      }
       message.proposal.status = "cancelled";
       if (message.proposal.runId && window.AeroHarness) {
         const runIndex = d.aeroRuns.findIndex(run => run.id === message.proposal.runId);
@@ -5838,8 +5998,18 @@ async function enterCloud() {
     // brand-new account: start on a clean, empty slate. No demo content and no
     // leftover guest data, so a fresh login never shows data that isn't yours.
     state.data = defaultData();
-    try { await LyfeCloud.push(state.data, (state.data.rev || 0) + 1); }
-    catch (e) { /* offline: the next save re-pushes */ }
+    const firstRev = 1;
+    state.data.rev = firstRev;
+    try {
+      const created = await LyfeCloud.push(state.data, firstRev);
+      if (created && created.data) {
+        state.data = normalize(created.data);
+        state.data.rev = Number(created.rev || firstRev);
+      }
+    } catch (e) {
+      // Keep the next offline save eligible to create revision one.
+      state.data.rev = 0;
+    }
   }
 
   try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data)); } catch (e) {}
@@ -5856,10 +6026,13 @@ async function enterCloud() {
 }
 
 /* another device wrote a newer revision - fold it in like a cross-tab change */
-function onCloudRemote(payload) {
-  if (!payload || (payload.rev || 0) <= (state.data.rev || 0)) return;
+function onCloudRemote(payload, force) {
+  if (!payload) return;
+  const incomingRev = Number(payload.rev || 0);
+  const localRev = Number(state.data.rev || 0);
+  if (force ? incomingRev < localRev : incomingRev <= localRev) return;
   state.data = normalize(payload.data);
-  state.data.rev = payload.rev;
+  state.data.rev = incomingRev;
   try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data)); } catch (e) {}
   if (state.noteId && !state.data.notes.some(n => n.id === state.noteId)) state.noteId = null;
   if (state.docId && !state.data.docs.some(n => n.id === state.docId)) state.docId = null;
@@ -5868,6 +6041,13 @@ function onCloudRemote(payload) {
   const typing = ae && (ae.id === "pad-title" || ae.id === "pad-body");
   if (!typing) render();
 }
+
+window.addEventListener("lyfe:cloudconflict", event => {
+  const payload = event && event.detail;
+  if (!payload) return;
+  onCloudRemote(payload, true);
+  toast("Lyfe changed in another signed-in session. The current account version was kept.");
+});
 
 async function resolveAuthAndBoot() {
   if (!window.LyfeCloud) { enterGuest(); return; }   // module blocked: never break

@@ -14,5 +14,8 @@ window.LYFE_SUPABASE = {
   // Google OAuth is configured in Supabase. Email sign-in remains available.
   googleEnabled: true,
   // Calls an authenticated Edge Function. No provider secret is public here.
-  aeroGatewayEnabled: true
+  aeroGatewayEnabled: true,
+  // Enabled only after the reviewed migration and aero-execute function are
+  // deployed. Keeping this false makes the rollout fail safely.
+  aeroExecutionEnabled: false
 };
