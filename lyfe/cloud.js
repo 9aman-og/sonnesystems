@@ -58,6 +58,10 @@
   var authListenerAttached = false;
   var pushTimer = null;
   var connectPushTimer = null;
+  var confirmedRev = 0;
+  var writeChain = Promise.resolve();
+  var pendingWrites = 0;
+  var queuedRemote = null;
 
   function loadScript(src) {
     return new Promise(function (resolve, reject) {
@@ -136,6 +140,21 @@
     try { clone = JSON.parse(JSON.stringify(data)); } catch (e) { return data; }
     if (clone && clone.settings) clone.settings.apiKey = "";
     return clone;
+  }
+
+  function rememberConfirmed(data, rev) {
+    var value = Number(rev || 0);
+    if (!Number.isSafeInteger(value) || value < 0) return;
+    confirmedRev = value;
+  }
+
+  function releaseQueuedRemote() {
+    if (pendingWrites > 0 || pushTimer || !queuedRemote) return;
+    var item = queuedRemote;
+    queuedRemote = null;
+    if (item.rev <= confirmedRev) return;
+    rememberConfirmed(item.data, item.rev);
+    try { item.onRemote({ data: item.data, rev: item.rev }); } catch (e) { /* sync remains durable */ }
   }
 
   function cleanUrl() {
@@ -344,7 +363,9 @@
 
     async commitAeroRun(payload) {
       if (!configured || !aeroExecutionEnabled) throw cloudError("The protected Aero execution route is not enabled.", 503, "execution_disabled");
-      return callAeroExecution(Object.assign({ op: "commit" }, payload || {}), true);
+      var result = await callAeroExecution(Object.assign({ op: "commit" }, payload || {}), true);
+      if (result && result.state && typeof result.rev === "number") rememberConfirmed(result.state, result.rev);
+      return result;
     },
 
     async cancelAeroRun(payload) {
@@ -397,13 +418,19 @@
       try { if (sb) await sb.auth.signOut(); } catch (e) {}
       current = null;
       googleProviderToken = "";
+      confirmedRev = 0;
+      queuedRemote = null;
     },
 
     async pull() {
       if (!sb || !current) return null;
       var r = await sb.from(TABLE).select("data, rev").eq("user_id", current.id).maybeSingle();
       if (r.error) throw r.error;
-      if (!r.data) return null;
+      if (!r.data) {
+        rememberConfirmed(null, 0);
+        return null;
+      }
+      rememberConfirmed(r.data.data, Number(r.data.rev || 0));
       return { data: r.data.data, rev: r.data.rev || 0 };
     },
 
@@ -413,17 +440,27 @@
       var snapshot = sanitize(data);
       if (aeroExecutionEnabled) {
         if (!Number.isSafeInteger(requestedRev) || requestedRev < 1) throw cloudError("The Lyfe revision is invalid.", 409, "invalid_revision");
-        var committed = await sb.rpc("lyfe_compare_and_swap_state", {
-          p_expected_rev: requestedRev - 1,
-          p_data: snapshot,
+        pendingWrites += 1;
+        var operation = writeChain.catch(function () {}).then(async function () {
+          var committed = await sb.rpc("lyfe_compare_and_swap_state", {
+            p_expected_rev: confirmedRev,
+            p_data: snapshot,
+          });
+          if (committed.error) throw committed.error;
+          var result = committed.data || {};
+          if (!result.applied) {
+            if (result.data && typeof result.rev === "number") rememberConfirmed(result.data, result.rev);
+            emitCloudConflict(result);
+            return false;
+          }
+          if (result.data && typeof result.rev === "number") rememberConfirmed(result.data, result.rev);
+          return result;
         });
-        if (committed.error) throw committed.error;
-        var result = committed.data || {};
-        if (!result.applied) {
-          emitCloudConflict(result);
-          return false;
-        }
-        return result;
+        writeChain = operation;
+        return operation.finally(function () {
+          pendingWrites = Math.max(0, pendingWrites - 1);
+          releaseQueuedRemote();
+        });
       }
       var r = await sb.from(TABLE).upsert({
         user_id: current.id,
@@ -461,7 +498,16 @@
             { event: "*", schema: "public", table: TABLE, filter: "user_id=eq." + current.id },
             function (payload) {
               var n = payload && payload.new;
-              if (n && typeof n.rev === "number") onRemote({ data: n.data, rev: n.rev });
+              if (!(n && typeof n.rev === "number")) return;
+              if (aeroExecutionEnabled) {
+                if (pendingWrites > 0 || pushTimer) {
+                  if (!queuedRemote || n.rev > queuedRemote.rev) queuedRemote = { data: n.data, rev: n.rev, onRemote: onRemote };
+                  return;
+                }
+                if (n.rev <= confirmedRev) return;
+                rememberConfirmed(n.data, n.rev);
+              }
+              onRemote({ data: n.data, rev: n.rev });
             })
           .subscribe();
       } catch (e) { /* realtime is a bonus, never a blocker */ }

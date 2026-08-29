@@ -8,6 +8,10 @@ const vm = require("node:vm");
 let requests = [];
 let rpcCalls = [];
 let events = [];
+let tableResponse = {
+  data: { data: { rev: 4, settings: { apiKey: "" }, tasks: [] }, rev: 4 },
+  error: null,
+};
 let rpcResponse = { data: { applied: true, rev: 5, data: { rev: 5, settings: { apiKey: "" } } }, error: null };
 let response = {
   ok: true,
@@ -34,6 +38,13 @@ const auth = {
 
 const client = {
   auth,
+  from() {
+    return {
+      select() { return this; },
+      eq() { return this; },
+      async maybeSingle() { return tableResponse; },
+    };
+  },
   async rpc(name, args) {
     rpcCalls.push({ name, args });
     return rpcResponse;
@@ -64,6 +75,8 @@ vm.runInThisContext(fs.readFileSync(path.join(__dirname, "cloud.js"), "utf8"), {
 
 (async () => {
   assert.equal(await window.LyfeCloud.init(), "cloud");
+  const pulled = await window.LyfeCloud.pull();
+  assert.equal(pulled.rev, 4);
   const result = await window.LyfeCloud.invokeAero({ prompt: "Explain routing", date: "2026-08-21", kind: "general" });
   assert.equal(result.provider, "groq");
   const gatewayRequest = requests.at(-1);
@@ -131,7 +144,7 @@ vm.runInThisContext(fs.readFileSync(path.join(__dirname, "cloud.js"), "utf8"), {
     data: { applied: true, rev: 5, data: { rev: 5, settings: { apiKey: "" }, tasks: [] } },
     error: null,
   };
-  const pushed = await window.LyfeCloud.push({ rev: 5, settings: { apiKey: "device-secret" }, tasks: [] }, 5);
+  const pushed = await window.LyfeCloud.push({ rev: 50, settings: { apiKey: "device-secret" }, tasks: [] }, 50);
   assert.equal(pushed.applied, true);
   assert.equal(rpcCalls.at(-1).name, "lyfe_compare_and_swap_state");
   assert.equal(rpcCalls.at(-1).args.p_expected_rev, 4);
@@ -142,8 +155,17 @@ vm.runInThisContext(fs.readFileSync(path.join(__dirname, "cloud.js"), "utf8"), {
     error: null,
   };
   assert.equal(await window.LyfeCloud.push({ rev: 6, tasks: [] }, 6), false);
+  assert.equal(rpcCalls.at(-1).args.p_expected_rev, 5);
   assert.equal(events.at(-1).type, "lyfe:cloudconflict");
   assert.equal(events.at(-1).detail.rev, 7);
+
+  rpcResponse = {
+    data: { applied: true, rev: 8, data: { rev: 8, tasks: [{ id: "remote" }, { id: "local" }] } },
+    error: null,
+  };
+  const compacted = await window.LyfeCloud.push({ rev: 100, tasks: [{ id: "remote" }, { id: "local" }] }, 100);
+  assert.equal(compacted.rev, 8);
+  assert.equal(rpcCalls.at(-1).args.p_expected_rev, 7);
 
   console.log("Lyfe cloud gateway, execution, and CAS checks passed");
 })().catch((error) => {

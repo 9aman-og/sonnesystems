@@ -660,6 +660,7 @@ function save(force, immediateCloud) {
 
 const state = {
   data: loadData(),
+  cloudRev: 0,
   view: "today",
   trackingView: "tasks",
   libraryView: "notes",
@@ -2831,6 +2832,7 @@ async function applyServerAeroProposal(messageId) {
     aeroServerAuthority.delete(messageId);
     state.data = normalize(result.state);
     state.data.rev = Number(result.rev || state.data.rev || 0);
+    state.cloudRev = Number(result.rev || state.cloudRev || 0);
     const current = state.data.chat.find(item => item.id === messageId);
     const actionCount = current && current.proposal ? current.proposal.actions.length : message.proposal.actions.length;
     if (current && current.proposal) {
@@ -5994,6 +5996,7 @@ async function enterCloud() {
   if (cloud && cloud.data) {
     state.data = normalize(cloud.data);
     state.data.rev = Math.max(state.data.rev || 0, cloud.rev || 0);
+    state.cloudRev = Number(cloud.rev || 0);
   } else {
     // brand-new account: start on a clean, empty slate. No demo content and no
     // leftover guest data, so a fresh login never shows data that isn't yours.
@@ -6005,6 +6008,7 @@ async function enterCloud() {
       if (created && created.data) {
         state.data = normalize(created.data);
         state.data.rev = Number(created.rev || firstRev);
+        state.cloudRev = Number(created.rev || firstRev);
       }
     } catch (e) {
       // Keep the next offline save eligible to create revision one.
@@ -6029,8 +6033,9 @@ async function enterCloud() {
 function onCloudRemote(payload, force) {
   if (!payload) return;
   const incomingRev = Number(payload.rev || 0);
-  const localRev = Number(state.data.rev || 0);
-  if (force ? incomingRev < localRev : incomingRev <= localRev) return;
+  const knownCloudRev = Number(state.cloudRev || 0);
+  if (force ? incomingRev < knownCloudRev : incomingRev <= knownCloudRev) return;
+  state.cloudRev = incomingRev;
   state.data = normalize(payload.data);
   state.data.rev = incomingRev;
   try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data)); } catch (e) {}
