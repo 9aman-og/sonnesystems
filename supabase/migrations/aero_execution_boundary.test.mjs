@@ -8,6 +8,9 @@ const directory = path.dirname(fileURLToPath(import.meta.url));
 const migrationName = fs.readdirSync(directory).find((name) => /_aero_execution_boundary\.sql$/.test(name));
 assert.ok(migrationName, "Aero execution migration is missing");
 const sql = fs.readFileSync(path.join(directory, migrationName), "utf8");
+const casHardeningName = fs.readdirSync(directory).find((name) => /_harden_aero_cas_invoker\.sql$/.test(name));
+assert.ok(casHardeningName, "Aero CAS hardening migration is missing");
+const casHardeningSql = fs.readFileSync(path.join(directory, casHardeningName), "utf8");
 
 function functionBody(name) {
   const pattern = new RegExp(`create or replace function ${name.replaceAll(".", "\\.")}\\([\\s\\S]*?\\n\\$\\$;`, "i");
@@ -49,6 +52,11 @@ test("ordinary Lyfe writes are strict one-revision compare-and-swap", () => {
   assert.match(cas, /where user_id = v_user[\s\S]*?for update/i);
   assert.match(cas, /v_row\.rev <> p_expected_rev/i);
   assert.match(sql, /grant execute on function public\.lyfe_compare_and_swap_state\(bigint, jsonb\) to authenticated;/i);
+});
+
+test("the browser CAS remains under caller RLS authority", () => {
+  assert.match(casHardeningSql, /alter\s+function\s+public\.lyfe_compare_and_swap_state\(bigint,\s*jsonb\)\s+security\s+invoker\s*;/i);
+  assert.doesNotMatch(casHardeningSql, /security\s+definer/i);
 });
 
 test("commit locks state, rejects drift and consumes approval in one transaction", () => {
