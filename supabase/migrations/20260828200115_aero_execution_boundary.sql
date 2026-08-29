@@ -145,6 +145,28 @@ $$;
 revoke all on function aero_private.aero_minimal_review(jsonb) from public, anon, authenticated;
 grant execute on function aero_private.aero_minimal_review(jsonb) to service_role;
 
+-- RLS does not apply to TRUNCATE. Earlier foundation grants intentionally made
+-- ordinary row operations available to signed-in clients, but also included
+-- table-owner-adjacent privileges that the consumer app never needs. Remove
+-- them explicitly across the Lyfe and Connect substrate before adding Aero's
+-- stronger write path.
+revoke truncate, trigger, references on table
+  public.lyfe_states,
+  public.lyfe_connect_states,
+  public.connect_profiles,
+  public.connect_posts,
+  public.connect_comments,
+  public.connect_relationships,
+  public.connect_workspaces,
+  public.connect_workspace_members,
+  public.connect_pages,
+  public.connect_channels,
+  public.connect_messages,
+  public.connect_opportunities,
+  public.connect_applications,
+  public.connect_notifications
+from public, anon, authenticated;
+
 create or replace function public.lyfe_enforce_state_revision()
 returns trigger
 language plpgsql
@@ -167,6 +189,8 @@ begin
   return new;
 end
 $$;
+
+revoke all on function public.lyfe_enforce_state_revision() from public, anon, authenticated;
 
 drop trigger if exists lyfe_revision_guard on public.lyfe_states;
 create trigger lyfe_revision_guard

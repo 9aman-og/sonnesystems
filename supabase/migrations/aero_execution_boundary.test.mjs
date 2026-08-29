@@ -25,6 +25,11 @@ test("run data stays in an Aero-specific non-exposed schema", () => {
   assert.doesNotMatch(sql, /grant [^;]*aero_(?:runs|run_events)[^;]* to (?:anon|authenticated)/i);
 });
 
+test("consumer roles lose RLS-bypassing table privileges", () => {
+  assert.match(sql, /revoke\s+truncate,\s*trigger,\s*references\s+on\s+table[\s\S]*?public\.lyfe_states[\s\S]*?public\.connect_notifications[\s\S]*?from\s+public,\s*anon,\s*authenticated\s*;/i);
+  assert.match(sql, /revoke\s+all\s+on\s+function\s+public\.lyfe_enforce_state_revision\(\)\s+from\s+public,\s*anon,\s*authenticated\s*;/i);
+});
+
 test("authority is hashed and public callers cannot mutate the journal", () => {
   assert.match(sql, /approval_token_hash\s+text/i);
   assert.doesNotMatch(sql, /\bapproval_token\s+text/i);
