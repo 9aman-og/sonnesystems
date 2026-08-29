@@ -210,21 +210,28 @@ boundary provides encrypted server-owned contracts, one-use authority,
 deterministic patches, event chaining, completion certificates, and cross-
 restart recovery for reversible Lyfe records.
 
-The signed-in production path is now implemented behind a disabled rollout
-flag: an authenticated Supabase Edge Function closes the action schema and
+The signed-in production path is deployed and enabled for the immutable private
+account allowlist. An authenticated Supabase Edge Function closes the action schema and
 materializes an exact target from the current account revision; Postgres then
 locks the run and Lyfe row, verifies the payload and evidence chain, consumes a
 short-lived approval hash, and commits the target with compare-and-swap in one
 transaction. Completed, stale, and cancelled runs remove duplicated Lyfe state
 and action subjects while retaining their digests and evidence. The browser
-keeps the raw approval token in memory only. This path remains off until its
-migration, function, and database advisors are verified on the linked project.
+keeps the raw approval token in memory only.
+
+The 29 August 2026 production smoke covered prepare/cancel, exact commit,
+concurrent-revision rejection, journal inspection, replay denial, and privacy
+deletion on the signed-in account. Cancellation and stale approval produced zero
+task writes; the committed run produced exactly one task and a completion
+certificate. All three terminal states passed payload and event-chain checks.
+The two disposable runs were deleted with their cascaded events, leaving no
+orphans; the completed certificate remains as durable evidence.
 
 Transactional memory now
 handles conservative conflict, lineage, cascading invalidation, local recovery,
 and privacy deletion, but its journal is also browser-local. Arbitrary external
-tools are not enabled. The next evidence gates are deploying and integrating
-the signed-in boundary, WebAuthn user-presence approval, server-owned memory
+tools are not enabled. The next evidence gates are WebAuthn user-presence
+approval, server-owned memory
 transactions, learned conflict detection with a held-out false-conflict set,
 and repeated Lyfe-native tasks with environment graders. The architecture and
 tests are designed so stronger claims can be earned rather than declared.

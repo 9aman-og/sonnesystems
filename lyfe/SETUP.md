@@ -151,3 +151,10 @@ exact target only during their two-minute approval window. Completed, stale,
 and cancelled runs retain
 digests and a minimal receipt, not a duplicated Lyfe document. This rollout uses
 Supabase Free and does not require billing.
+
+Production status (29 August 2026): both migrations are applied, the CAS runs
+under caller RLS authority, `aero-execute` v1 is active with JWT verification,
+and the private allowlisted client flag is enabled. Live account smoke tests
+passed prepare/cancel, exact atomic commit, replay denial, stale-revision
+rejection, inspection, and privacy deletion. Re-run the same gates after any
+protocol, schema, authorization, or state-sync change.
