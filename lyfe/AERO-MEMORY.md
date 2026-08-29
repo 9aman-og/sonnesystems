@@ -6,7 +6,7 @@ Aero memory is not a transcript and it is not an append-only bag of facts. A
 memory may influence a response only while its source, authority, validity, and
 dependencies remain current.
 
-## v0.2 data model
+## v0.3 data model
 
 Every memory carries:
 
@@ -22,6 +22,14 @@ Every memory carries:
 The prompt receives only `active` and `provisional` memories. Candidate,
 disputed, superseded, and invalidated records remain inspectable but cannot
 quietly steer Aero.
+
+For a signed-in account, the private `aero_private` Postgres ledger is the
+authority. The Lyfe document and browser keep only a read-through display cache
+and cannot commit a memory revision. If authority cannot be verified, that cache
+is quarantined and memory is visibly paused. Every server state has both a
+canonical protocol digest and a separately computed database storage digest. A
+new or legacy account is storage-validated, normalized by the protocol, and
+bound once to that canonical digest before its ledger can be extended.
 
 ## Conflict policy
 
@@ -60,9 +68,13 @@ journal images. That privacy deletion is marked non-reversible. Dependants are
 kept only as invalidated records so the system can explain why they stopped
 applying without retaining the forgotten claim.
 
-The fingerprint detects accidental local corruption; it is not a cryptographic
-authorization signature. Cross-device crash recovery still needs a server-owned
-transaction journal and isolated verifier.
+The local fingerprint detects accidental cache corruption; it is not an
+authorization signature. The signed-in path adds a private hash-chained event
+ledger, exact target contract, two-minute one-use approval hash, row lock,
+compare-and-swap revision, relational projection, and completion certificate in
+one Postgres transaction. Completed, stale, cancelled, and expired transactions
+redact raw claims and target states while retaining only digests and minimal
+evidence. Forget and reset also remove claims from historical memory images.
 
 ## Evidence basis
 
@@ -74,6 +86,18 @@ transaction journal and isolated verifier.
   visible recovery.
 - [EOPA](https://arxiv.org/html/2608.04416v1) supports outcome-driven online
   preference adaptation without retraining the base model.
+- [LongMemEval](https://arxiv.org/html/2410.10813v2) and
+  [LoCoMo](https://aclanthology.org/2024.acl-long.747/) show that long-horizon
+  memory must handle temporal reasoning and updates, not merely retrieve text.
+- [MemoryAgentBench](https://github.com/HUST-AI-HYZ/MemoryAgentBench) separates
+  retrieval, learning, long-range understanding, and selective forgetting.
+- [StateMem](https://arxiv.org/html/2608.19652v1) motivates keeping a compact
+  current state rather than repeatedly reconstructing truth from stale logs.
+- [Meta's PAHF](https://ai.meta.com/research/publications/learning-personalized-agents-from-human-feedback/)
+  supports adaptation from human feedback while preserving a distinction
+  between evidence and an explicit user fact.
+- [NIST AI 600-1](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.600-1.pdf)
+  informs the privacy, provenance, misuse, and measurement guardrails.
 
 ## Evaluation
 
@@ -81,6 +105,15 @@ transaction journal and isolated verifier.
 recovery, privacy, integrity, migration, and idempotency groups, followed by a
 fixed-seed sweep of 240 mixed mutations. Every mutation rechecks journal,
 single-live-revision, and dependency-safety invariants.
+
+`supabase/functions/aero-memory/protocol.test.mjs` adds the server protocol's
+closed schema, deterministic contracts, explicit-versus-behavior authority,
+dependency invalidation, privacy reset, journal tamper detection, and
+accuracy-matched compression checks. `aero_server_owned_memory.test.mjs`
+checks the private schema, RLS, grants, locks, redaction, projection, and event
+chain. A production rollback-only transaction exercises prepare, commit,
+projection, terminal redaction, token consumption, and replay denial without
+retaining the disposable memory.
 
 `aero-memory.benchmark.js` runs 17 declared transactional-memory scenarios. Aero
 v0.2 passes 17/17; an intentionally simple append-only control passes 2/17. This
@@ -95,7 +128,7 @@ node aero-memory.benchmark.js
 ## Next evidence gates
 
 - natural-language conflict detection with a held-out false-conflict set;
-- server-owned, encrypted journal persistence and crash simulation;
+- crash and concurrent-device simulation against the server-owned journal;
 - temporal question answering across longer histories;
 - user studies measuring correction effort and harmful stale-memory rate;
 - dependency extraction that never promotes an inferred edge without evidence.

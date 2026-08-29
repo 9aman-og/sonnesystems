@@ -32,6 +32,13 @@
      await .cancelAeroRun({runId,contractDigest})
      await .inspectAeroRun(runId)
      await .forgetAeroRun({runId,contractDigest})
+     await .readAeroMemory()
+     await .prepareAeroMemory({requestKey,operations})
+     await .commitAeroMemory({transactionId,contractDigest,approvalToken})
+     await .observeAeroMemory({requestKey,operations})
+     await .cancelAeroMemory({transactionId,contractDigest})
+     await .inspectAeroMemory(transactionId)
+     await .forgetAeroMemoryTransaction({transactionId,contractDigest})
    ============================================================ */
 (function () {
   "use strict";
@@ -43,6 +50,7 @@
   var googleEnabled = CFG.googleEnabled === true;
   var aeroGatewayEnabled = CFG.aeroGatewayEnabled === true;
   var aeroExecutionEnabled = CFG.aeroExecutionEnabled === true;
+  var aeroMemoryEnabled = CFG.aeroMemoryEnabled === true;
   var providerSettingsChecked = false;
 
   // Exact pin keeps an upstream release from changing the app between deploys.
@@ -266,6 +274,48 @@
     return body;
   }
 
+  async function callAeroMemory(payload, retry) {
+    var token = await currentAccessToken();
+    if (!token) throw cloudError("Sign in before using private Aero memory.", 401, "sign_in_required");
+    var response = await fetch(SB_URL.replace(/\/$/, "") + "/functions/v1/aero-memory", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + token,
+        apikey: SB_ANON,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload || {}),
+    });
+    if (response.status === 401 && retry !== false) {
+      var refreshed = await sb.auth.refreshSession();
+      if (!(refreshed && refreshed.error)) return callAeroMemory(payload, false);
+    }
+    var body = {};
+    try { body = await response.json(); } catch (e) { /* a shaped error follows */ }
+    if (!response.ok) {
+      var code = String(body && body.error || "memory_unavailable");
+      var messages = {
+        sign_in_required: "Sign in before using private Aero memory.",
+        authentication_required: "Your session expired. Sign in again.",
+        not_allowed: "Private Aero memory is limited to this approved account.",
+        memory_not_configured: "Private Aero memory is not configured yet.",
+        memory_unavailable: "Private Aero memory is temporarily unavailable.",
+        memory_state_changed: "Aero memory changed after this review. Open the plan again.",
+        memory_approval_expired: "This memory approval expired. Review it again.",
+        memory_approval_replayed: "That memory approval was already used.",
+        memory_approval_invalid: "The approval no longer matches this exact memory change.",
+        memory_contract_changed: "The memory plan changed after review, so Aero stopped.",
+        memory_idempotency_conflict: "This request no longer matches its prepared memory plan.",
+        memory_integrity_failed: "Aero could not verify private memory, so nothing changed.",
+        memory_journal_integrity_failed: "Aero could not verify the memory journal, so nothing changed.",
+        memory_not_singular: "Choose exactly one memory to forget.",
+        rate_limited: "Aero is sending too quickly. Try again in a minute.",
+      };
+      throw cloudError(messages[code] || body.message || "Private Aero memory is unavailable.", response.status, code);
+    }
+    return body;
+  }
+
   function emitCloudConflict(result) {
     if (!(result && result.data && typeof result.rev === "number")) return;
     try {
@@ -280,6 +330,7 @@
     get googleEnabled() { return googleEnabled; },
     get aeroGatewayEnabled() { return aeroGatewayEnabled; },
     get aeroExecutionEnabled() { return aeroExecutionEnabled; },
+    get aeroMemoryEnabled() { return aeroMemoryEnabled; },
     get user() { return current; },
     get lastError() { return lastAuthError; },
 
@@ -381,6 +432,41 @@
     async forgetAeroRun(payload) {
       if (!configured || !aeroExecutionEnabled) throw cloudError("The protected Aero execution route is not enabled.", 503, "execution_disabled");
       return callAeroExecution(Object.assign({ op: "forget" }, payload || {}), true);
+    },
+
+    async readAeroMemory() {
+      if (!configured || !aeroMemoryEnabled) throw cloudError("Private Aero memory is not enabled.", 503, "memory_disabled");
+      return callAeroMemory({ op: "read" }, true);
+    },
+
+    async prepareAeroMemory(payload) {
+      if (!configured || !aeroMemoryEnabled) throw cloudError("Private Aero memory is not enabled.", 503, "memory_disabled");
+      return callAeroMemory(Object.assign({ op: "prepare" }, payload || {}), true);
+    },
+
+    async commitAeroMemory(payload) {
+      if (!configured || !aeroMemoryEnabled) throw cloudError("Private Aero memory is not enabled.", 503, "memory_disabled");
+      return callAeroMemory(Object.assign({ op: "commit" }, payload || {}), true);
+    },
+
+    async observeAeroMemory(payload) {
+      if (!configured || !aeroMemoryEnabled) throw cloudError("Private Aero memory is not enabled.", 503, "memory_disabled");
+      return callAeroMemory(Object.assign({ op: "observe" }, payload || {}), true);
+    },
+
+    async cancelAeroMemory(payload) {
+      if (!configured || !aeroMemoryEnabled) throw cloudError("Private Aero memory is not enabled.", 503, "memory_disabled");
+      return callAeroMemory(Object.assign({ op: "cancel" }, payload || {}), true);
+    },
+
+    async inspectAeroMemory(transactionId) {
+      if (!configured || !aeroMemoryEnabled) throw cloudError("Private Aero memory is not enabled.", 503, "memory_disabled");
+      return callAeroMemory({ op: "inspect", transactionId: transactionId }, true);
+    },
+
+    async forgetAeroMemoryTransaction(payload) {
+      if (!configured || !aeroMemoryEnabled) throw cloudError("Private Aero memory is not enabled.", 503, "memory_disabled");
+      return callAeroMemory(Object.assign({ op: "forget_transaction" }, payload || {}), true);
     },
 
     async signInEmail(email) {

@@ -17,5 +17,8 @@ window.LYFE_SUPABASE = {
   aeroGatewayEnabled: true,
   // Private, JWT-verified, account-allowlisted execution for reversible Lyfe
   // record changes. The server still fails closed if any invariant is missing.
-  aeroExecutionEnabled: true
+  aeroExecutionEnabled: true,
+  // Server-owned typed memory. Browser memory is only a read-through display
+  // cache for a signed-in account; explicit changes require one exact review.
+  aeroMemoryEnabled: true
 };

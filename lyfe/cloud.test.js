@@ -57,6 +57,7 @@ global.window = {
     anonKey: "sb_publishable_test_key_that_is_long_enough",
     aeroGatewayEnabled: true,
     aeroExecutionEnabled: true,
+    aeroMemoryEnabled: true,
   },
   supabase: { createClient: () => client },
   dispatchEvent(event) { events.push(event); },
@@ -97,6 +98,45 @@ vm.runInThisContext(fs.readFileSync(path.join(__dirname, "cloud.js"), "utf8"), {
   await assert.rejects(
     () => window.LyfeCloud.invokeAero({ prompt: "Again" }),
     (error) => error.status === 429 && error.code === "provider_rate_limited",
+  );
+
+  response = {
+    ok: true,
+    status: 200,
+    async json() {
+      return {
+        ok: true,
+        transactionId: "33333333-3333-4333-8333-333333333333",
+        contractDigest: "b".repeat(64),
+        approvalToken: "memory-only-private-approval-token-value",
+        review: [{ type: "memory_upsert", subject: "Private preference" }],
+      };
+    },
+  };
+  const memoryPrepared = await window.LyfeCloud.prepareAeroMemory({
+    requestKey: "memory-request-0001",
+    operations: [{ type: "remember", claim: "Private preference" }],
+  });
+  assert.equal(memoryPrepared.transactionId, "33333333-3333-4333-8333-333333333333");
+  assert.equal(requests.at(-1).url, "https://project.supabase.co/functions/v1/aero-memory");
+  assert.deepEqual(JSON.parse(requests.at(-1).options.body), {
+    op: "prepare",
+    requestKey: "memory-request-0001",
+    operations: [{ type: "remember", claim: "Private preference" }],
+  });
+
+  response = {
+    ok: false,
+    status: 409,
+    async json() { return { error: "memory_state_changed" }; },
+  };
+  await assert.rejects(
+    () => window.LyfeCloud.commitAeroMemory({
+      transactionId: memoryPrepared.transactionId,
+      contractDigest: memoryPrepared.contractDigest,
+      approvalToken: memoryPrepared.approvalToken,
+    }),
+    (error) => error.status === 409 && error.code === "memory_state_changed" && /changed/.test(error.message),
   );
 
   response = {

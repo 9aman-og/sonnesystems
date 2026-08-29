@@ -158,3 +158,26 @@ and the private allowlisted client flag is enabled. Live account smoke tests
 passed prepare/cancel, exact atomic commit, replay denial, stale-revision
 rejection, inspection, and privacy deletion. Re-run the same gates after any
 protocol, schema, authorization, or state-sync change.
+
+## Aero signed-in memory rollout
+
+`aero-memory` is separate from both the model gateway and the Lyfe record
+executor. It reads and writes only the authenticated account's private typed
+memory. The Edge Function closes the operation schema; service-role-only RPCs
+then prepare and commit one exact target against the current memory revision.
+The browser never receives the service-role key and never becomes the signed-in
+source of truth.
+
+Deploy the migration before the function, keep JWT verification on, run the
+server protocol and migration tests, then enable `aeroMemoryEnabled` in
+`supabase-config.js`. Verify read/bootstrap, prepare/cancel, commit, replay
+denial, stale-state rejection, feedback observation, privacy forget/reset, raw
+target redaction, and zero grants to `anon` or `authenticated` before release.
+
+Production status (29 August 2026): `aero_server_owned_memory` and the
+canonical-digest binding migration are applied. `aero-memory` v2 is active with
+JWT verification. A rollback-only production transaction passed exact
+prepare/commit, relational projection, event-chain
+validation, terminal redaction, one-use token consumption, and replay denial.
+The route rejects missing authentication with HTTP 401, consumer roles have no
+memory-RPC grants, and no disposable account memory was retained by verification.

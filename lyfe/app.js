@@ -746,6 +746,8 @@ const AERO_SERVER_ACTIONS = new Set([
   "add_task", "complete_task", "add_note", "add_doc", "log_work",
   "add_goal", "add_education", "add_project",
 ]);
+const AERO_MEMORY_ACTIONS = new Set(["memory_upsert", "memory_forget"]);
+let aeroMemoryAuthorityError = "";
 
 let gmailMessages = [];
 let gmailLoading = false;
@@ -1726,8 +1728,12 @@ function viewTodayAttentionDashboard() {
     : `<div class="today-module-empty"><strong>Your Library is ready.</strong><span>Save the context you will want Aero to recover later.</span><button class="btn btn-sm" data-action="new-note">Add note</button></div>`;
 
   const learningLine = metrics.compressionSamples > 0 && metrics.compression != null
-    ? `${Math.max(0, Math.round(metrics.compression * 100))}% less restating across repeated successful workflows.`
-    : "Learning begins only after repeated, successful, user-rated workflows.";
+    ? metrics.compression > 0 && metrics.intentAccuracyDelta != null && metrics.intentAccuracyDelta >= -0.02
+      ? `${Math.round(metrics.compression * 100)}% less restating across rated repeats, without lower first-pass accuracy.`
+      : metrics.compression > 0
+        ? `You are saying less, but first-pass accuracy has not held yet.`
+        : "No reliable communication compression yet. Aero is still learning the baseline."
+    : "Learning begins only after repeated, user-rated workflows.";
 
   return `<div class="today-system">
     <section class="today-hero" aria-labelledby="today-title">
@@ -2588,11 +2594,14 @@ const SOL_CHIPS = [
 function viewSol() {
   const s = state.data.settings;
   const provider = ["auto", "ollama", "groq", "offline"].includes(s.provider) ? s.provider : "auto";
-  const statusHtml =
+  const routeStatusHtml =
     provider === "auto" ? `<span class="on">◇</span> local first${s.aeroCloudEnabled ? " + Groq" : ""}`
     : provider === "ollama" ? `<span class="on">◇</span> local ${esc(s.ollamaModel || "qwen3:8b")}`
     : provider === "groq" ? `<span class="on">◇</span> Groq for cloud-safe prompts`
     : `○ built-in tools`;
+  const statusHtml = aeroMemoryAuthorityError
+    ? `<span aria-hidden="true">!</span> private memory paused`
+    : routeStatusHtml;
   const activeThread = activeAeroThread();
   const messages = activeAeroMessages();
   const log = messages.map(bubbleHtml).join("");
@@ -2615,7 +2624,7 @@ function viewSol() {
     return `<li class="is-${esc(memory.status)}"><span>${esc(memory.type)} · ${esc(memory.status)} · r${Math.max(0, Number(memory.revision || 0))}</span><p>${esc(memory.claim)}</p><small>${esc(source + lineage)}</small><button type="button" data-action="aero-forget" data-id="${esc(memory.id)}" aria-label="Forget this memory">Forget</button></li>`;
   }).join("") : `<li class="aero-memory-empty"><p>Aero is not carrying anything yet.</p></li>`;
   const firstPass = metrics.firstPassRate == null ? "&mdash;" : Math.round(metrics.firstPassRate * 100) + "%";
-  const compression = metrics.compressionSamples ? (metrics.compression > 0 ? "+" : "") + Math.round(metrics.compression * 100) + "%" : "&mdash;";
+  const compression = metrics.compressionSamples ? Math.round(metrics.compression * 100) + "%" : "&mdash;";
   const staleMemoryCount = (metrics.disputedMemories || 0) + (metrics.invalidatedMemories || 0);
   const memoryCount = metrics.activeMemories + " kept"
     + (metrics.candidateMemories ? " · " + metrics.candidateMemories + " candidate" + (metrics.candidateMemories === 1 ? "" : "s") : "")
@@ -2655,7 +2664,7 @@ function viewSol() {
         <aside class="aero-rail">
           <section class="aero-rail-card"><header><span class="eyebrow">AVAILABLE CONTEXT</span><b>${Math.round(context.provenanceCoverage * 100)}% ready</b></header><div class="aero-source-grid">${sourceCards || `<p>No sources are enabled.</p>`}</div><button class="linklike" type="button" data-action="settings">Choose sources →</button></section>
           <section class="aero-rail-card"><header><span class="eyebrow">WHAT AERO KNOWS</span><b>${memoryCount}</b></header><ul class="aero-memory-list">${memories}</ul><button class="linklike" type="button" data-action="aero-teach">Teach Aero →</button></section>
-          <section class="aero-rail-card aero-proof"><header><span class="eyebrow">GETTING EASIER</span><b>${proofLabel}</b></header><div class="aero-proof-grid"><div><strong>${metrics.scored}</strong><span>rated results</span></div><div><strong>${firstPass}</strong><span>right first time</span></div><div><strong>${metrics.averageWords ? metrics.averageWords.toFixed(1) : "&mdash;"}</strong><span>words needed</span></div><div><strong>${compression}</strong><span>less explaining</span></div></div><p>${metrics.compressionSamples} successful repeat${metrics.compressionSamples === 1 ? "" : "s"} compared so far.</p></section>
+          <section class="aero-rail-card aero-proof"><header><span class="eyebrow">GETTING EASIER</span><b>${proofLabel}</b></header><div class="aero-proof-grid"><div><strong>${metrics.scored}</strong><span>rated results</span></div><div><strong>${firstPass}</strong><span>right first time</span></div><div><strong>${metrics.averageWords ? metrics.averageWords.toFixed(1) : "&mdash;"}</strong><span>words needed</span></div><div><strong>${compression}</strong><span>less explaining</span></div></div><p>${metrics.compressionSamples} rated repeat${metrics.compressionSamples === 1 ? "" : "s"} compared, including misses.</p></section>
         </aside>
       </details>
     </div>`;
@@ -2732,10 +2741,31 @@ async function solSay(bubbles, meta) {
   }
 }
 
+function aeroServerKind(actions) {
+  if (!(CLOUD_MODE && window.LyfeCloud) || !Array.isArray(actions) || !actions.length) return "";
+  if (LyfeCloud.aeroExecutionEnabled && actions.every(action => action && AERO_SERVER_ACTIONS.has(action.type))) return "lyfe";
+  if (LyfeCloud.aeroMemoryEnabled && actions.every(action => action && AERO_MEMORY_ACTIONS.has(action.type))) return "memory";
+  if (LyfeCloud.aeroMemoryEnabled && actions.some(action => action && AERO_MEMORY_ACTIONS.has(action.type))) return "mixed";
+  return "";
+}
+
 function aeroServerEligible(actions) {
-  return !!(CLOUD_MODE && window.LyfeCloud && LyfeCloud.aeroExecutionEnabled
-    && Array.isArray(actions) && actions.length
-    && actions.every(action => action && AERO_SERVER_ACTIONS.has(action.type)));
+  return ["lyfe", "memory"].includes(aeroServerKind(actions));
+}
+
+function aeroMemoryOperations(actions) {
+  return (actions || []).map(candidate => window.AeroCore ? AeroCore.validateAction(candidate) : candidate).filter(Boolean).map(action => {
+    if (action.type === "memory_forget") return { type: "forget", query: action.query || action.claim };
+    return {
+      type: "remember",
+      claim: action.claim,
+      memoryType: action.memoryType || "semantic",
+      scope: action.scope || "global",
+      memoryKey: action.memoryKey || "",
+      dependsOn: Array.isArray(action.dependsOn) ? action.dependsOn : [],
+      supersedes: Array.isArray(action.supersedes) ? action.supersedes : [],
+    };
+  });
 }
 
 function aeroLocalReviewProposalModal(message) {
@@ -2753,54 +2783,98 @@ function aeroLocalReviewProposalModal(message) {
   );
 }
 
-function aeroServerReviewHtml(message, prepared) {
+function aeroServerReviewHtml(message, prepared, kind) {
   const review = Array.isArray(prepared.review) ? prepared.review : [];
   const count = review.length;
+  const memory = kind === "memory";
   return `<div class="aero-review-head"><div class="aero-review-brand"><img src="../assets/aero_logo.svg" alt=""><span>AERO</span></div><h3>${esc(AeroCore.actionSummary(message.proposal.actions))}</h3></div>
-    <div class="aero-review-runtime"><span>Atomic account run</span><b>${count} step${count === 1 ? "" : "s"}</b><b>1 database commit</b><b>Exact approval</b></div>
-    <div class="aero-review-list">${review.map((step, index) => `<article><span>${String(index + 1).padStart(2, "0")}</span><p>${esc(aeroActionDetail({ type: step.type, title: step.subject }))}<small>${esc(step.acceptance || "One matching Lyfe record exists.")}</small></p></article>`).join("")}</div>
+    <div class="aero-review-runtime"><span>${memory ? "Private memory transaction" : "Atomic account run"}</span><b>${count} step${count === 1 ? "" : "s"}</b><b>${memory ? "Authoritative state" : "1 database commit"}</b><b>Exact approval</b></div>
+    <div class="aero-review-list">${review.map((step, index) => {
+      const detail = step.type === "memory_upsert" ? aeroActionDetail({ type: step.type, claim: step.subject })
+        : step.type === "memory_forget" ? aeroActionDetail({ type: step.type, query: step.subject })
+          : step.subject || "Bound change";
+      return `<article><span>${String(index + 1).padStart(2, "0")}</span><p>${esc(detail)}<small>${esc(step.acceptance || "One matching Lyfe record exists.")}</small></p></article>`;
+    }).join("")}</div>
     <div class="aero-review-footer"><strong>${count} ${count === 1 ? "change" : "changes"}, all or nothing</strong><div><button type="button" class="btn" data-action="aero-cancel" data-id="${esc(message.id)}">Not now</button><button type="button" class="btn btn-primary" data-action="aero-apply" data-id="${esc(message.id)}">Apply exact plan</button></div></div>`;
 }
 
 async function aeroReviewProposalModal(message) {
   if (!message || !message.proposal || !Array.isArray(message.proposal.actions)) return;
-  if (!aeroServerEligible(message.proposal.actions)) {
+  const serverKind = aeroServerKind(message.proposal.actions);
+  if (!serverKind) {
     aeroLocalReviewProposalModal(message);
+    return;
+  }
+  if (serverKind === "mixed") {
+    openModal(
+      `<div class="aero-review-head"><div class="aero-review-brand"><img src="../assets/aero_logo.svg" alt=""><span>AERO</span></div><h3>Split this into two plans</h3></div>
+       <p class="settings-data-note">Memory and workspace records use separate private ledgers. Aero will not pretend they are one atomic change.</p>
+       <div class="aero-review-footer"><strong>Nothing changed</strong><button type="button" class="btn" data-action="modal-close">Close</button></div>`,
+      "aero-review-modal"
+    );
     return;
   }
   openModal(
     `<div class="aero-review-head"><div class="aero-review-brand"><img src="../assets/aero_logo.svg" alt=""><span>AERO</span></div><h3>Securing this plan</h3></div>
-     <div class="aero-review-runtime"><span>Checking the current Lyfe revision</span><b>Binding exact changes</b><b>No change yet</b></div>
+     <div class="aero-review-runtime"><span>Checking the current ${serverKind === "memory" ? "memory" : "Lyfe"} revision</span><b>Binding exact changes</b><b>No change yet</b></div>
      <div class="aero-review-footer"><strong>Preparing review</strong><button type="button" class="btn" data-action="modal-close">Close</button></div>`,
     "aero-review-modal"
   );
   try {
-    const flushed = await LyfeCloud.flush(state.data, state.data.rev);
-    if (flushed === false) throw Object.assign(new Error("Lyfe changed in another signed-in session. Open the plan again."), { code: "state_changed" });
-    const requestKey = (`aero-${message.id}-r${state.data.rev}`).slice(0, 160);
-    const messageIndex = state.data.chat.findIndex(item => item.id === message.id);
-    const userIntent = state.data.chat.slice(0, messageIndex).reverse().find(item => item.role === "user");
-    const prepared = await LyfeCloud.prepareAeroRun({
-      requestKey,
-      intent: String(userIntent && userIntent.text || "Apply this Aero plan").slice(0, 1_000),
-      actions: message.proposal.actions,
-    });
+    let prepared;
+    if (serverKind === "memory") {
+      const memoryRevision = Number(state.data.aero && state.data.aero.memoryRevision || 0);
+      prepared = await LyfeCloud.prepareAeroMemory({
+        requestKey: (`aero-memory-${message.id}-r${memoryRevision}`).slice(0, 160),
+        operations: aeroMemoryOperations(message.proposal.actions),
+      });
+    } else {
+      const flushed = await LyfeCloud.flush(state.data, state.data.rev);
+      if (flushed === false) throw Object.assign(new Error("Lyfe changed in another signed-in session. Open the plan again."), { code: "state_changed" });
+      const requestKey = (`aero-${message.id}-r${state.data.rev}`).slice(0, 160);
+      const messageIndex = state.data.chat.findIndex(item => item.id === message.id);
+      const userIntent = state.data.chat.slice(0, messageIndex).reverse().find(item => item.role === "user");
+      prepared = await LyfeCloud.prepareAeroRun({
+        requestKey,
+        intent: String(userIntent && userIntent.text || "Apply this Aero plan").slice(0, 1_000),
+        actions: message.proposal.actions,
+      });
+    }
     const current = state.data.chat.find(item => item.id === message.id);
+    if (serverKind === "memory" && prepared && prepared.status === "noop") {
+      if (prepared.state) state.data.aero = AeroCore.normalize(prepared.state);
+      if (current && current.proposal) {
+        current.proposal.status = "applied";
+        current.proposal.execution = "server-memory-noop";
+      }
+      closeModal();
+      save(false, true);
+      render();
+      toast("Aero already holds that memory");
+      return;
+    }
     if (!current || !current.proposal || current.proposal.status !== "pending") {
-      if (prepared && prepared.runId && prepared.contractDigest) {
-        LyfeCloud.cancelAeroRun({ runId: prepared.runId, contractDigest: prepared.contractDigest }).catch(() => {});
+      if (prepared && prepared.contractDigest) {
+        if (serverKind === "memory" && prepared.transactionId) {
+          LyfeCloud.cancelAeroMemory({ transactionId: prepared.transactionId, contractDigest: prepared.contractDigest }).catch(() => {});
+        } else if (prepared.runId) {
+          LyfeCloud.cancelAeroRun({ runId: prepared.runId, contractDigest: prepared.contractDigest }).catch(() => {});
+        }
       }
       closeModal();
       return;
     }
     aeroServerAuthority.set(message.id, {
+      kind: serverKind,
       runId: prepared.runId,
+      transactionId: prepared.transactionId,
       contractDigest: prepared.contractDigest,
       approvalToken: prepared.approvalToken,
       approvalExpiresAt: prepared.approvalExpiresAt,
       baseRev: prepared.baseRev,
+      baseRevision: prepared.baseRevision,
     });
-    openModal(aeroServerReviewHtml(current, prepared), "aero-review-modal");
+    openModal(aeroServerReviewHtml(current, prepared, serverKind), "aero-review-modal");
   } catch (error) {
     const copy = error && error.message ? error.message : "The protected review route is unavailable.";
     openModal(
@@ -2824,6 +2898,39 @@ async function applyServerAeroProposal(messageId) {
     .find(button => button.dataset.id === messageId);
   if (applyButton) { applyButton.disabled = true; applyButton.textContent = "Applying exact plan…"; }
   try {
+    if (binding.kind === "memory") {
+      const episodeEvidence = AeroCore.normalize(state.data.aero).episodes.find(item => item.id === message.episodeId);
+      const result = await LyfeCloud.commitAeroMemory({
+        transactionId: binding.transactionId,
+        contractDigest: binding.contractDigest,
+        approvalToken: binding.approvalToken,
+      });
+      aeroServerAuthority.delete(messageId);
+      state.data.aero = AeroCore.normalize(result.state);
+      const current = state.data.chat.find(item => item.id === messageId);
+      const actionCount = current && current.proposal ? current.proposal.actions.length : message.proposal.actions.length;
+      if (current && current.proposal) {
+        current.proposal.status = "applied";
+        current.proposal.execution = "server-memory-atomic";
+        current.proposal.receipt = {
+          transactionId: binding.transactionId,
+          digest: result.certificate && result.certificate.digest || "",
+          atomic: true,
+        };
+        if (current.episodeId) {
+          observeAeroOutcome(current.episodeId, "accepted", {
+            actionCount,
+            actionTypes: current.proposal.actions.map(action => action.type),
+            execution: "server-memory-atomic",
+          }, episodeEvidence);
+        }
+      }
+      closeModal();
+      save(false, true);
+      render();
+      toast(actionCount + " private memory change" + (actionCount === 1 ? " committed" : "s committed atomically"));
+      return;
+    }
     const result = await LyfeCloud.commitAeroRun({
       runId: binding.runId,
       contractDigest: binding.contractDigest,
@@ -2844,7 +2951,7 @@ async function applyServerAeroProposal(messageId) {
         atomic: true,
       };
       if (current.episodeId) {
-        state.data.aero = AeroCore.observeOutcome(state.data.aero, current.episodeId, "accepted", {
+        observeAeroOutcome(current.episodeId, "accepted", {
           actionCount,
           actionTypes: current.proposal.actions.map(action => action.type),
           execution: "server-atomic",
@@ -2877,12 +2984,16 @@ async function cancelServerAeroProposal(messageId) {
   aeroServerAuthority.delete(messageId);
   if (binding) {
     try {
-      await LyfeCloud.cancelAeroRun({ runId: binding.runId, contractDigest: binding.contractDigest });
+      if (binding.kind === "memory") {
+        await LyfeCloud.cancelAeroMemory({ transactionId: binding.transactionId, contractDigest: binding.contractDigest });
+      } else {
+        await LyfeCloud.cancelAeroRun({ runId: binding.runId, contractDigest: binding.contractDigest });
+      }
     } catch (_) { /* the memory-only authority is gone and expires server-side */ }
   }
   message.proposal.status = "cancelled";
   if (message.episodeId) {
-    state.data.aero = AeroCore.observeOutcome(state.data.aero, message.episodeId, "rejected", {
+    observeAeroOutcome(message.episodeId, "rejected", {
       actionCount: 0,
       actionTypes: message.proposal.actions.map(action => action.type),
     });
@@ -2891,6 +3002,61 @@ async function cancelServerAeroProposal(messageId) {
   save(false, true);
   render();
   toast("No changes made");
+}
+
+function observeAeroOutcome(episodeId, outcome, metadata, episodeOverride) {
+  if (!episodeId || !window.AeroCore) return;
+  const serverOwned = !!(CLOUD_MODE && window.LyfeCloud && LyfeCloud.user && LyfeCloud.aeroMemoryEnabled);
+  if (!serverOwned) {
+    state.data.aero = AeroCore.observeOutcome(state.data.aero, episodeId, outcome, metadata || {});
+    return;
+  }
+  // Signed-in feedback is evidence for the private ledger, not permission for
+  // the browser cache to mutate or promote memory while the request is in
+  // flight. The authoritative response replaces the cache after commit.
+  const episode = episodeOverride || AeroCore.normalize(state.data.aero).episodes.find(item => item.id === episodeId);
+  if (!episode) return;
+  const evidenceEpisode = Object.assign({}, episode, metadata || {});
+  const requestKey = (`aero-observe-${episodeId}-${outcome}`).slice(0, 160);
+  LyfeCloud.observeAeroMemory({
+    requestKey,
+    operations: [{ type: "observe", episode: evidenceEpisode, outcome }],
+  }).then(result => {
+    if (!(result && result.state)) return;
+    state.data.aero = AeroCore.normalize(result.state);
+    save(false, true);
+    render();
+  }).catch(() => {
+    // The immediate device feedback remains visible. A later authoritative
+    // read replaces it if the private server transaction did not commit.
+  });
+}
+
+async function commitDirectAeroMemory(operations, requestKey, successMessage) {
+  if (!(CLOUD_MODE && window.LyfeCloud && LyfeCloud.aeroMemoryEnabled)) return false;
+  openModal(
+    `<div class="aero-review-head"><div class="aero-review-brand"><img src="../assets/aero_logo.svg" alt=""><span>AERO</span></div><h3>Applying the private memory change</h3></div>
+     <div class="aero-review-runtime"><span>Exact target bound</span><b>One-use approval</b><b>No public data</b></div>`,
+    "aero-review-modal"
+  );
+  try {
+    const prepared = await LyfeCloud.prepareAeroMemory({ requestKey: requestKey.slice(0, 160), operations });
+    if (prepared.status === "noop") {
+      if (prepared.state) state.data.aero = AeroCore.normalize(prepared.state);
+      closeModal(); save(false, true); render(); toast(successMessage); return true;
+    }
+    const result = await LyfeCloud.commitAeroMemory({
+      transactionId: prepared.transactionId,
+      contractDigest: prepared.contractDigest,
+      approvalToken: prepared.approvalToken,
+    });
+    state.data.aero = AeroCore.normalize(result.state);
+    closeModal(); save(false, true); render(); toast(successMessage); return true;
+  } catch (error) {
+    closeModal();
+    toast(error && error.message ? error.message : "Aero stopped before changing memory");
+    return false;
+  }
 }
 
 function aeroActionDetail(action) {
@@ -4075,8 +4241,8 @@ function settingsModal() {
        <section class="settings-section">
          <div class="settings-section-copy"><span>04</span><div><h4>Memory</h4><p>Aero keeps only useful, reviewable patterns.</p></div></div>
          <div class="settings-stack">
-           <div class="aero-eval-strip"><div><b>${proof.scored}</b><span>results rated</span></div><div><b>${proof.compressionSamples}</b><span>successful repeats</span></div><div><b>${falsePromotion}</b><span>bad memory</span></div><div><b>${proof.proofReady ? "Working" : "Learning"}</b><span>proof status</span></div></div>
-           <label class="settings-check"><input type="checkbox" name="aeroLocalLearning" ${s.aeroLocalLearning !== false ? "checked" : ""}><span><b>Learn from successful outcomes</b><small>Track what worked and how much explaining it took.</small></span></label>
+           <div class="aero-eval-strip"><div><b>${proof.scored}</b><span>results rated</span></div><div><b>${proof.compressionSamples}</b><span>rated repeats</span></div><div><b>${falsePromotion}</b><span>bad memory</span></div><div><b>${proof.proofReady ? "Working" : "Learning"}</b><span>proof status</span></div></div>
+           <label class="settings-check"><input type="checkbox" name="aeroLocalLearning" ${s.aeroLocalLearning !== false ? "checked" : ""}><span><b>Learn from rated outcomes</b><small>Track successes and misses so shorter prompts never hide lower accuracy.</small></span></label>
            <label class="settings-check"><input type="checkbox" name="aeroTrainingConsent" ${s.aeroTrainingConsent ? "checked" : ""}><span><b>Allow manual example export</b><small>Only results you marked helpful. Never automatic.</small></span></label>
            <div class="settings-data-actions"><button type="button" class="btn" data-action="aero-teach">Teach Aero</button><button type="button" class="btn" data-action="aero-training-export">Export consented examples</button><button type="button" class="btn btn-danger" data-action="aero-reset">Reset Aero memory</button></div>
          </div>
@@ -4973,6 +5139,10 @@ document.addEventListener("click", (e) => {
     case "aero-apply": {
       const message = d.chat.find(item => item.id === id);
       if (!message || !message.proposal || message.proposal.status !== "pending") break;
+      if (aeroServerKind(message.proposal.actions) === "mixed") {
+        aeroReviewProposalModal(message);
+        break;
+      }
       if (aeroServerEligible(message.proposal.actions)) {
         applyServerAeroProposal(id);
         break;
@@ -4994,7 +5164,7 @@ document.addEventListener("click", (e) => {
         applied = applyActions(message.proposal.actions);
       }
       message.proposal.status = applied ? "applied" : executionFailure ? "failed" : "cancelled";
-      if (message.episodeId) d.aero = AeroCore.observeOutcome(d.aero, message.episodeId, applied ? "accepted" : "rejected", { actionCount: applied, actionTypes: message.proposal.actions.map(action => action.type) });
+      if (message.episodeId) observeAeroOutcome(message.episodeId, applied ? "accepted" : "rejected", { actionCount: applied, actionTypes: message.proposal.actions.map(action => action.type) });
       closeModal(); save(false, true); render();
       const rollbackFailed = executionFailure && executionFailure.code === "ROLLBACK_FAILED";
       toast(applied
@@ -5018,13 +5188,13 @@ document.addEventListener("click", (e) => {
         const runIndex = d.aeroRuns.findIndex(run => run.id === message.proposal.runId);
         if (runIndex >= 0) d.aeroRuns[runIndex] = AeroHarness.cancel(d.aeroRuns[runIndex]);
       }
-      if (message.episodeId) d.aero = AeroCore.observeOutcome(d.aero, message.episodeId, "rejected", { actionCount: 0, actionTypes: message.proposal.actions.map(action => action.type) });
+      if (message.episodeId) observeAeroOutcome(message.episodeId, "rejected", { actionCount: 0, actionTypes: message.proposal.actions.map(action => action.type) });
       closeModal(); save(false, true); render(); toast("No changes made");
       break;
     }
     case "aero-feedback": {
       const outcome = el.dataset.outcome === "helpful" ? "helpful" : "missed";
-      d.aero = AeroCore.observeOutcome(d.aero, id, outcome, { ratedAt: Date.now() });
+      observeAeroOutcome(id, outcome, { ratedAt: Date.now() });
       d.chat.forEach(item => { if (item.episodeId === id) item.feedback = outcome; });
       save(false, true); render(); toast(outcome === "helpful" ? "Aero learned from that success" : "Marked as a miss, no preference was learned");
       break;
@@ -5033,13 +5203,29 @@ document.addEventListener("click", (e) => {
     case "aero-teach": aeroTeachModal(); break;
     case "aero-training-export": exportAeroTrainingExamples(); break;
     case "aero-forget":
-      confirmDialog("Forget this Aero memory? The underlying Lyfe item, if any, is not deleted.", () => {
+      confirmDialog("Forget this Aero memory and its retained snapshots? The underlying Lyfe item, if any, is not deleted.", async () => {
+        if (CLOUD_MODE && window.LyfeCloud && LyfeCloud.aeroMemoryEnabled) {
+          await commitDirectAeroMemory(
+            [{ type: "forget", query: id }],
+            `aero-control-forget-${id}-${Date.now()}`,
+            "Aero memory forgotten"
+          );
+          return;
+        }
         d.aero = AeroCore.forgetMemory(d.aero, id);
         save(); render(); toast("Aero memory forgotten");
       }, "Forget");
       break;
     case "aero-reset":
-      confirmDialog("Reset Aero's memories and adaptation history? Your tasks, notes, Connect data and chat stay intact.", () => {
+      confirmDialog("Reset Aero's memories and adaptation history, including retained snapshots? Your tasks, notes, Connect data and chat stay intact.", async () => {
+        if (CLOUD_MODE && window.LyfeCloud && LyfeCloud.aeroMemoryEnabled) {
+          await commitDirectAeroMemory(
+            [{ type: "reset" }],
+            `aero-control-reset-${Date.now()}`,
+            "Aero memory reset"
+          );
+          return;
+        }
         d.aero = AeroCore.freshState();
         save(); closeModal(); render(); toast("Aero memory reset");
       }, "Reset Aero");
@@ -5975,12 +6161,45 @@ function submitOnboarding(fd) {
 function enterGuest() {
   if (booted) { hideAuthGate(); return; }   // opened the gate mid-session: just close it
   CLOUD_MODE = false;
+  aeroMemoryAuthorityError = "";
   ACTIVE_KEY = STORAGE_KEY;
   document.body.classList.remove("signed-in");
   state.data = loadData();
   hideAuthGate();
   const vault = window.AeroKnowledge ? AeroKnowledge.setOwner("guest") : Promise.resolve();
   Promise.resolve(vault).finally(bootApp);
+}
+
+async function refreshAuthoritativeAeroMemory(renderAfter) {
+  if (!(CLOUD_MODE && window.LyfeCloud && LyfeCloud.user && LyfeCloud.aeroMemoryEnabled && window.AeroCore)) return false;
+  const cached = AeroCore.normalize(state.data.aero);
+  const pendingEpisodes = cached.episodes.filter(episode => episode.outcome === "pending");
+  try {
+    const result = await LyfeCloud.readAeroMemory();
+    if (!(result && result.state)) throw new Error("Authoritative memory was unavailable.");
+    const authoritative = AeroCore.normalize(result.state);
+    if (authoritative.memoryRevision < cached.memoryRevision) return false;
+    const authoritativeEpisodeIds = new Set(authoritative.episodes.map(episode => episode.id));
+    authoritative.episodes = authoritative.episodes.concat(
+      pendingEpisodes.filter(episode => !authoritativeEpisodeIds.has(episode.id))
+    ).sort((left, right) => left.createdAt - right.createdAt).slice(-500);
+    state.data.aero = authoritative;
+    aeroMemoryAuthorityError = "";
+    try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data)); } catch (_) { /* in-memory authority still holds */ }
+    if (renderAfter && booted) render();
+    return true;
+  } catch (error) {
+    // A signed-in cache is never promoted to authority. If the private server
+    // cannot be verified, remove cached memories from prompt context until a
+    // later authoritative read succeeds.
+    const quarantined = AeroCore.freshState();
+    quarantined.episodes = pendingEpisodes.slice(-500);
+    state.data.aero = quarantined;
+    aeroMemoryAuthorityError = error && error.code ? String(error.code) : "memory_unavailable";
+    try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data)); } catch (_) { /* fail closed in memory */ }
+    if (renderAfter && booted) render();
+    return false;
+  }
 }
 
 /* signed in: pull the account's data (or seed it from this device on first
@@ -6016,6 +6235,10 @@ async function enterCloud() {
     }
   }
 
+  // Signed-in memory is server-owned. The Lyfe document keeps only a cache so
+  // a stale tab cannot quietly become the source of truth.
+  await refreshAuthoritativeAeroMemory(false);
+
   try { localStorage.setItem(ACTIVE_KEY, JSON.stringify(state.data)); } catch (e) {}
 
   LyfeCloud.subscribe(onCloudRemote);
@@ -6045,6 +6268,7 @@ function onCloudRemote(payload, force) {
   const ae = document.activeElement;
   const typing = ae && (ae.id === "pad-title" || ae.id === "pad-body");
   if (!typing) render();
+  refreshAuthoritativeAeroMemory(!typing);
 }
 
 window.addEventListener("lyfe:cloudconflict", event => {

@@ -722,9 +722,9 @@
       return ["helpful", "missed", "accepted", "rejected", "undone"].indexOf(episode.outcome) >= 0;
     });
     var successful = scored.filter(function (episode) { return episode.firstPass === true; });
-    var avgWords = successful.length ? successful.reduce(function (sum, episode) { return sum + episode.wordCount; }, 0) / successful.length : 0;
+    var avgWords = scored.length ? scored.reduce(function (sum, episode) { return sum + episode.wordCount; }, 0) / scored.length : 0;
     var groups = {};
-    successful.slice().sort(function (a, b) { return a.createdAt - b.createdAt; }).forEach(function (episode) {
+    scored.slice().sort(function (a, b) { return a.createdAt - b.createdAt; }).forEach(function (episode) {
       var actionTypes = list(episode.actionTypes).map(function (item) { return text(item, 60); }).filter(Boolean).sort();
       var key = actionTypes.length ? "action:" + actionTypes.join("+") : "family:" + episode.family;
       if (!groups[key]) groups[key] = [];
@@ -734,13 +734,25 @@
     Object.keys(groups).forEach(function (key) {
       var episodes = groups[key];
       if (episodes.length < 2) return;
-      var baseline = episodes[0].wordCount;
+      var baseline = episodes[0];
       episodes.slice(1).forEach(function (episode) {
-        comparable.push({ baseline: baseline, current: episode.wordCount, key: key });
+        comparable.push({
+          baseline: baseline.wordCount,
+          current: episode.wordCount,
+          baselineFirstPass: baseline.firstPass === true,
+          currentFirstPass: episode.firstPass === true,
+          key: key,
+        });
       });
     });
     var avgCold = comparable.length ? comparable.reduce(function (sum, item) { return sum + item.baseline; }, 0) / comparable.length : 0;
     var avgComparable = comparable.length ? comparable.reduce(function (sum, item) { return sum + item.current; }, 0) / comparable.length : 0;
+    var baselineFirstPassRate = comparable.length
+      ? comparable.filter(function (item) { return item.baselineFirstPass; }).length / comparable.length : null;
+    var repeatFirstPassRate = comparable.length
+      ? comparable.filter(function (item) { return item.currentFirstPass; }).length / comparable.length : null;
+    var intentAccuracyDelta = baselineFirstPassRate == null || repeatFirstPassRate == null
+      ? null : repeatFirstPassRate - baselineFirstPassRate;
     var inferred = aero.memories.filter(function (memory) { return memory.sourceMode === "inferred"; });
     var promoted = inferred.filter(function (memory) { return memory.wasPromoted === true; });
     var falsePromotions = promoted.filter(function (memory) { return (memory.failureCount || 0) > 0; });
@@ -752,8 +764,14 @@
       firstPassRate: scored.length ? successful.length / scored.length : null,
       averageWords: avgWords,
       coldBaseline: avgCold,
+      baselineWords: avgCold,
+      currentWords: avgComparable,
+      pairedSamples: comparable.length,
       compressionSamples: comparable.length,
       compression: avgCold > 0 ? 1 - avgComparable / avgCold : null,
+      baselineFirstPassRate: baselineFirstPassRate,
+      repeatFirstPassRate: repeatFirstPassRate,
+      intentAccuracyDelta: intentAccuracyDelta,
       memories: aero.memories.length,
       activeMemories: activeMemories.length,
       candidateMemories: candidateMemories.length,
@@ -766,7 +784,8 @@
       promotionCount: promoted.length,
       falsePromotions: falsePromotions.length,
       falsePromotionRate: promoted.length ? falsePromotions.length / promoted.length : null,
-      proofReady: comparable.length >= 5 && scored.length >= 10 && successful.length / scored.length >= 0.85
+      proofReady: comparable.length >= 5 && scored.length >= 10 && avgCold > avgComparable
+        && intentAccuracyDelta != null && intentAccuracyDelta >= -0.02
         && (!promoted.length || falsePromotions.length / promoted.length <= 0.05),
     };
   }

@@ -177,7 +177,7 @@ require this scorecard across repeated trials.
 | Dimension | Metric | v0 evidence gate |
 | --- | --- | --- |
 | Intent | First-pass intent accuracy | At least 85% across 10 rated outcomes |
-| Compression | Words for matched successful outcomes | Improvement across at least 5 repeated outcome families |
+| Compression | Words for every matched rated repeat, including misses | Fewer words across at least 5 paired repeats with first-pass accuracy delta no worse than -2 points |
 | Completion | Environment-verified acceptance conditions | 100% of reported completed steps audited |
 | False finish | Agent says done while a verifier fails | 0 in the release suite |
 | Authority | Unapproved or tampered plans executed | 0 across adversarial trials |
@@ -227,11 +227,14 @@ certificate. All three terminal states passed payload and event-chain checks.
 The two disposable runs were deleted with their cascaded events, leaving no
 orphans; the completed certificate remains as durable evidence.
 
-Transactional memory now
-handles conservative conflict, lineage, cascading invalidation, local recovery,
-and privacy deletion, but its journal is also browser-local. Arbitrary external
-tools are not enabled. The next evidence gates are WebAuthn user-presence
-approval, server-owned memory
-transactions, learned conflict detection with a held-out false-conflict set,
-and repeated Lyfe-native tasks with environment graders. The architecture and
-tests are designed so stronger claims can be earned rather than declared.
+Transactional memory now has a private signed-in authority in Postgres. The
+browser is a cache; explicit writes bind one exact typed target to one current
+revision and one-use approval, while feedback can produce only behavior-
+authority candidates. Conflict lineage, cascading invalidation, privacy
+forget/reset, terminal redaction, relational projection, and a hash-chained
+evidence journal are enforced at the server boundary. Arbitrary external tools
+are not enabled. The next evidence gates are WebAuthn user-presence approval,
+crash/concurrency trials, learned conflict detection with a held-out false-
+conflict set, and repeated Lyfe-native tasks with environment graders. The
+architecture and tests are designed so stronger claims can be earned rather
+than declared.

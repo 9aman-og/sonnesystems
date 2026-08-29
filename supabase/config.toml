@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.aero-execute]
 verify_jwt = true
+
+[functions.aero-memory]
+verify_jwt = true
