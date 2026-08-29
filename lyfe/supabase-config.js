@@ -15,7 +15,7 @@ window.LYFE_SUPABASE = {
   googleEnabled: true,
   // Calls an authenticated Edge Function. No provider secret is public here.
   aeroGatewayEnabled: true,
-  // Enabled only after the reviewed migration and aero-execute function are
-  // deployed. Keeping this false makes the rollout fail safely.
-  aeroExecutionEnabled: false
+  // Private, JWT-verified, account-allowlisted execution for reversible Lyfe
+  // record changes. The server still fails closed if any invariant is missing.
+  aeroExecutionEnabled: true
 };
