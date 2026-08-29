@@ -2623,13 +2623,25 @@ function viewSol() {
       : "";
     return `<li class="is-${esc(memory.status)}"><span>${esc(memory.type)} · ${esc(memory.status)} · r${Math.max(0, Number(memory.revision || 0))}</span><p>${esc(memory.claim)}</p><small>${esc(source + lineage)}</small><button type="button" data-action="aero-forget" data-id="${esc(memory.id)}" aria-label="Forget this memory">Forget</button></li>`;
   }).join("") : `<li class="aero-memory-empty"><p>Aero is not carrying anything yet.</p></li>`;
-  const firstPass = metrics.firstPassRate == null ? "&mdash;" : Math.round(metrics.firstPassRate * 100) + "%";
-  const compression = metrics.compressionSamples ? Math.round(metrics.compression * 100) + "%" : "&mdash;";
+  const pairedSamples = Number(metrics.pairedSamples || metrics.compressionSamples || 0);
+  const matchedWords = pairedSamples
+    ? `${Number(metrics.baselineWords || metrics.coldBaseline || 0).toFixed(1)} → ${Number(metrics.currentWords || 0).toFixed(1)}`
+    : "&mdash;";
+  const matchedAccuracy = pairedSamples && metrics.baselineFirstPassRate != null && metrics.repeatFirstPassRate != null
+    ? `${Math.round(metrics.baselineFirstPassRate * 100)}% → ${Math.round(metrics.repeatFirstPassRate * 100)}%`
+    : "&mdash;";
+  const compression = pairedSamples && metrics.compression != null ? Math.round(metrics.compression * 100) : null;
+  const accuracyDelta = pairedSamples && metrics.intentAccuracyDelta != null ? Math.round(metrics.intentAccuracyDelta * 100) : null;
   const staleMemoryCount = (metrics.disputedMemories || 0) + (metrics.invalidatedMemories || 0);
   const memoryCount = metrics.activeMemories + " kept"
     + (metrics.candidateMemories ? " · " + metrics.candidateMemories + " candidate" + (metrics.candidateMemories === 1 ? "" : "s") : "")
     + (staleMemoryCount ? " · " + staleMemoryCount + " held back" : "");
   const proofLabel = metrics.proofReady ? "working" : "learning your baseline";
+  const proofSummary = metrics.proofReady
+    ? `${compression}% less explaining with first-pass accuracy held (${accuracyDelta >= 0 ? "+" : ""}${accuracyDelta} points).`
+    : pairedSamples
+      ? `${pairedSamples} matched rated repeat${pairedSamples === 1 ? "" : "s"}; every miss stays in the comparison.`
+      : "Rate repeated workflows to establish a matched baseline.";
   const notificationCount = aeroUnreadNotificationCount();
   return `<header class="aero-head">
       <div class="aero-title-lockup"><img src="../assets/aero_logo.svg" alt=""><div><span class="eyebrow">AERO</span><h1>Ready when you are.</h1><p>Your work and context, shaped into a clear next move.</p></div></div>
@@ -2664,7 +2676,7 @@ function viewSol() {
         <aside class="aero-rail">
           <section class="aero-rail-card"><header><span class="eyebrow">AVAILABLE CONTEXT</span><b>${Math.round(context.provenanceCoverage * 100)}% ready</b></header><div class="aero-source-grid">${sourceCards || `<p>No sources are enabled.</p>`}</div><button class="linklike" type="button" data-action="settings">Choose sources →</button></section>
           <section class="aero-rail-card"><header><span class="eyebrow">WHAT AERO KNOWS</span><b>${memoryCount}</b></header><ul class="aero-memory-list">${memories}</ul><button class="linklike" type="button" data-action="aero-teach">Teach Aero →</button></section>
-          <section class="aero-rail-card aero-proof"><header><span class="eyebrow">GETTING EASIER</span><b>${proofLabel}</b></header><div class="aero-proof-grid"><div><strong>${metrics.scored}</strong><span>rated results</span></div><div><strong>${firstPass}</strong><span>right first time</span></div><div><strong>${metrics.averageWords ? metrics.averageWords.toFixed(1) : "&mdash;"}</strong><span>words needed</span></div><div><strong>${compression}</strong><span>less explaining</span></div></div><p>${metrics.compressionSamples} rated repeat${metrics.compressionSamples === 1 ? "" : "s"} compared, including misses.</p></section>
+          <section class="aero-rail-card aero-proof"><header><span class="eyebrow">GETTING EASIER</span><b>${proofLabel}</b></header><div class="aero-proof-grid"><div><strong>${metrics.scored}</strong><span>rated results</span></div><div><strong>${pairedSamples}</strong><span>matched repeats</span></div><div><strong>${matchedWords}</strong><span>words · first → repeat</span></div><div><strong>${matchedAccuracy}</strong><span>right first time</span></div></div><p>${esc(proofSummary)}</p></section>
         </aside>
       </details>
     </div>`;

@@ -123,12 +123,12 @@
 <script src="aero-core.js?v=aero-core-14"></script>
 <script src="aero-knowledge.js?v=aero-core-10"></script>
 <script src="aero-harness.js?v=aero-core-26"></script>
-<script src="app.js?v=aero-core-29"></script>
+<script src="app.js?v=aero-core-30"></script>
 <script>
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-  var workerRefreshKey = "lyfe.worker.refresh.aeroCore17";
+  var workerRefreshKey = "lyfe.worker.refresh.aeroCore18";
   if (!sessionStorage.getItem(workerRefreshKey)) {
     navigator.serviceWorker.addEventListener("controllerchange", function () {
       sessionStorage.setItem(workerRefreshKey, "1");
@@ -136,7 +136,7 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     }, { once: true });
   }
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js?v=aero-core-27").catch(function () { /* offline install optional */ });
+    navigator.serviceWorker.register("sw.js?v=aero-core-28").catch(function () { /* offline install optional */ });
   });
 }
 </script>
