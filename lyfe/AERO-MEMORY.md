@@ -76,6 +76,15 @@ one Postgres transaction. Completed, stale, cancelled, and expired transactions
 redact raw claims and target states while retaining only digests and minimal
 evidence. Forget and reset also remove claims from historical memory images.
 
+When an account enrolls an Aero approval device, every explicit `teach`,
+`confirm`, `forget`, `reset`, or other non-observation memory operation also
+requires a fresh WebAuthn user-verification assertion bound to the exact memory
+transaction and its current approval hash. Outcome feedback may still append a
+behavior-only `observe` candidate automatically because it cannot promote,
+supersede, forget, or reset a personal fact. The one-use presence grant and the
+memory target are consumed atomically; assertion replay or target drift changes
+neither memory nor revision.
+
 ## Evidence basis
 
 - [STALE](https://arxiv.org/html/2605.06527) shows that retrieving an update is
@@ -123,6 +132,13 @@ approval is rejected, the new approval commits, and the event/payload evidence
 remains valid. The final rollback removes the disposable auth user and every
 memory row.
 
+`supabase/tests/aero_presence_atomic_rollback.sql` adds the cross-boundary
+presence proof. It covers the legacy unenrolled path, enrolled fail-closed
+behavior, exact target and approval binding, wrong-token atomicity, presence
+certification, replay denial, and verified credential revocation while retaining
+historical grant evidence. The final rollback and a post-run count verify that
+the disposable user, credential, challenge, grant, run, and state rows are zero.
+
 `aero-memory.benchmark.js` runs 17 declared transactional-memory scenarios. Aero
 v0.2 passes 17/17; an intentionally simple append-only control passes 2/17. This
 is an invariant control experiment, not a measurement of a named competitor and
@@ -137,6 +153,7 @@ node aero-memory.benchmark.js
 
 - natural-language conflict detection with a held-out false-conflict set;
 - network interruption trials across prepare and commit response loss;
+- real-device WebAuthn enrollment, explicit memory commit, and recovery UX;
 - temporal question answering across longer histories;
 - user studies measuring correction effort and harmful stale-memory rate;
 - dependency extraction that never promotes an inferred edge without evidence.

@@ -2,17 +2,17 @@
    HTML is network-first (always fresh when online); versioned assets cache-first. */
 "use strict";
 
-const CACHE = "lyfe-aero-core-31-connect-20";
+const CACHE = "lyfe-aero-core-32-connect-20";
 const SHELL = [
   "./",
   "./index.html",
   "./styles.css?v=aero-core-27",
-  "./supabase-config.js?v=aero-core-15",
-  "./cloud.js?v=aero-core-16",
+  "./supabase-config.js?v=aero-core-16",
+  "./cloud.js?v=aero-core-17",
   "./aero-core.js?v=aero-core-14",
   "./aero-knowledge.js?v=aero-core-10",
   "./aero-harness.js?v=aero-core-26",
-  "./app.js?v=aero-core-30",
+  "./app.js?v=aero-core-31",
   "./connect.html",
   "./connect.css?v=connect20",
   "./connect-suite.css?v=connect20",

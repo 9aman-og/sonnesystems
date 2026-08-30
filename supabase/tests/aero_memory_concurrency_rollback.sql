@@ -93,9 +93,9 @@ begin
      or not coalesce((v_prepare_b->>'ok')::boolean, false)
   then raise exception 'concurrent prepare failed: %, %', v_prepare_a, v_prepare_b; end if;
 
-  v_commit_a := public.aero_commit_memory_transaction(v_user, v_tx_a, repeat('e', 64), v_token_a);
-  v_commit_b := public.aero_commit_memory_transaction(v_user, v_tx_b, repeat('0', 64), v_token_b);
-  v_replay_a := public.aero_commit_memory_transaction(v_user, v_tx_a, repeat('e', 64), v_token_a);
+  v_commit_a := public.aero_commit_memory_transaction(v_user, v_tx_a, repeat('e', 64), v_token_a, null);
+  v_commit_b := public.aero_commit_memory_transaction(v_user, v_tx_b, repeat('0', 64), v_token_b, null);
+  v_replay_a := public.aero_commit_memory_transaction(v_user, v_tx_a, repeat('e', 64), v_token_a, null);
   if not coalesce((v_commit_a->>'ok')::boolean, false)
      or v_commit_b->>'error' <> 'memory_state_changed'
      or v_replay_a->>'error' <> 'memory_approval_replayed'
@@ -134,8 +134,8 @@ begin
      or v_resume_c->>'transactionId' <> v_tx_c::text
   then raise exception 'crash resume prepare failed: %, %', v_prepare_c, v_resume_c; end if;
 
-  v_old_token_c := public.aero_commit_memory_transaction(v_user, v_tx_c, repeat('6', 64), v_token_c_old);
-  v_commit_c := public.aero_commit_memory_transaction(v_user, v_tx_c, repeat('6', 64), v_token_c_new);
+  v_old_token_c := public.aero_commit_memory_transaction(v_user, v_tx_c, repeat('6', 64), v_token_c_old, null);
+  v_commit_c := public.aero_commit_memory_transaction(v_user, v_tx_c, repeat('6', 64), v_token_c_new, null);
   if v_old_token_c->>'error' <> 'memory_approval_invalid'
      or not coalesce((v_commit_c->>'ok')::boolean, false)
   then raise exception 'crash resume authority failed: %, %', v_old_token_c, v_commit_c; end if;

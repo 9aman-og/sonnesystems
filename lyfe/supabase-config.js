@@ -20,5 +20,7 @@ window.LYFE_SUPABASE = {
   aeroExecutionEnabled: true,
   // Server-owned typed memory. Browser memory is only a read-through display
   // cache for a signed-in account; explicit changes require one exact review.
-  aeroMemoryEnabled: true
+  aeroMemoryEnabled: true,
+  // Optional WebAuthn user verification bound to the exact prepared contract.
+  aeroPresenceEnabled: true
 };

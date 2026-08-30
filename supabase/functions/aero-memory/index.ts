@@ -121,6 +121,7 @@ function statusForError(code: string) {
   if ([
     "memory_state_changed", "memory_approval_expired", "memory_approval_replayed",
     "memory_approval_invalid", "memory_contract_changed", "memory_prepare_race_retry",
+    "presence_required", "presence_invalid", "presence_replayed", "presence_expired",
     "memory_idempotency_conflict", "memory_transaction_not_prepared",
   ].includes(code)) return 409;
   return 400;
@@ -269,12 +270,15 @@ Deno.serve(async (req: Request) => {
           metrics: memoryMetrics(prepared.current.state),
         });
       }
+      const presence = await admin.rpc("aero_presence_status", { p_user_id: user.id });
+      if (presence.error || !presence.data?.ok) return json(origin, 503, { error: "presence_unavailable" });
       return json(origin, 200, {
         ...prepared.prepared,
         protocol: prepared.material.protocol,
         contractDigest: prepared.material.contractDigest,
         baseRevision: prepared.material.baseRevision,
         review: prepared.material.review,
+        presenceRequired: presence.data.enrolled === true,
         approvalToken: prepared.approvalToken,
         approvalExpiresAt: prepared.expiresAt,
       });
@@ -284,6 +288,7 @@ Deno.serve(async (req: Request) => {
       const transactionId = cleanText(body.transactionId, 80);
       const contractDigest = cleanText(body.contractDigest, 80);
       const approvalToken = cleanText(body.approvalToken, 200);
+      const presenceToken = cleanText(body.presenceToken, 200);
       if (!isUuid(transactionId) || !isDigest(contractDigest) || approvalToken.length < 32) {
         throw new ProtocolError("MEMORY_COMMIT_INPUT", "The approval binding is invalid.");
       }
@@ -292,6 +297,7 @@ Deno.serve(async (req: Request) => {
         p_transaction_id: transactionId,
         p_contract_digest: contractDigest,
         p_approval_token_hash: await hashToken(approvalToken),
+        p_presence_token_hash: presenceToken.length >= 32 ? await hashToken(presenceToken) : null,
       });
       if (committed.error) return json(origin, 503, { error: "memory_unavailable", detail: rpcError(committed.error) });
       const result = committed.data || {};
@@ -322,6 +328,7 @@ Deno.serve(async (req: Request) => {
         p_transaction_id: prepared.prepared.transactionId,
         p_contract_digest: prepared.material.contractDigest,
         p_approval_token_hash: await hashToken(prepared.approvalToken),
+        p_presence_token_hash: null,
       });
       if (committed.error) return json(origin, 503, { error: "memory_unavailable", detail: rpcError(committed.error) });
       const result = committed.data || {};

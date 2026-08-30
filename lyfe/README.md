@@ -85,6 +85,8 @@ Aero's current vertical slice includes:
   invalidation, privacy-safe forgetting, and guarded local recovery;
 - an epistemic governor that answers, previews, or asks one focused question;
 - reversible in-Lyfe action previews that require approval;
+- optional native WebAuthn user verification bound to each exact explicit
+  action or memory change, with one-use atomic server grants;
 - local outcome telemetry for first-pass intent and instruction length;
 - manual, consent-gated JSONL export of examples explicitly rated helpful.
 
@@ -139,6 +141,8 @@ node aero-memory.benchmark.js
 node aero-harness.test.js
 node aero-harness.benchmark.js
 node cloud.test.js
+node --test ../supabase/functions/aero-presence/protocol.test.mjs
+node --test ../supabase/migrations/aero_presence_boundary.test.mjs
 ```
 
 ## Your data

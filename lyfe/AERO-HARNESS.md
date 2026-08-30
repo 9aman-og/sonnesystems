@@ -67,7 +67,7 @@ Primary references:
 The model may suggest. It never grants itself authority, expands its own
 capabilities, or certifies that its own work succeeded.
 
-## v0.4 execution invariants
+## v0.5 execution invariants
 
 1. Every action type is allow-listed.
 2. Every concrete payload value is checked against the local action schema.
@@ -87,6 +87,42 @@ capabilities, or certifies that its own work succeeded.
 13. A failed run can retry only after a clean rollback and fresh user approval.
 14. Unknown actions, fields, routes, capabilities, authority states, or budget
     changes fail closed.
+15. After an account enrolls an approval device, every explicit record action
+    and explicit memory change requires a fresh WebAuthn assertion with user
+    verification. The assertion is bound to that prepared target, canonical
+    contract digest, current approval hash, account, origin, and expiry.
+16. Only a SHA-256 digest of the short-lived presence grant is stored. The raw
+    grant exists in browser memory for one commit and is consumed in the same
+    Postgres transaction as the target change.
+17. Verified device removal revokes future assertions but preserves historical
+    grant rows and completion-certificate evidence.
+
+## Transaction-bound user presence
+
+An ordinary signed-in session proves account access, not that a person approved
+one particular change. Aero therefore keeps sign-in and action approval as two
+separate layers. The optional approval device uses the browser WebAuthn API and
+a pinned SimpleWebAuthn verifier at the Edge Function boundary.
+
+1. Enrollment is allowed only after recent interactive authentication evidence;
+   a refreshed JWT alone is insufficient.
+2. Registration is accepted only for `https://sonnesystems.com`, RP ID
+   `sonnesystems.com`, with user verification required.
+3. An approval challenge is stored privately and bound to the account, target
+   type and ID, contract digest, current one-use approval hash, and expiry.
+4. A successful UV assertion creates a random 60-second grant. The browser sees
+   the raw grant once; Postgres stores only its SHA-256 digest.
+5. The commit RPC locks the exact grant, revalidates every binding, applies the
+   target, consumes both authorities, appends `presence_verified`, and closes
+   the completion certificate in one database transaction.
+6. Assertion replay, approval rotation, target drift, wrong-account use, expiry,
+   and missing presence fail before any Lyfe or memory state changes.
+
+The implementation follows the [WebAuthn Level 3](https://www.w3.org/TR/webauthn-3/)
+challenge/origin/RP and UP/UV verification model and uses
+[SimpleWebAuthn's server verifier](https://simplewebauthn.dev/docs/packages/server).
+The interactive-auth bootstrap reads Supabase AMR evidence as documented in
+[JWT fields](https://supabase.com/docs/guides/auth/jwt-fields).
 
 ## What the 2026 evidence changed
 
@@ -120,9 +156,13 @@ The v0.4 design is a direct response to several recent results:
 ## Deterministic invariant benchmark
 
 `aero-harness.benchmark.js` executes 18 adversarial scenarios across approval
-binding, tool security, verification, recovery, and termination. On the current
-release, Aero v0.4 passes 18/18. An intentionally minimal direct model-to-tool
-loop passes 0/18 because it has none of these controls.
+binding, tool security, verification, recovery, and termination. The
+deterministic Aero harness v0.4 passes 18/18. An intentionally minimal direct
+model-to-tool loop passes 0/18 because it has none of these controls.
+
+The v0.5 user-presence boundary is evaluated separately by protocol tests,
+static migration tests, and a production rollback test. It is not counted in
+the 18-case browser benchmark.
 
 This is a harness control experiment, not a benchmark of OpenClaw, Hermes, or
 any other third-party system. It proves that the implementation enforces its
@@ -233,8 +273,27 @@ revision and one-use approval, while feedback can produce only behavior-
 authority candidates. Conflict lineage, cascading invalidation, privacy
 forget/reset, terminal redaction, relational projection, and a hash-chained
 evidence journal are enforced at the server boundary. Arbitrary external tools
-are not enabled. The next evidence gates are WebAuthn user-presence approval,
-network-interruption trials, learned conflict detection with a held-out false-
-conflict set, and repeated Lyfe-native tasks with environment graders. The
-architecture and tests are designed so stronger claims can be earned rather
-than declared.
+are not enabled.
+
+Transaction-bound WebAuthn presence is now deployed for private accounts as an
+optional stronger approval mode. A rollback-only production SQL trial proves
+the server invariants: unenrolled review remains compatible; enrolled actions
+fail without presence; wrong target, approval, and grant bindings change no
+state; presence and the target commit atomically; replay is denied; completion
+is presence-certified; and verified revocation retains the audit rows. The same
+trial leaves no disposable records. This is not yet evidence that every real
+authenticator/browser combination works: a real-device enrollment and action
+trial remains a release gate.
+
+Current limitations are explicit. The trusted UI could still misdescribe a
+contract even though the signed assertion cannot be reused for a different
+server-side target. The v0.1 recovery model supports one active credential;
+loss of that credential requires operator-assisted recovery. Unenrolled
+accounts retain review-click approval. WebAuthn proves user verification at an
+authenticator, not that the person understood the plan.
+
+The next evidence gates are a real-authenticator production trial, network-
+interruption trials around assertion and commit response loss, learned conflict
+detection with a held-out false-conflict set, and repeated Lyfe-native tasks
+with environment graders. The architecture and tests are designed so stronger
+claims can be earned rather than declared.

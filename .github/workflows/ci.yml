@@ -41,10 +41,13 @@ jobs:
           node --test lyfe/aero-server-memory.test.mjs
           node --test supabase/functions/aero-execute/protocol.test.mjs
           node --test supabase/functions/aero-memory/protocol.test.mjs
+          node --test supabase/functions/aero-presence/protocol.test.mjs
           node --test supabase/migrations/aero_execution_boundary.test.mjs
           node --test supabase/migrations/aero_server_owned_memory.test.mjs
+          node --test supabase/migrations/aero_presence_boundary.test.mjs
           deno check supabase/functions/aero-execute/index.ts
           deno check supabase/functions/aero-memory/index.ts
+          deno check supabase/functions/aero-presence/index.ts
 
   backend-tests:
     name: Backend tests

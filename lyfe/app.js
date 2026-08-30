@@ -748,6 +748,7 @@ const AERO_SERVER_ACTIONS = new Set([
 ]);
 const AERO_MEMORY_ACTIONS = new Set(["memory_upsert", "memory_forget"]);
 let aeroMemoryAuthorityError = "";
+let aeroPresenceStatus = { loaded: false, loading: false, supported: false, enrolled: false, credentials: [] };
 
 let gmailMessages = [];
 let gmailLoading = false;
@@ -2799,15 +2800,16 @@ function aeroServerReviewHtml(message, prepared, kind) {
   const review = Array.isArray(prepared.review) ? prepared.review : [];
   const count = review.length;
   const memory = kind === "memory";
+  const presence = prepared.presenceRequired === true;
   return `<div class="aero-review-head"><div class="aero-review-brand"><img src="../assets/aero_logo.svg" alt=""><span>AERO</span></div><h3>${esc(AeroCore.actionSummary(message.proposal.actions))}</h3></div>
-    <div class="aero-review-runtime"><span>${memory ? "Private memory transaction" : "Atomic account run"}</span><b>${count} step${count === 1 ? "" : "s"}</b><b>${memory ? "Authoritative state" : "1 database commit"}</b><b>Exact approval</b></div>
+    <div class="aero-review-runtime"><span>${memory ? "Private memory transaction" : "Atomic account run"}</span><b>${count} step${count === 1 ? "" : "s"}</b><b>${memory ? "Authoritative state" : "1 database commit"}</b><b>${presence ? "Device verification" : "Exact approval"}</b></div>
     <div class="aero-review-list">${review.map((step, index) => {
       const detail = step.type === "memory_upsert" ? aeroActionDetail({ type: step.type, claim: step.subject })
         : step.type === "memory_forget" ? aeroActionDetail({ type: step.type, query: step.subject })
           : step.subject || "Bound change";
       return `<article><span>${String(index + 1).padStart(2, "0")}</span><p>${esc(detail)}<small>${esc(step.acceptance || "One matching Lyfe record exists.")}</small></p></article>`;
     }).join("")}</div>
-    <div class="aero-review-footer"><strong>${count} ${count === 1 ? "change" : "changes"}, all or nothing</strong><div><button type="button" class="btn" data-action="aero-cancel" data-id="${esc(message.id)}">Not now</button><button type="button" class="btn btn-primary" data-action="aero-apply" data-id="${esc(message.id)}">Apply exact plan</button></div></div>`;
+    <div class="aero-review-footer"><strong>${count} ${count === 1 ? "change" : "changes"}, all or nothing</strong><div><button type="button" class="btn" data-action="aero-cancel" data-id="${esc(message.id)}">Not now</button><button type="button" class="btn btn-primary" data-action="aero-apply" data-id="${esc(message.id)}">${presence ? "Verify & apply" : "Apply exact plan"}</button></div></div>`;
 }
 
 async function aeroReviewProposalModal(message) {
@@ -2883,6 +2885,7 @@ async function aeroReviewProposalModal(message) {
       contractDigest: prepared.contractDigest,
       approvalToken: prepared.approvalToken,
       approvalExpiresAt: prepared.approvalExpiresAt,
+      presenceRequired: prepared.presenceRequired === true,
       baseRev: prepared.baseRev,
       baseRevision: prepared.baseRevision,
     });
@@ -2908,14 +2911,27 @@ async function applyServerAeroProposal(messageId) {
   }
   const applyButton = Array.from(document.querySelectorAll('[data-action="aero-apply"]'))
     .find(button => button.dataset.id === messageId);
-  if (applyButton) { applyButton.disabled = true; applyButton.textContent = "Applying exact plan…"; }
+  if (applyButton) { applyButton.disabled = true; applyButton.textContent = binding.presenceRequired ? "Verify on this device…" : "Applying exact plan…"; }
   try {
+    let presenceToken = "";
+    if (binding.presenceRequired) {
+      const presence = await LyfeCloud.approveAeroPresence({
+        targetType: binding.kind === "memory" ? "memory" : "run",
+        targetId: binding.kind === "memory" ? binding.transactionId : binding.runId,
+        contractDigest: binding.contractDigest,
+        approvalToken: binding.approvalToken,
+      });
+      presenceToken = String(presence && presence.presenceToken || "");
+      if (!presenceToken) throw Object.assign(new Error("Your device did not return an approval for this exact plan."), { code: "presence_invalid" });
+      if (applyButton) applyButton.textContent = "Applying verified plan…";
+    }
     if (binding.kind === "memory") {
       const episodeEvidence = AeroCore.normalize(state.data.aero).episodes.find(item => item.id === message.episodeId);
       const result = await LyfeCloud.commitAeroMemory({
         transactionId: binding.transactionId,
         contractDigest: binding.contractDigest,
         approvalToken: binding.approvalToken,
+        presenceToken,
       });
       aeroServerAuthority.delete(messageId);
       state.data.aero = AeroCore.normalize(result.state);
@@ -2928,6 +2944,7 @@ async function applyServerAeroProposal(messageId) {
           transactionId: binding.transactionId,
           digest: result.certificate && result.certificate.digest || "",
           atomic: true,
+          presenceVerified: !!(result.certificate && result.certificate.payload && result.certificate.payload.presence && result.certificate.payload.presence.verified),
         };
         if (current.episodeId) {
           observeAeroOutcome(current.episodeId, "accepted", {
@@ -2947,6 +2964,7 @@ async function applyServerAeroProposal(messageId) {
       runId: binding.runId,
       contractDigest: binding.contractDigest,
       approvalToken: binding.approvalToken,
+      presenceToken,
     });
     aeroServerAuthority.delete(messageId);
     state.data = normalize(result.state);
@@ -2961,6 +2979,7 @@ async function applyServerAeroProposal(messageId) {
         runId: binding.runId,
         digest: result.certificate && result.certificate.digest || "",
         atomic: true,
+        presenceVerified: !!(result.certificate && result.certificate.payload && result.certificate.payload.presence && result.certificate.payload.presence.verified),
       };
       if (current.episodeId) {
         observeAeroOutcome(current.episodeId, "accepted", {
@@ -3057,10 +3076,22 @@ async function commitDirectAeroMemory(operations, requestKey, successMessage) {
       if (prepared.state) state.data.aero = AeroCore.normalize(prepared.state);
       closeModal(); save(false, true); render(); toast(successMessage); return true;
     }
+    let presenceToken = "";
+    if (prepared.presenceRequired) {
+      const presence = await LyfeCloud.approveAeroPresence({
+        targetType: "memory",
+        targetId: prepared.transactionId,
+        contractDigest: prepared.contractDigest,
+        approvalToken: prepared.approvalToken,
+      });
+      presenceToken = String(presence && presence.presenceToken || "");
+      if (!presenceToken) throw new Error("Your device did not verify this exact memory change.");
+    }
     const result = await LyfeCloud.commitAeroMemory({
       transactionId: prepared.transactionId,
       contractDigest: prepared.contractDigest,
       approvalToken: prepared.approvalToken,
+      presenceToken,
     });
     state.data.aero = AeroCore.normalize(result.state);
     closeModal(); save(false, true); render(); toast(successMessage); return true;
@@ -4212,6 +4243,46 @@ function accountRowHtml() {
   </div>`;
 }
 
+function aeroPresenceSettingsHtml() {
+  const signedIn = !!(CLOUD_MODE && window.LyfeCloud && LyfeCloud.user);
+  if (!signedIn) {
+    return `<div class="settings-integration-row"><span class="acct-dot"></span><div><b>Sign in to protect approvals</b><small>Device verification belongs to one private Lyfe account.</small></div></div>`;
+  }
+  if (!(window.LyfeCloud && LyfeCloud.aeroPresenceEnabled)) {
+    return `<div class="settings-integration-row"><span class="acct-dot"></span><div><b>Secure approvals unavailable</b><small>This deployment has not enabled transaction-bound device verification.</small></div></div>`;
+  }
+  if (aeroPresenceStatus.loading && !aeroPresenceStatus.loaded) {
+    return `<div class="settings-integration-row"><span class="acct-dot"></span><div><b>Checking approval security…</b><small>No setting changes while Aero verifies the account.</small></div></div>`;
+  }
+  if (aeroPresenceStatus.error) {
+    return `<div class="settings-integration-row"><span class="acct-dot"></span><div><b>Approval status unavailable</b><small>${esc(aeroPresenceStatus.error)} Aero will not assume review-click approval.</small></div></div>`;
+  }
+  const unavailable = aeroPresenceStatus.loaded && aeroPresenceStatus.availableHere === false;
+  if (aeroPresenceStatus.enrolled) {
+    const credential = Array.isArray(aeroPresenceStatus.credentials) ? aeroPresenceStatus.credentials[0] : null;
+    const name = credential && credential.friendlyName || "Secure approval device";
+    return `<div class="settings-integration-row"><span class="acct-dot on"></span><div><b>Device verification is on</b><small>${unavailable ? "This browser cannot prompt for the enrolled approval device." : `${esc(name)} · every explicit Aero change is verified against its exact contract.`}</small></div><button type="button" class="btn btn-danger" data-action="aero-presence-remove" ${unavailable ? "disabled" : ""}>Remove</button></div>
+      <p class="fld-note">Aero still records misses automatically. Only explicit record or memory changes invoke Windows Hello, a passkey, or your security key. Removing the device revokes future use and keeps prior approval receipts.</p>`;
+  }
+  return `<div class="settings-integration-row"><span class="acct-dot"></span><div><b>Review click only</b><small>${unavailable ? "Open sonnesystems.com in a WebAuthn-capable browser to enroll." : "Add device verification so a stolen session cannot silently commit an Aero plan."}</small></div><button type="button" class="btn btn-primary" data-action="aero-presence-enroll" ${unavailable ? "disabled" : ""}>Add secure approval</button></div>
+    <p class="fld-note">One approval device can be active in v0.1. If you lose it, operator-assisted recovery is required. Enrollment never happens without your device's native prompt.</p>`;
+}
+
+async function refreshAeroPresenceStatus() {
+  if (!(CLOUD_MODE && window.LyfeCloud && LyfeCloud.user && LyfeCloud.aeroPresenceEnabled)) return;
+  aeroPresenceStatus.loading = true;
+  const current = document.getElementById("aero-presence-settings");
+  if (current) current.innerHTML = aeroPresenceSettingsHtml();
+  try {
+    const result = await LyfeCloud.aeroPresenceStatus();
+    aeroPresenceStatus = Object.assign({ loaded: true, loading: false, supported: true, enrolled: false, credentials: [] }, result || {});
+  } catch (error) {
+    aeroPresenceStatus = { loaded: true, loading: false, supported: false, enrolled: false, credentials: [], error: error && error.message || "Secure approval status is unavailable." };
+  }
+  const target = document.getElementById("aero-presence-settings");
+  if (target) target.innerHTML = aeroPresenceSettingsHtml();
+}
+
 function settingsModal() {
   const s = state.data.settings;
   const sources = s.aeroSources || {};
@@ -4259,12 +4330,16 @@ function settingsModal() {
            <div class="settings-data-actions"><button type="button" class="btn" data-action="aero-teach">Teach Aero</button><button type="button" class="btn" data-action="aero-training-export">Export consented examples</button><button type="button" class="btn btn-danger" data-action="aero-reset">Reset Aero memory</button></div>
          </div>
        </section>
+       <section class="settings-section settings-security">
+         <div class="settings-section-copy"><span>05</span><div><h4>Approval security</h4><p>Bind each explicit change to you and its exact plan.</p></div></div>
+         <div id="aero-presence-settings" class="settings-stack">${aeroPresenceSettingsHtml()}</div>
+       </section>
        <section class="settings-section settings-gmail">
-         <div class="settings-section-copy"><span>05</span><div><h4>Connections</h4><p>Connected is separate from allowed.</p></div></div>
+         <div class="settings-section-copy"><span>06</span><div><h4>Connections</h4><p>Connected is separate from allowed.</p></div></div>
          <div class="settings-integration-row"><span class="gmail-g">G</span><div><b>${window.LyfeCloud && LyfeCloud.gmailToken ? "Gmail connected" : "Gmail not connected"}</b><small>Read-only metadata and snippets. Nothing is saved to Library unless you choose Save.</small></div><button type="button" class="btn" data-action="gmail-connect">${window.LyfeCloud && LyfeCloud.gmailToken ? "Reconnect" : "Connect Gmail"}</button></div>
        </section>
        <section class="settings-section">
-         <div class="settings-section-copy"><span>06</span><div><h4>Model routing</h4><p>Aero chooses an engine; Aero remains the system.</p></div></div>
+         <div class="settings-section-copy"><span>07</span><div><h4>Model routing</h4><p>Aero chooses an engine; Aero remains the system.</p></div></div>
          <div class="settings-stack">
            ${fld("Routing mode", selectHtml("provider", [["auto", "Automatic · local first"], ["ollama", "Ollama only"], ["groq", "Groq for cloud-safe prompts"], ["offline", "Built-in tools only"]], ["auto", "ollama", "groq", "offline"].includes(s.provider) ? s.provider : "auto"))}
            <label class="settings-check"><input type="checkbox" name="aeroCloudEnabled" ${s.aeroCloudEnabled ? "checked" : ""}><span><b>Use free Groq for cloud-safe prompts</b><small>Sends only the current prompt. Lyfe context stays local. If free capacity runs out, Aero falls back locally instead of charging.</small></span></label>
@@ -4278,11 +4353,11 @@ function settingsModal() {
          </div>
        </section>
        <section class="settings-section">
-         <div class="settings-section-copy"><span>07</span><div><h4>Personal & display</h4><p>Profile basics and appearance.</p></div></div>
+         <div class="settings-section-copy"><span>08</span><div><h4>Personal & display</h4><p>Profile basics and appearance.</p></div></div>
            <div><div class="fld-row">${fld("Your name", `<input type="text" name="name" maxlength="60" value="${esc(s.name || "")}" placeholder="How Aero greets you">`)}${fld("Appearance", selectHtml("theme", [["auto", "Follow the time"], ["light", "Pearl light"], ["dark", "Graphite dark"]], s.theme === "day" ? "light" : s.theme === "night" ? "dark" : (["auto", "light", "dark"].includes(s.theme) ? s.theme : "auto")))}${fld("Aero reaches out", selectHtml("aeroProactiveMode", [["brief", "One useful check-in a day"], ["important", "Urgent only"], ["quiet", "Updates panel only"], ["off", "Never"]], ["brief", "important", "quiet", "off"].includes(s.aeroProactiveMode) ? s.aeroProactiveMode : "brief"))}${fld("Interface sounds", selectHtml("sound", [["on", "On"], ["off", "Off"]], s.sound === false ? "off" : "on"))}</div><div class="fld-row">${fld("Age (optional)", `<input type="number" name="age" min="1" max="120" value="${esc(s.age || "")}" placeholder="Only if useful to you">`)}${fld("Country (optional)", `<input type="text" name="country" maxlength="56" value="${esc(s.country || "")}" placeholder="Used for your profile">`)}</div><p class="fld-note">Routine work stays in Updates. Aero can start one conversation a day; only an urgent item may add a second.</p></div>
        </section>
        <section class="settings-section settings-data">
-         <div class="settings-section-copy"><span>08</span><div><h4>Backups</h4><p>Download or restore Lyfe data.</p></div></div>
+         <div class="settings-section-copy"><span>09</span><div><h4>Backups</h4><p>Download or restore Lyfe data.</p></div></div>
          <div><p class="settings-data-note">${CLOUD_MODE ? "Your account is synced and also cached on this device for offline use." : "You are using Lyfe on this device. A backup is the easiest way to move or protect it."}</p><div class="settings-data-actions"><button type="button" class="btn" data-action="export">Download backup</button><button type="button" class="btn" data-action="import">Restore backup</button></div></div>
        </section>
        ${modalActions("Save settings")}
@@ -5328,7 +5403,38 @@ document.addEventListener("click", (e) => {
     /* data & settings */
     case "export": doExport(); break;
     case "import": document.getElementById("importFile").click(); break;
-    case "settings": settingsModal(); break;
+    case "settings":
+      settingsModal();
+      refreshAeroPresenceStatus();
+      break;
+    case "aero-presence-enroll": {
+      if (!(window.LyfeCloud && LyfeCloud.aeroPresenceEnabled && LyfeCloud.user)) {
+        toast("Sign in before adding secure approval");
+        break;
+      }
+      el.disabled = true;
+      el.textContent = "Waiting for your device…";
+      LyfeCloud.enrollAeroPresence().then(() => {
+        aeroPresenceStatus = { loaded: false, loading: false, supported: true, enrolled: true, credentials: [] };
+        settingsModal();
+        refreshAeroPresenceStatus();
+        toast("Device verification is on");
+      }).catch(error => {
+        el.disabled = false;
+        el.textContent = "Add secure approval";
+        toast(error && error.message ? error.message : "Secure approval setup failed");
+      });
+      break;
+    }
+    case "aero-presence-remove":
+      confirmDialog("Remove device verification? Explicit Aero changes will return to review-click approval.", () => {
+        LyfeCloud.removeAeroPresence().then(() => {
+          aeroPresenceStatus = { loaded: true, loading: false, supported: true, enrolled: false, credentials: [] };
+          settingsModal();
+          toast("Device verification removed");
+        }).catch(error => toast(error && error.message ? error.message : "Secure approval removal failed"));
+      }, "Verify & remove");
+      break;
     case "cmd-pick": cmdActivate(cmdItems[+el.dataset.i]); break;
 
     /* accounts */

@@ -119,6 +119,7 @@ function statusForError(code: string) {
   if ([
     "idempotency_conflict", "prepare_race_retry", "contract_changed", "approval_replayed",
     "run_not_prepared", "approval_expired", "approval_invalid", "state_changed",
+    "presence_required", "presence_invalid", "presence_replayed", "presence_expired",
   ].includes(code)) return 409;
   return 400;
 }
@@ -206,9 +207,12 @@ Deno.serve(async (req: Request) => {
       if (prepared.error) return json(origin, 503, { error: "execution_unavailable", detail: rpcError(prepared.error) });
       const result = prepared.data || {};
       if (!result.ok) return json(origin, statusForError(String(result.error || "")), result);
+      const presence = await admin.rpc("aero_presence_status", { p_user_id: user.id });
+      if (presence.error || !presence.data?.ok) return json(origin, 503, { error: "presence_unavailable" });
       return json(origin, 200, {
         ...result,
         protocol: material.protocol,
+        presenceRequired: presence.data.enrolled === true,
         approvalToken: result.status === "prepared" ? approvalToken : null,
         approvalExpiresAt: result.status === "prepared" ? expiresAt : null,
       });
@@ -218,6 +222,7 @@ Deno.serve(async (req: Request) => {
       const runId = cleanText(body.runId, 80);
       const contractDigest = cleanText(body.contractDigest, 80);
       const approvalToken = cleanText(body.approvalToken, 200);
+      const presenceToken = cleanText(body.presenceToken, 200);
       if (!isUuid(runId) || !isDigest(contractDigest) || approvalToken.length < 32) {
         throw new ProtocolError("COMMIT_INPUT", "The approval binding is invalid.");
       }
@@ -226,6 +231,7 @@ Deno.serve(async (req: Request) => {
         p_run_id: runId,
         p_contract_digest: contractDigest,
         p_approval_token_hash: await hashToken(approvalToken),
+        p_presence_token_hash: presenceToken.length >= 32 ? await hashToken(presenceToken) : null,
       });
       if (committed.error) return json(origin, 503, { error: "execution_unavailable", detail: rpcError(committed.error) });
       const result = committed.data || {};

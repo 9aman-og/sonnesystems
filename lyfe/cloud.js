@@ -28,17 +28,21 @@
      .pushConnectDebounced(data, rev)
      await .invokeAero({prompt,date,kind})
      await .prepareAeroRun({requestKey,intent,actions})
-     await .commitAeroRun({runId,contractDigest,approvalToken})
+     await .commitAeroRun({runId,contractDigest,approvalToken,presenceToken})
      await .cancelAeroRun({runId,contractDigest})
      await .inspectAeroRun(runId)
      await .forgetAeroRun({runId,contractDigest})
      await .readAeroMemory()
      await .prepareAeroMemory({requestKey,operations})
-     await .commitAeroMemory({transactionId,contractDigest,approvalToken})
+     await .commitAeroMemory({transactionId,contractDigest,approvalToken,presenceToken})
      await .observeAeroMemory({requestKey,operations})
      await .cancelAeroMemory({transactionId,contractDigest})
      await .inspectAeroMemory(transactionId)
      await .forgetAeroMemoryTransaction({transactionId,contractDigest})
+     await .aeroPresenceStatus()
+     await .enrollAeroPresence()
+     await .approveAeroPresence({targetType,targetId,contractDigest,approvalToken})
+     await .removeAeroPresence()
    ============================================================ */
 (function () {
   "use strict";
@@ -51,6 +55,7 @@
   var aeroGatewayEnabled = CFG.aeroGatewayEnabled === true;
   var aeroExecutionEnabled = CFG.aeroExecutionEnabled === true;
   var aeroMemoryEnabled = CFG.aeroMemoryEnabled === true;
+  var aeroPresenceEnabled = CFG.aeroPresenceEnabled === true;
   var providerSettingsChecked = false;
 
   // Exact pin keeps an upstream release from changing the app between deploys.
@@ -263,6 +268,10 @@
         approval_expired: "This approval expired. Review the plan again.",
         approval_replayed: "That approval was already used.",
         approval_invalid: "The approval no longer matches this exact plan.",
+        presence_required: "Verify this exact plan on your device before Aero applies it.",
+        presence_invalid: "Device verification no longer matches this exact plan.",
+        presence_replayed: "That device verification was already used.",
+        presence_expired: "Device verification expired. Review and verify again.",
         contract_changed: "The plan changed after review, so Aero stopped.",
         idempotency_conflict: "This request no longer matches its prepared plan.",
         run_integrity_failed: "Aero could not verify the stored run, so nothing changed.",
@@ -304,6 +313,10 @@
         memory_approval_expired: "This memory approval expired. Review it again.",
         memory_approval_replayed: "That memory approval was already used.",
         memory_approval_invalid: "The approval no longer matches this exact memory change.",
+        presence_required: "Verify this exact memory change on your device before Aero applies it.",
+        presence_invalid: "Device verification no longer matches this exact memory change.",
+        presence_replayed: "That device verification was already used.",
+        presence_expired: "Device verification expired. Review and verify again.",
         memory_contract_changed: "The memory plan changed after review, so Aero stopped.",
         memory_idempotency_conflict: "This request no longer matches its prepared memory plan.",
         memory_integrity_failed: "Aero could not verify private memory, so nothing changed.",
@@ -312,6 +325,126 @@
         rate_limited: "Aero is sending too quickly. Try again in a minute.",
       };
       throw cloudError(messages[code] || body.message || "Private Aero memory is unavailable.", response.status, code);
+    }
+    return body;
+  }
+
+  function base64urlBytes(value) {
+    var clean = String(value || "").replace(/-/g, "+").replace(/_/g, "/");
+    clean += "=".repeat((4 - clean.length % 4) % 4);
+    var binary = atob(clean);
+    var bytes = new Uint8Array(binary.length);
+    for (var i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function bytesBase64url(value) {
+    var bytes = value instanceof Uint8Array ? value : new Uint8Array(value || []);
+    var binary = "";
+    for (var i = 0; i < bytes.length; i += 1) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  }
+
+  function webAuthnCreationOptions(value) {
+    var options = Object.assign({}, value || {});
+    options.challenge = base64urlBytes(options.challenge);
+    options.user = Object.assign({}, options.user || {}, { id: base64urlBytes(options.user && options.user.id) });
+    options.excludeCredentials = (options.excludeCredentials || []).map(function (item) {
+      return Object.assign({}, item, { id: base64urlBytes(item.id) });
+    });
+    return options;
+  }
+
+  function webAuthnRequestOptions(value) {
+    var options = Object.assign({}, value || {});
+    options.challenge = base64urlBytes(options.challenge);
+    options.allowCredentials = (options.allowCredentials || []).map(function (item) {
+      return Object.assign({}, item, { id: base64urlBytes(item.id) });
+    });
+    return options;
+  }
+
+  function registrationJSON(credential) {
+    var response = credential.response;
+    var rawId = bytesBase64url(credential.rawId);
+    var value = {
+      id: rawId,
+      rawId: rawId,
+      type: credential.type,
+      authenticatorAttachment: credential.authenticatorAttachment || undefined,
+      clientExtensionResults: credential.getClientExtensionResults ? credential.getClientExtensionResults() : {},
+      response: {
+        clientDataJSON: bytesBase64url(response.clientDataJSON),
+        attestationObject: bytesBase64url(response.attestationObject),
+        transports: response.getTransports ? response.getTransports() : [],
+      },
+    };
+    if (response.getPublicKeyAlgorithm) value.response.publicKeyAlgorithm = response.getPublicKeyAlgorithm();
+    if (response.getPublicKey) {
+      var publicKey = response.getPublicKey();
+      if (publicKey) value.response.publicKey = bytesBase64url(publicKey);
+    }
+    if (response.getAuthenticatorData) value.response.authenticatorData = bytesBase64url(response.getAuthenticatorData());
+    return value;
+  }
+
+  function authenticationJSON(credential) {
+    var response = credential.response;
+    var rawId = bytesBase64url(credential.rawId);
+    return {
+      id: rawId,
+      rawId: rawId,
+      type: credential.type,
+      authenticatorAttachment: credential.authenticatorAttachment || undefined,
+      clientExtensionResults: credential.getClientExtensionResults ? credential.getClientExtensionResults() : {},
+      response: {
+        authenticatorData: bytesBase64url(response.authenticatorData),
+        clientDataJSON: bytesBase64url(response.clientDataJSON),
+        signature: bytesBase64url(response.signature),
+        userHandle: response.userHandle ? bytesBase64url(response.userHandle) : undefined,
+      },
+    };
+  }
+
+  async function callAeroPresence(payload, retry) {
+    var operation = String(payload && payload.op || "");
+    if (operation !== "status" && !(window.PublicKeyCredential && navigator.credentials)) {
+      throw cloudError("This browser cannot use secure device approval.", 400, "presence_unsupported");
+    }
+    var token = await currentAccessToken();
+    if (!token) throw cloudError("Sign in before using secure approvals.", 401, "sign_in_required");
+    var response = await fetch(SB_URL.replace(/\/$/, "") + "/functions/v1/aero-presence", {
+      method: "POST",
+      headers: {
+        authorization: "Bearer " + token,
+        apikey: SB_ANON,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload || {}),
+    });
+    if (response.status === 401 && retry !== false) {
+      var refreshed = await sb.auth.refreshSession();
+      if (!(refreshed && refreshed.error)) return callAeroPresence(payload, false);
+    }
+    var body = {};
+    try { body = await response.json(); } catch (e) { /* shaped below */ }
+    if (!response.ok) {
+      var code = String(body && body.error || "presence_unavailable");
+      var messages = {
+        authentication_required: "Your session expired. Sign in again.",
+        not_allowed: "Secure Aero approvals are private to this account.",
+        presence_not_configured: "Secure approvals are not configured yet.",
+        presence_secure_origin_required: "Open Lyfe on sonnesystems.com to manage secure approvals.",
+        presence_recent_sign_in_required: "Sign out and sign in again before adding a secure approval device.",
+        presence_credential_exists: "A secure approval device is already enrolled.",
+        presence_credential_not_found: "No secure approval device is enrolled.",
+        presence_challenge_expired: "The device check expired. Review and try again.",
+        presence_challenge_replayed: "That device check was already used.",
+        presence_target_changed: "The exact plan changed before device approval.",
+        presence_verification_failed: "Your device could not verify this approval.",
+        rate_limited: "Secure approval is being requested too quickly.",
+      };
+      throw cloudError(messages[code] || body.message || "Secure approval is unavailable.", response.status, code);
     }
     return body;
   }
@@ -331,6 +464,7 @@
     get aeroGatewayEnabled() { return aeroGatewayEnabled; },
     get aeroExecutionEnabled() { return aeroExecutionEnabled; },
     get aeroMemoryEnabled() { return aeroMemoryEnabled; },
+    get aeroPresenceEnabled() { return aeroPresenceEnabled; },
     get user() { return current; },
     get lastError() { return lastAuthError; },
 
@@ -467,6 +601,52 @@
     async forgetAeroMemoryTransaction(payload) {
       if (!configured || !aeroMemoryEnabled) throw cloudError("Private Aero memory is not enabled.", 503, "memory_disabled");
       return callAeroMemory(Object.assign({ op: "forget_transaction" }, payload || {}), true);
+    },
+
+    async aeroPresenceStatus() {
+      if (!configured || !aeroPresenceEnabled) return { ok: true, supported: false, enrolled: false };
+      var result = await callAeroPresence({ op: "status" }, true);
+      result.availableHere = !!(window.PublicKeyCredential && navigator.credentials);
+      return result;
+    },
+
+    async enrollAeroPresence() {
+      if (!configured || !aeroPresenceEnabled) throw cloudError("Secure approvals are not enabled.", 503, "presence_disabled");
+      var started = await callAeroPresence({ op: "registration_start" }, true);
+      var credential;
+      try {
+        credential = await navigator.credentials.create({ publicKey: webAuthnCreationOptions(started.options) });
+      } catch (error) {
+        throw cloudError(error && error.name === "NotAllowedError" ? "Secure approval setup was cancelled." : "This device could not create a secure approval credential.", 400, "presence_cancelled");
+      }
+      if (!credential) throw cloudError("This device did not return a secure approval credential.", 400, "presence_cancelled");
+      return callAeroPresence({ op: "registration_finish", challengeId: started.challengeId, response: registrationJSON(credential) }, true);
+    },
+
+    async approveAeroPresence(payload) {
+      if (!configured || !aeroPresenceEnabled) throw cloudError("Secure approvals are not enabled.", 503, "presence_disabled");
+      var started = await callAeroPresence(Object.assign({ op: "approval_start" }, payload || {}), true);
+      var credential;
+      try {
+        credential = await navigator.credentials.get({ publicKey: webAuthnRequestOptions(started.options) });
+      } catch (error) {
+        throw cloudError(error && error.name === "NotAllowedError" ? "Secure approval was cancelled." : "Your device could not verify this approval.", 400, "presence_cancelled");
+      }
+      if (!credential) throw cloudError("Your device did not verify this approval.", 400, "presence_cancelled");
+      return callAeroPresence({ op: "approval_finish", challengeId: started.challengeId, response: authenticationJSON(credential) }, true);
+    },
+
+    async removeAeroPresence() {
+      if (!configured || !aeroPresenceEnabled) throw cloudError("Secure approvals are not enabled.", 503, "presence_disabled");
+      var started = await callAeroPresence({ op: "credential_remove_start" }, true);
+      var credential;
+      try {
+        credential = await navigator.credentials.get({ publicKey: webAuthnRequestOptions(started.options) });
+      } catch (error) {
+        throw cloudError(error && error.name === "NotAllowedError" ? "Secure approval removal was cancelled." : "Your device could not verify removal.", 400, "presence_cancelled");
+      }
+      if (!credential) throw cloudError("Your device did not verify removal.", 400, "presence_cancelled");
+      return callAeroPresence({ op: "credential_remove_finish", challengeId: started.challengeId, response: authenticationJSON(credential) }, true);
     },
 
     async signInEmail(email) {

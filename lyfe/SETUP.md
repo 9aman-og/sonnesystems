@@ -24,6 +24,7 @@ account.
 - One shared account across both apps
 - Private, per-user state protected by Supabase row-level security
 - Optional read-only Gmail access
+- Optional transaction-bound WebAuthn approval for every explicit Aero change
 - Local guest mode and offline fallback
 
 The browser contains only the Supabase project URL and publishable key. Never
@@ -153,7 +154,7 @@ digests and a minimal receipt, not a duplicated Lyfe document. This rollout uses
 Supabase Free and does not require billing.
 
 Production status (29 August 2026): both migrations are applied, the CAS runs
-under caller RLS authority, `aero-execute` v1 is active with JWT verification,
+under caller RLS authority, `aero-execute` v2 is active with JWT verification,
 and the private allowlisted client flag is enabled. Live account smoke tests
 passed prepare/cancel, exact atomic commit, replay denial, stale-revision
 rejection, inspection, and privacy deletion. Re-run the same gates after any
@@ -175,7 +176,7 @@ denial, stale-state rejection, feedback observation, privacy forget/reset, raw
 target redaction, and zero grants to `anon` or `authenticated` before release.
 
 Production status (29 August 2026): `aero_server_owned_memory` and the
-canonical-digest binding migration are applied. `aero-memory` v2 is active with
+canonical-digest binding migration are applied. `aero-memory` v3 is active with
 JWT verification. A rollback-only production transaction passed exact
 prepare/commit, relational projection, event-chain
 validation, terminal redaction, one-use token consumption, and replay denial.
@@ -185,3 +186,52 @@ The rollback-only concurrent-device trial also passed one-winner compare-and-
 swap, stale-loser certification, replay denial, idempotent crash resume,
 approval rotation, and resumed completion; post-rollback disposable row counts
 were all zero.
+
+## Aero transaction-bound approval rollout
+
+`aero-presence` is separate from sign-in. It verifies a native WebAuthn
+registration or assertion and never calls a model. Enrollment requires recent
+interactive Auth AMR evidence, production origin `https://sonnesystems.com`, RP
+ID `sonnesystems.com`, and user verification. The server stores the public key,
+never biometric data or a private key.
+
+After enrollment, every explicit Lyfe-record action and explicit memory change
+requires a new assertion bound to the prepared target ID, canonical contract
+digest, current approval-token hash, account, and expiry. Only the SHA-256 digest
+of the 60-second presence grant is persisted. Postgres consumes that grant in
+the same transaction as the target change. Behavior-only memory observations
+remain automatic because they cannot directly alter a personal fact.
+
+Deploy the database migrations first, then all three protocol participants:
+
+```powershell
+supabase db push --linked --dry-run
+supabase db push --linked
+supabase db advisors --linked --type security --level warn --fail-on error
+supabase db advisors --linked --type performance --level warn --fail-on error
+supabase functions deploy aero-presence --project-ref rfjqqixgevlgjeybeedw --use-api
+supabase functions deploy aero-execute --project-ref rfjqqixgevlgjeybeedw --use-api
+supabase functions deploy aero-memory --project-ref rfjqqixgevlgjeybeedw --use-api
+```
+
+Never use `--no-verify-jwt`. Before deploying, run the presence protocol and
+migration tests plus `deno check` for all three functions. Then execute
+`supabase/tests/aero_presence_atomic_rollback.sql` as one transaction. It must
+prove missing-presence denial, exact target/approval binding, wrong-token
+atomicity, exact commit, replay denial, certificate evidence, and verified
+revocation without deleting historic grant evidence. Its final statement must
+remain `ROLLBACK`, and post-run disposable-row counts must be zero.
+
+Production status (31 August 2026): `aero-presence` v1, `aero-execute` v2, and
+`aero-memory` v3 are active with JWT verification. The private forced-RLS tables
+have no browser-role grants. Rollback-only production trials pass transaction-
+bound presence, crash resume, concurrent memory compare-and-swap, event/payload
+integrity, and zero-residue cleanup. No approval credential has been silently
+enrolled; enrollment remains an explicit settings action that triggers the
+device's native prompt.
+
+Current recovery limit: v0.1 permits one active approval credential. Verified
+removal revokes it while preserving historic audit rows, but loss of the sole
+credential requires operator-assisted recovery. The UI must state this before
+enrollment. A real-device enrollment/action/removal trial is still required
+before calling broad authenticator compatibility proven.
