@@ -181,3 +181,7 @@ prepare/commit, relational projection, event-chain
 validation, terminal redaction, one-use token consumption, and replay denial.
 The route rejects missing authentication with HTTP 401, consumer roles have no
 memory-RPC grants, and no disposable account memory was retained by verification.
+The rollback-only concurrent-device trial also passed one-winner compare-and-
+swap, stale-loser certification, replay denial, idempotent crash resume,
+approval rotation, and resumed completion; post-rollback disposable row counts
+were all zero.

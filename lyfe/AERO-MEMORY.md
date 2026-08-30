@@ -115,6 +115,14 @@ chain. A production rollback-only transaction exercises prepare, commit,
 projection, terminal redaction, token consumption, and replay denial without
 retaining the disposable memory.
 
+`supabase/tests/aero_memory_concurrency_rollback.sql` runs a second rollback-
+only production trial. Two devices prepare from one revision; exactly one can
+commit and the other is certified stale. A simulated crashed process then
+resumes its original idempotent transaction with a rotated approval: the old
+approval is rejected, the new approval commits, and the event/payload evidence
+remains valid. The final rollback removes the disposable auth user and every
+memory row.
+
 `aero-memory.benchmark.js` runs 17 declared transactional-memory scenarios. Aero
 v0.2 passes 17/17; an intentionally simple append-only control passes 2/17. This
 is an invariant control experiment, not a measurement of a named competitor and
@@ -128,7 +136,7 @@ node aero-memory.benchmark.js
 ## Next evidence gates
 
 - natural-language conflict detection with a held-out false-conflict set;
-- crash and concurrent-device simulation against the server-owned journal;
+- network interruption trials across prepare and commit response loss;
 - temporal question answering across longer histories;
 - user studies measuring correction effort and harmful stale-memory rate;
 - dependency extraction that never promotes an inferred edge without evidence.

@@ -11,6 +11,7 @@ const sql = fs.readFileSync(path.join(directory, migrationName), "utf8");
 const bindingName = fs.readdirSync(directory).find((name) => /_aero_memory_canonical_digest_binding\.sql$/.test(name));
 assert.ok(bindingName, "Aero canonical digest binding migration is missing");
 const bindingSql = fs.readFileSync(path.join(directory, bindingName), "utf8");
+const concurrencySql = fs.readFileSync(path.join(directory, "..", "tests", "aero_memory_concurrency_rollback.sql"), "utf8");
 
 function functionBody(name) {
   const pattern = new RegExp(`create or replace function ${name.replaceAll(".", "\\.")}\\([\\s\\S]*?\\n\\$\\$;`, "i");
@@ -108,4 +109,15 @@ test("the evidence chain is recomputed before sensitive transitions", () => {
   assert.match(verify, /v_event\.previous_digest <> v_previous/i);
   assert.match(verify, /v_event\.event_digest <> v_digest/i);
   assert.match(verify, /event_sequence, event_head_digest/i);
+});
+
+test("the production concurrency smoke is rollback-only and checks crash recovery", () => {
+  assert.match(concurrencySql, /^begin;/im);
+  assert.match(concurrencySql, /select result from aero_memory_concurrency_result;[\s\S]*rollback;/i);
+  assert.match(concurrencySql, /memory_state_changed/i);
+  assert.match(concurrencySql, /memory_approval_replayed/i);
+  assert.match(concurrencySql, /idempotent/i);
+  assert.match(concurrencySql, /memory_approval_invalid/i);
+  assert.match(concurrencySql, /journalValid/i);
+  assert.match(concurrencySql, /payloadValid/i);
 });

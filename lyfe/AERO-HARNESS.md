@@ -234,7 +234,7 @@ authority candidates. Conflict lineage, cascading invalidation, privacy
 forget/reset, terminal redaction, relational projection, and a hash-chained
 evidence journal are enforced at the server boundary. Arbitrary external tools
 are not enabled. The next evidence gates are WebAuthn user-presence approval,
-crash/concurrency trials, learned conflict detection with a held-out false-
+network-interruption trials, learned conflict detection with a held-out false-
 conflict set, and repeated Lyfe-native tasks with environment graders. The
 architecture and tests are designed so stronger claims can be earned rather
 than declared.
