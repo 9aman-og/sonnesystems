@@ -44,7 +44,7 @@
 <link rel="dns-prefetch" href="https://upload.wikimedia.org">
 <link rel="dns-prefetch" href="https://picsum.photos">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Unbounded:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="styles.css?v=aero-core-27">
+<link rel="stylesheet" href="styles.css?v=aero-core-14">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -82,7 +82,7 @@
     </section>
     <section class="auth-card">
       <div class="auth-mark" aria-hidden="true">
-        <img src="../assets/lyfe_logo.svg" alt="">
+        <img src="../assets/lyfe_logo.png" alt="">
       </div>
       <h2 class="auth-title">Welcome to Lyfe</h2>
       <p class="auth-tag">your day, in one place</p>
@@ -118,17 +118,16 @@
 
 <div id="modal-root"></div>
 <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
-<script src="supabase-config.js?v=aero-core-16"></script>
-<script src="cloud.js?v=aero-core-17"></script>
-<script src="aero-core.js?v=aero-core-14"></script>
+<script src="supabase-config.js?v=aero-core-12"></script>
+<script src="cloud.js?v=aero-core-12"></script>
+<script src="aero-core.js?v=aero-core-12"></script>
 <script src="aero-knowledge.js?v=aero-core-10"></script>
-<script src="aero-harness.js?v=aero-core-26"></script>
-<script src="app.js?v=aero-core-31"></script>
+<script src="app.js?v=aero-core-14"></script>
 <script>
 /* register the service worker so Lyfe installs + runs offline on Android.
    only over http/https (not file://). */
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-  var workerRefreshKey = "lyfe.worker.refresh.aeroCore19";
+  var workerRefreshKey = "lyfe.worker.refresh.aeroCore11";
   if (!sessionStorage.getItem(workerRefreshKey)) {
     navigator.serviceWorker.addEventListener("controllerchange", function () {
       sessionStorage.setItem(workerRefreshKey, "1");
@@ -136,7 +135,7 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     }, { once: true });
   }
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js?v=aero-core-29").catch(function () { /* offline install optional */ });
+    navigator.serviceWorker.register("sw.js?v=aero-core-14").catch(function () { /* offline install optional */ });
   });
 }
 </script>

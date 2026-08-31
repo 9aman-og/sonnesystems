@@ -1,10 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">Sonne Systems</title>
-  <desc id="desc">A precise radial system around an open center.</desc>
-  <g fill="none" stroke="#08090d" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="256" cy="256" r="216" stroke-width="18"/>
-    <circle cx="256" cy="256" r="92" stroke-width="18"/>
-    <path d="M256 40v124M256 348v124M40 256h124M348 256h124M103 103l88 88M321 321l88 88M409 103l-88 88M191 321l-88 88" stroke-width="22"/>
-    <path d="M150 61l58 116M304 335l58 116M61 150l116 58M335 304l116 58M362 61l-58 116M208 335l-58 116M451 150l-116 58M177 304 61 362" stroke-width="13" opacity=".72"/>
+  <title id="title">Sonne Systems radial mark</title>
+  <desc id="desc">Three concentric circles joined by twenty evenly spaced radial lines.</desc>
+  <defs>
+    <path id="spoke" d="M256 26V182"/>
+  </defs>
+  <g fill="none" stroke="#08090d" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="256" cy="256" r="230"/>
+    <circle cx="256" cy="256" r="132"/>
+    <circle cx="256" cy="256" r="74"/>
+    <use href="#spoke"/>
+    <use href="#spoke" transform="rotate(18 256 256)"/>
+    <use href="#spoke" transform="rotate(36 256 256)"/>
+    <use href="#spoke" transform="rotate(54 256 256)"/>
+    <use href="#spoke" transform="rotate(72 256 256)"/>
+    <use href="#spoke" transform="rotate(90 256 256)"/>
+    <use href="#spoke" transform="rotate(108 256 256)"/>
+    <use href="#spoke" transform="rotate(126 256 256)"/>
+    <use href="#spoke" transform="rotate(144 256 256)"/>
+    <use href="#spoke" transform="rotate(162 256 256)"/>
+    <use href="#spoke" transform="rotate(180 256 256)"/>
+    <use href="#spoke" transform="rotate(198 256 256)"/>
+    <use href="#spoke" transform="rotate(216 256 256)"/>
+    <use href="#spoke" transform="rotate(234 256 256)"/>
+    <use href="#spoke" transform="rotate(252 256 256)"/>
+    <use href="#spoke" transform="rotate(270 256 256)"/>
+    <use href="#spoke" transform="rotate(288 256 256)"/>
+    <use href="#spoke" transform="rotate(306 256 256)"/>
+    <use href="#spoke" transform="rotate(324 256 256)"/>
+    <use href="#spoke" transform="rotate(342 256 256)"/>
   </g>
 </svg>

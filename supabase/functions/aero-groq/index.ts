@@ -12,11 +12,8 @@ import postgres from "npm:postgres@3.4.3";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const DEFAULT_MODEL = "openai/gpt-oss-120b";
-const DEFAULT_VISION_MODEL = "qwen/qwen3.6-27b";
-const MAX_BODY_BYTES = 2_200_000;
+const MAX_BODY_BYTES = 16_000;
 const MAX_PROMPT_CHARS = 4_000;
-const MAX_IMAGES = 3;
-const MAX_IMAGE_CHARS = 700_000;
 const WINDOW_MS = 60_000;
 const REQUESTS_PER_WINDOW = 20;
 const PROVIDER_CONFIG_TTL_MS = 5 * 60_000;
@@ -24,7 +21,6 @@ const ALLOWED_ORIGINS = new Set([
   "https://sonnesystems.com",
   "http://127.0.0.1:4173",
   "http://127.0.0.1:8773",
-  "http://127.0.0.1:8774",
   "http://localhost:4173",
 ]);
 
@@ -42,7 +38,7 @@ const responseSchema = {
     properties: {
       bubbles: {
         type: "array",
-        maxItems: 2,
+        maxItems: 4,
         items: { type: "string", maxLength: 1_000 },
       },
       actions: {
@@ -79,15 +75,12 @@ const responseSchema = {
   },
 };
 
-const systemPrompt = `You are a stateless, cloud-safe reasoning specialist behind Aero inside Lyfe. You are not Aero's identity, memory, or action engine.
+const systemPrompt = `You are the cloud-safe reasoning specialist used by Aero inside Lyfe.
+Lead with the answer. Be concise, natural, and precise. Never claim access to Lyfe, Gmail, notes, tasks, memory, files, accounts, browsing, or previous conversations. You receive only the current prompt and date.
 
-Write in Aero's product voice: lead with the useful answer; be concise, calm, natural, and precise. Avoid generic greetings, cheerleading, filler, emojis, and theatrical claims unless the user asks for that style. Never claim to be GPT, ChatGPT, Groq, OpenAI, Gemini, or "connected to Aero." If asked what model you are, say: "I'm Aero. This turn may use a routed specialist; the route receipt shows which one." Do not imply consciousness, feelings, or human experiences.
+You may propose reversible Lyfe changes using the response actions array. The local Aero action engine validates every action and the user must approve it. Never claim an action has already happened. Never propose sending messages, spending money, publishing, deleting external data, or other irreversible external actions.
 
-You receive only the current prompt, intent family, date, and any images attached to this request. Never claim access to Lyfe, Gmail, notes, tasks, memory, files, accounts, browsing, imported chats, or previous conversations. Never invent retrieved context, completed work, citations, or capabilities.
-
-You may only propose reversible Lyfe changes through the response actions array. Aero's local action engine validates the proposal and the user must approve it. Phrase proposed work as a proposal, never as completed work. Never propose sending messages, spending money, publishing, deleting external data, or any other irreversible external action.
-
-Use memory_upsert only when the user explicitly asks Aero to remember something. If missing information would materially change the outcome, ask one focused question. Use one response bubble normally; use a second only for a genuinely distinct and important part. Never drip-feed small messages or repeat the same point.`;
+Use memory_upsert only when the user explicitly asks Aero to remember something. If information is missing and materially changes the answer, ask one focused question. Keep bubbles under four short paragraphs.`;
 
 const buckets = new Map<string, number[]>();
 const databaseUrl = String(Deno.env.get("SUPABASE_DB_URL") || "");
@@ -118,13 +111,6 @@ function json(origin: string | null, status: number, value: unknown) {
 
 function text(value: unknown, max = 1_000) {
   return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max);
-}
-
-function safeImages(value: unknown) {
-  if (!Array.isArray(value)) return [];
-  return value.map((item) => String(item || ""))
-    .filter((item) => /^data:image\/(?:jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(item) && item.length <= MAX_IMAGE_CHARS)
-    .slice(0, MAX_IMAGES);
 }
 
 function claimsFromAuthorization(value: string | null) {
@@ -188,7 +174,7 @@ async function opaqueUserId(subject: string) {
 function cleanResult(value: unknown) {
   const raw = value && typeof value === "object" ? value as Record<string, unknown> : {};
   const bubbles = Array.isArray(raw.bubbles)
-    ? raw.bubbles.map((item) => text(item, 1_000)).filter(Boolean).slice(0, 2)
+    ? raw.bubbles.map((item) => text(item, 1_000)).filter(Boolean).slice(0, 4)
     : [];
   const actions = Array.isArray(raw.actions)
     ? raw.actions.filter((item) => {
@@ -238,7 +224,6 @@ Deno.serve(async (req: Request) => {
   }
 
   const prompt = text(payload.prompt, MAX_PROMPT_CHARS);
-  const images = safeImages(payload.images);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(String(payload.date || "")) ? String(payload.date) : new Date().toISOString().slice(0, 10);
   const kind = text(payload.kind, 40) || "general";
   if (!prompt) return json(origin, 400, { error: "prompt_required" });
@@ -246,15 +231,7 @@ Deno.serve(async (req: Request) => {
   const groqKey = config.groqKey;
   if (!groqKey) return json(origin, 503, { error: "provider_not_configured" });
 
-  const model = images.length
-    ? String(Deno.env.get("GROQ_VISION_MODEL") || DEFAULT_VISION_MODEL)
-    : String(Deno.env.get("GROQ_MODEL") || DEFAULT_MODEL);
-  const userContent = images.length
-    ? [
-        { type: "text", text: `Date: ${date}\nIntent family: ${kind}\n\n${prompt}\n\nReturn one JSON object with bubbles, actions, and assumption.` },
-        ...images.map((url) => ({ type: "image_url", image_url: { url } })),
-      ]
-    : `Date: ${date}\nIntent family: ${kind}\n\n${prompt}`;
+  const model = String(Deno.env.get("GROQ_MODEL") || DEFAULT_MODEL);
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 25_000);
   let upstream: Response;
@@ -270,12 +247,10 @@ Deno.serve(async (req: Request) => {
         model,
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userContent },
+          { role: "user", content: `Date: ${date}\nIntent family: ${kind}\n\n${prompt}` },
         ],
-        response_format: images.length
-          ? { type: "json_object" }
-          : { type: "json_schema", json_schema: responseSchema },
-        ...(images.length ? {} : { reasoning_effort: kind === "research" || kind === "general" ? "medium" : "low" }),
+        response_format: { type: "json_schema", json_schema: responseSchema },
+        reasoning_effort: kind === "research" || kind === "general" ? "medium" : "low",
         max_completion_tokens: 1_200,
         user: await opaqueUserId(String(claims.sub)),
       }),

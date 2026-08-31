@@ -7,6 +7,7 @@
     Everything remains usable when JavaScript, motion, or sound is unavailable.
   */
 
+  var root = document.documentElement;
   var body = document.body;
   var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -14,7 +15,7 @@
   var routes = [
     { label: "Home", href: "/" },
     { label: "Research", href: "/research.html" },
-    { label: "Products", href: "/ventures.html" },
+    { label: "Ventures", href: "/ventures.html" },
     { label: "Studio", href: "/about.html" }
   ];
 
@@ -46,6 +47,7 @@
       '      <button class="menu-toggle" type="button" aria-expanded="false" aria-label="Open menu" data-menu-toggle><span></span></button>',
       '    </div>',
       '  </div>',
+      '  <i class="scroll-progress" aria-hidden="true"></i>',
       '</header>'
     ].join("");
   }
@@ -56,13 +58,13 @@
       '<footer class="site-footer">',
       '  <div class="footer-inner">',
       '    <div class="footer-top">',
-      '      <p class="footer-statement">Clear questions. Useful software. Honest results.</p>',
-      '      <div class="footer-contact"><small>Project inquiries</small><a href="mailto:aman@sonnesystems.com">aman@sonnesystems.com</a></div>',
+      '      <p class="footer-statement">Build the claim. Test the boundary.</p>',
+      '      <div class="footer-contact"><small>Research and engineering</small><a href="mailto:aman@sonnesystems.com">aman@sonnesystems.com</a></div>',
       '    </div>',
       '    <div class="footer-bottom">',
       '      <span>Copyright ' + new Date().getFullYear() + ' Sonne Systems</span>',
-      '      <nav class="footer-nav" aria-label="Footer"><a href="/research.html">Research</a><a href="/ventures.html">Products</a><a href="/about.html">Studio</a><a href="/papers.html">Paper archive</a></nav>',
-      '      <span>Independent studio</span>',
+      '      <nav class="footer-nav" aria-label="Footer"><a href="/research.html">Research</a><a href="/ventures.html">Ventures</a><a href="/about.html">Studio</a><a href="/papers.html">Paper archive</a></nav>',
+      '      <span>Independent AI research</span>',
       '    </div>',
       '  </div>',
       '</footer>'
@@ -207,10 +209,10 @@
   var focusCopy = focusSequence ? focusSequence.querySelector(".focus-copy") : null;
   var focusIndex = -1;
   var focusIdeas = [
-    { title: "Start with a clear question.", body: "Define what should be compared and what result would change the decision." },
-    { title: "Make the comparison fair.", body: "Match the data, budget, settings, and random seeds." },
-    { title: "Keep the failed result.", body: "A negative result stays in the record instead of being reframed as a success." },
-    { title: "State the limit.", body: "Say what the evidence supports and what remains unknown." }
+    { title: "Change arrives.", body: "A useful system should notice meaningful change without spending the same effort on every moment." },
+    { title: "Time becomes data.", body: "Sparse events can preserve timing and structure without carrying all of the empty space between them." },
+    { title: "Evidence accumulates.", body: "Events build a confidence-bearing state over time. More work is earned only while uncertainty remains." },
+    { title: "The answer gets clear.", body: "Once more processing can no longer improve the decision, the system should stop." }
   ];
 
   function renderFocus() {
@@ -235,6 +237,8 @@
   var scrollQueued = false;
   function updateScroll() {
     scrollQueued = false;
+    var max = Math.max(1, root.scrollHeight - window.innerHeight);
+    root.style.setProperty("--scroll-progress", (Math.max(0, Math.min(1, window.scrollY / max)) * 100).toFixed(2) + "%");
     if (header) header.classList.toggle("is-condensed", window.scrollY > 32);
     renderFocus();
   }

@@ -13,6 +13,3 @@ __pycache__/
 supabase/functions/.env
 supabase/functions/.env.*
 !.env.example
-
-# generated Supabase CLI linkage/cache metadata
-supabase/.temp/

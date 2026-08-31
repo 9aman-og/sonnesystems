@@ -11,19 +11,19 @@
   function setMessage(text) { message.textContent = text; }
   function setBusy(button, busy) {
     paperButtons.forEach(function (item) { item.disabled = busy; });
-    button.textContent = busy ? "Opening..." : "Open paper";
+    button.textContent = busy ? "Decrypting..." : "Decrypt paper";
   }
 
   async function decryptPaper(button) {
     var password = passwordInput.value;
     if (!password) {
-      setMessage("Enter the shared passphrase first.");
+      setMessage("Enter the access passphrase first.");
       passwordInput.focus();
       return;
     }
 
     setBusy(button, true);
-    setMessage("Preparing the paper in your browser...");
+    setMessage("Deriving the local decryption key...");
     try {
       var response = await fetch(button.dataset.paper, { cache: "no-store" });
       if (!response.ok) throw new Error("The encrypted file could not be loaded.");
@@ -51,9 +51,9 @@
       link.click();
       link.remove();
       window.setTimeout(function () { URL.revokeObjectURL(url); }, 30000);
-      setMessage("Paper unlocked. Your download is ready.");
+      setMessage("Paper decrypted locally. The download is ready.");
     } catch (error) {
-      setMessage(error.name === "OperationError" ? "That passphrase did not unlock the paper." : error.message);
+      setMessage(error.name === "OperationError" ? "That passphrase did not unlock this paper." : error.message);
     } finally {
       setBusy(button, false);
     }

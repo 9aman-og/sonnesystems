@@ -3,7 +3,6 @@ fastapi>=0.110
 uvicorn[standard]>=0.29
 sqlalchemy>=2.0
 pydantic>=2.6
-cryptography>=43.0
 
 # Tests (kept in one file for simplicity at this stage)
 pytest>=8.0

@@ -14,13 +14,5 @@ window.LYFE_SUPABASE = {
   // Google OAuth is configured in Supabase. Email sign-in remains available.
   googleEnabled: true,
   // Calls an authenticated Edge Function. No provider secret is public here.
-  aeroGatewayEnabled: true,
-  // Private, JWT-verified, account-allowlisted execution for reversible Lyfe
-  // record changes. The server still fails closed if any invariant is missing.
-  aeroExecutionEnabled: true,
-  // Server-owned typed memory. Browser memory is only a read-through display
-  // cache for a signed-in account; explicit changes require one exact review.
-  aeroMemoryEnabled: true,
-  // Optional WebAuthn user verification bound to the exact prepared contract.
-  aeroPresenceEnabled: true
+  aeroGatewayEnabled: true
 };

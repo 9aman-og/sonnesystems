@@ -137,8 +137,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
     ) -> Response:
         rule = self.RULES.get(request.url.path) if request.method == "POST" else None
-        if rule is None and request.method == "POST" and request.url.path.startswith("/aero/runs"):
-            rule = (60, 60)
         if rule is None:
             return await call_next(request)
 

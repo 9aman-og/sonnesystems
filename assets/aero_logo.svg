@@ -1,16 +1,60 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
   <title id="title">Aero</title>
-  <desc id="desc">A forward air signal moving through a graphite field.</desc>
+  <desc id="desc">A luminous airflow loop forms a lowercase a around a living green intelligence core.</desc>
   <defs>
-    <linearGradient id="aero-field" x1="68" y1="54" x2="430" y2="456" gradientUnits="userSpaceOnUse"><stop stop-color="#242933"/><stop offset=".48" stop-color="#11141b"/><stop offset="1" stop-color="#07090e"/></linearGradient>
-    <linearGradient id="aero-flow" x1="104" y1="256" x2="392" y2="256" gradientUnits="userSpaceOnUse"><stop stop-color="#4ef0ff" stop-opacity=".18"/><stop offset=".42" stop-color="#5de8ff"/><stop offset="1" stop-color="#f7fbff"/></linearGradient>
-    <filter id="aero-glow" x="-40%" y="-70%" width="190%" height="240%"><feGaussianBlur stdDeviation="10" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <radialGradient id="aero-sky" cx="31%" cy="19%" r="88%">
+      <stop offset="0" stop-color="#dfffff"/>
+      <stop offset=".22" stop-color="#60e8ff"/>
+      <stop offset=".55" stop-color="#079fdf"/>
+      <stop offset=".82" stop-color="#1760c4"/>
+      <stop offset="1" stop-color="#163d91"/>
+    </radialGradient>
+    <linearGradient id="aero-sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#15f3e4" stop-opacity="0"/>
+      <stop offset="1" stop-color="#00d8ba" stop-opacity=".72"/>
+    </linearGradient>
+    <linearGradient id="aero-air" x1="55" y1="55" x2="205" y2="205" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".55" stop-color="#f5ffff"/>
+      <stop offset="1" stop-color="#b9f3ff"/>
+    </linearGradient>
+    <radialGradient id="aero-core" cx="35%" cy="26%" r="78%">
+      <stop offset="0" stop-color="#f4ff7a"/>
+      <stop offset=".4" stop-color="#a8ec20"/>
+      <stop offset="1" stop-color="#19b86b"/>
+    </radialGradient>
+    <filter id="aero-shadow" x="-30%" y="-30%" width="160%" height="175%">
+      <feDropShadow dx="0" dy="11" stdDeviation="9" flood-color="#073f87" flood-opacity=".35"/>
+    </filter>
+    <filter id="aero-air-shadow" x="-30%" y="-30%" width="170%" height="170%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#0874a4" flood-opacity=".34"/>
+    </filter>
+    <filter id="aero-core-glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feDropShadow dx="0" dy="0" stdDeviation="8" flood-color="#d9ff42" flood-opacity=".8"/>
+    </filter>
+    <clipPath id="aero-clip"><circle cx="128" cy="128" r="112"/></clipPath>
   </defs>
-  <rect x="28" y="28" width="456" height="456" rx="116" fill="url(#aero-field)"/>
-  <rect x="29" y="29" width="454" height="454" rx="115" fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="2"/>
-  <path d="M108 186h144" fill="none" stroke="#4eeaff" stroke-opacity=".5" stroke-width="18" stroke-linecap="round"/>
-  <path d="M82 256h190" fill="none" stroke="#57ebff" stroke-width="22" stroke-linecap="round" filter="url(#aero-glow)"/>
-  <path d="M122 326h130" fill="none" stroke="#4eeaff" stroke-opacity=".62" stroke-width="18" stroke-linecap="round"/>
-  <path d="M220 144 394 256 220 368v-68l69-44-69-44Z" fill="url(#aero-flow)" filter="url(#aero-glow)"/>
-  <path d="M230 166 369 256 230 346" fill="none" stroke="#fff" stroke-opacity=".52" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <circle cx="128" cy="128" r="113" fill="url(#aero-sky)" filter="url(#aero-shadow)"/>
+  <g clip-path="url(#aero-clip)">
+    <ellipse cx="128" cy="196" rx="124" ry="76" fill="url(#aero-sea)"/>
+    <path d="M4 191c38-20 64-8 92-1 36 9 60-17 99-11 23 4 40 14 66 9v58H4Z" fill="#13e7df" opacity=".2"/>
+    <path d="M24 69c26-32 63-47 103-47-26 8-43 20-54 36-19 1-34 4-49 11Z" fill="#fff" opacity=".43"/>
+    <path d="M177 41c27 9 48 26 61 48-22-14-42-18-60-18-10 0-13-25-1-30Z" fill="#fff" opacity=".17"/>
+
+    <path d="M190 83c-20-27-62-38-99-22-38 17-51 60-33 93 19 35 65 47 99 26 26-16 36-47 21-70-13-21-41-28-62-14-18 12-21 35-7 49 14 15 38 12 49-5"
+      fill="none" stroke="url(#aero-air)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round" filter="url(#aero-air-shadow)"/>
+    <path d="M176 105c9 26 5 63 31 84" fill="none" stroke="url(#aero-air)" stroke-width="24" stroke-linecap="round" filter="url(#aero-air-shadow)"/>
+    <path d="M186 79c-26-21-63-27-95-13" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".62"/>
+
+    <g filter="url(#aero-core-glow)">
+      <ellipse cx="139" cy="126" rx="21" ry="18" transform="rotate(-22 139 126)" fill="url(#aero-core)" stroke="#edff87" stroke-width="2"/>
+      <path d="M125 137c9-4 18-12 29-23" fill="none" stroke="#efff8a" stroke-width="2.5" stroke-linecap="round" opacity=".9"/>
+      <ellipse cx="132" cy="118" rx="7" ry="4" transform="rotate(-24 132 118)" fill="#fff" opacity=".58"/>
+    </g>
+  </g>
+
+  <circle cx="128" cy="128" r="112" fill="none" stroke="#d8feff" stroke-width="4" opacity=".9"/>
+  <circle cx="128" cy="128" r="107" fill="none" stroke="#5af4ff" stroke-width="2" opacity=".33"/>
+  <path d="M43 65c19-25 48-40 79-43" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".78"/>
 </svg>

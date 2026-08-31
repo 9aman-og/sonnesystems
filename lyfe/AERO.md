@@ -15,22 +15,21 @@ research code, private datasets, or claims that have not been publicly earned.
 
 The v0 is built to test that promise rather than claim general autonomy.
 
-## Product and interface system
+## Today keeps Lyfe's character
 
-Lyfe retains its dynamic text, useful motion, heat map, Wander, Calm, Gmail,
-Projects, Library, and Connect. The Y3K product system uses graphite navigation,
-pearl content, electric cyan status, system typography, and short page
-transitions. Material is reserved for navigation, commands, and approvals so
-the content remains legible and calm.
+Today retains Lyfe's dynamic Crystal/Orbit identities, animated hero, changing
+copy, gamification, heat map, Wander, Calm, Gmail, Projects, Library and Connect.
+The product should become more intelligent without flattening the expressive
+surface that makes Lyfe feel alive.
 
 Aero is available from the hero, global command, Gmail signals, Connect and the
 dedicated Aero workspace. These entry points hand the active Lyfe source into
 Aero so the person can use shorthand without turning Today into a generic AI
 dashboard.
 
-The Aero mark is a forward air signal inside a graphite field. It has no stars
-or orbit ring. Lyfe, Connect, Aero, and Sonne each have a related but distinct
-vector mark.
+The malformed decorative center blob was replaced by the Frutiger Aero mark
+inside the existing animated rings, petals and pointer-responsive scene. The
+scene still moves; the brand object is now stable and recognizable.
 
 ## Runtime architecture
 
@@ -73,13 +72,6 @@ Explicit memories are active because the user chose them. Inferred memory starts
 as a visible candidate. Promotion requires at least three successful signals on
 two distinct days with no failure. Corrections can dispute a promoted memory.
 
-Memory v0.2 adds revision and commit identifiers, conservative conflict keys,
-supersession lineage, dependency edges, and a bounded transaction journal.
-Direct corrections replace older revisions; inference cannot override a direct
-statement; and a changed source invalidates dependent memories recursively.
-Privacy deletion scrubs the forgotten claim from journal snapshots. The full
-policy and recovery semantics are in [`AERO-MEMORY.md`](AERO-MEMORY.md).
-
 ### Epistemic governor
 
 The governor selects a mode before model routing:
@@ -98,36 +90,6 @@ The v0 action allow-list is limited to reversible Lyfe changes: tasks, projects,
 goals, learning, notes, documents, work logs, and explicit memory controls.
 Every proposed change is rendered before application. External sends, payments,
 publishing, and destructive external actions are not valid v0 action types.
-
-### Durable harness
-
-`aero-harness.js` keeps execution control outside the model loop. Its v0.4 run
-contract provides:
-
-- a SHA-256 contract digest that binds approval to intent, exact payload values,
-  route, capability, acceptance criteria, budget, policy, and rollback mode;
-- an allow-listed capability for each step and a denied state for unknown tools;
-- hard step, retry, cloud-call, and duration budgets;
-- immutable actions and a narrow fresh executor context for one step at a time;
-- single-use, expiring approval and fresh approval for recovery;
-- explicit task state updated only from independently audited facts;
-- structured read-only evidence that the executor cannot self-certify;
-- reverse compensation of every applied step when any later step fails;
-- a distinct rollback-failed state when restoration cannot be proved;
-- a completion certificate binding the exact contract to the evidence ledger;
-- an event ledger and typed failure receipt for every run.
-
-This design follows the strongest current result from long-horizon harness
-research: separate task-state management, execution, and auditing. Aero applies
-that pattern to personal work while adding exact approval binding and a consumer
-review surface.
-
-### Attention governor
-
-Aero normally initiates at most one conversation message per day. A second is
-allowed only for an urgent, distinct signal after a cooldown. Everything else
-goes to Updates as quiet work notification. Brief, important-only, quiet, and
-off modes are available in Settings.
 
 ### Model routing
 
@@ -198,10 +160,6 @@ Run the clean-room behavioral checks:
 
 ```powershell
 node aero-core.test.js
-node aero-memory.test.js
-node aero-memory.benchmark.js
-node aero-harness.test.js
-node aero-harness.benchmark.js
 node cloud.test.js
 ```
 

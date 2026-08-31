@@ -79,14 +79,9 @@ Aero's current vertical slice includes:
 - a bounded context pack spanning Today, Tracking, Library, Connect, Gmail
   metadata, and Profile, with a separate permission for every source;
 - episodic, semantic, project, and procedural memory;
-- visible memory states: candidate, provisional, active, disputed, superseded,
-  and invalidated, with revision lineage and source provenance;
-- transactional memory commits, conservative conflict resolution, dependency
-  invalidation, privacy-safe forgetting, and guarded local recovery;
+- visible memory states: candidate, provisional, active, and disputed;
 - an epistemic governor that answers, previews, or asks one focused question;
 - reversible in-Lyfe action previews that require approval;
-- optional native WebAuthn user verification bound to each exact explicit
-  action or memory change, with one-use atomic server grants;
 - local outcome telemetry for first-pass intent and instruction length;
 - manual, consent-gated JSONL export of examples explicitly rated helpful.
 
@@ -136,13 +131,7 @@ Run the clean-room Aero checks with:
 
 ```powershell
 node aero-core.test.js
-node aero-memory.test.js
-node aero-memory.benchmark.js
-node aero-harness.test.js
-node aero-harness.benchmark.js
 node cloud.test.js
-node --test ../supabase/functions/aero-presence/protocol.test.mjs
-node --test ../supabase/migrations/aero_presence_boundary.test.mjs
 ```
 
 ## Your data
@@ -191,9 +180,5 @@ uses Pins, Projects, and Pending shortcuts in place of the old decorative ticker
 - `app.js` - Lyfe UI and product workflows; plain JavaScript, no dependencies
 - `aero-core.js` - clean-room context, memory, governance, and evaluation logic
 - `aero-core.test.js` - deterministic Aero behavior checks
-- `aero-memory.test.js` - transactional memory and stale-context checks
-- `aero-memory.benchmark.js` - append-only control benchmark for memory invariants
-- `aero-harness.test.js` - adversarial action-contract and recovery checks
-- `aero-harness.benchmark.js` - naive-loop control benchmark for harness invariants
 - `aero-knowledge.js` - device-only history import and relevant-context retrieval
 - `tests/aero-knowledge.test.html` - browser checks for import, retrieval, and clearing
