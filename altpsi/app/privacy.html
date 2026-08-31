@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy | Aero by AltPsi</title>
+  <meta name="description" content="How Aero and Connect handle your private workspace, account, optional Gmail connection, model routes, and shared work.">
+  <link rel="canonical" href="https://sonnesystems.com/altpsi/app/privacy.html">
+  <meta name="theme-color" content="#08090d">
+  <link rel="icon" type="image/svg+xml" href="../assets/aero_logo.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;display=swap">
+  <link rel="stylesheet" href="legal.css?v=2">
+</head>
+<body>
+  <header>
+    <a class="wordmark" href="./"><img src="../assets/aero_logo.svg" alt=""><span>Aero</span></a>
+    <nav><a href="./">Open Aero</a><a href="connect.html">Open Connect</a></nav>
+  </header>
+  <main>
+    <p class="eyebrow">PRIVACY</p>
+    <h1>Your private work stays private.</h1>
+    <p class="lead">Aero is built around one rule: information moves only when you ask it to. This page explains what stays private, what can leave the device, and what you can remove.</p>
+
+    <section>
+      <h2>What Aero keeps</h2>
+      <p>If you use Aero without an account, your tasks, notes, tracking, Library, settings, and conversations stay in your browser. If you sign in, that private workspace is synced to your own protected account record so it can follow you between devices.</p>
+      <p>Connect stores the profile, posts, follows, network connections, messages, channels, and shared workspace information you choose to create there. Aero and Connect share your sign-in, but their working data is kept separately.</p>
+    </section>
+
+    <section>
+      <h2>Google sign-in and Gmail</h2>
+      <p>Google sign-in gives Aero your name, email address, and account identifier. Gmail access is optional and read-only. When you connect it, Aero can show recent inbox messages on Today. It cannot send, edit, or delete your email.</p>
+      <p>Email contents are not copied into Aero automatically. A message is added to your Library only when you press <strong>Save to Library</strong>. Google access tokens are kept in the active sign-in session and are not written into your workspace data.</p>
+      <p>Aero’s use of information received from Google follows the <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>, including its Limited Use requirements.</p>
+    </section>
+
+    <section>
+      <h2>How account data is protected</h2>
+      <p>Account and sync services are provided through Supabase. Database access rules limit each signed-in person to their own private Aero and Connect records. Public browser keys do not bypass those rules. OAuth client secrets are held by the authentication service and are never included in the website files.</p>
+    </section>
+
+    <section>
+      <h2>Optional cloud reasoning</h2>
+      <p>When you enable the Groq model route, Aero may send the current cloud-safe prompt and date through its authenticated server gateway. It does not include Gmail, tasks, notes, files, knowledge-vault imports, memory, profile details, or earlier chat messages in that request. Personal-context and workspace-action requests stay on the device.</p>
+      <p>The gateway does not store prompt or response content. Groq processes the request under its own service and privacy terms and may retain usage metadata. You can turn the route off at any time in Settings.</p>
+    </section>
+
+    <section>
+      <h2>What we do not do</h2>
+      <ul>
+        <li>We do not sell personal information.</li>
+        <li>We do not use Gmail content for advertising.</li>
+        <li>We do not train AI models on your Gmail or private Aero workspace.</li>
+        <li>We do not publish your private tasks, notes, Library, or Aero conversations to Connect.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Your choices</h2>
+      <p>You can disconnect Gmail from your Google Account permissions, sign out at any time, export your local Aero data, or erase local Connect data from its privacy controls. To request deletion of synced account data, email <a href="mailto:aman@sonnesystems.com">aman@sonnesystems.com</a> from the address connected to the account.</p>
+    </section>
+
+    <footer><span>Last updated 31 August 2026</span><a href="../">AltPsi</a></footer>
+  </main>
+</body>
+</html>

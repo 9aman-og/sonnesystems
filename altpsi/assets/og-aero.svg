@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Aero by AltPsi</title>
+  <desc id="desc">Say the outcome. Keep the thread.</desc>
+  <defs>
+    <linearGradient id="field" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#101217"/>
+      <stop offset="1" stop-color="#121a20"/>
+    </linearGradient>
+    <linearGradient id="arrow" x1="0" y1="0" x2="210" y2="130" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4ab7c2"/>
+      <stop offset=".52" stop-color="#63dce8"/>
+      <stop offset="1" stop-color="#f8fbff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#field)"/>
+  <circle cx="1110" cy="40" r="310" fill="#63dce8" fill-opacity=".10"/>
+  <circle cx="90" cy="670" r="260" fill="#7868ff" fill-opacity=".09"/>
+
+  <g transform="translate(64 54)">
+    <rect width="46" height="46" rx="13" fill="#1c2028" stroke="#fff" stroke-opacity=".14"/>
+    <path d="M9 17h12M7 23h16M11 29h10" fill="none" stroke="#55cbd5" stroke-width="2.8" stroke-linecap="round" opacity=".8"/>
+    <path d="m20 11 18 12-18 12v-7l8-5-8-5Z" fill="url(#arrow)"/>
+    <text x="62" y="31" fill="#f8f9fb" font-family="Manrope, Arial, sans-serif" font-size="24" font-weight="600" letter-spacing="-1">Aero</text>
+    <text x="124" y="31" fill="#818792" font-family="Manrope, Arial, sans-serif" font-size="11" font-weight="600">by altpsi</text>
+  </g>
+
+  <text x="64" y="229" fill="#f8f9fb" font-family="Manrope, Arial, sans-serif" font-size="76" font-weight="600" letter-spacing="-5.5">Say the outcome.</text>
+  <text x="64" y="316" fill="#969ca7" font-family="Manrope, Arial, sans-serif" font-size="76" font-weight="600" letter-spacing="-5.5">Keep the thread.</text>
+  <text x="68" y="383" fill="#a6abb4" font-family="Manrope, Arial, sans-serif" font-size="20" font-weight="600" letter-spacing="-.5">Personal intelligence for connected work.</text>
+
+  <g transform="translate(709 118)">
+    <rect width="427" height="392" rx="54" fill="#f8f9fb"/>
+    <g transform="translate(28 27)">
+      <rect width="34" height="34" rx="10" fill="#171a20"/>
+      <path d="M7 13h9M5 17h12M8 21h8" fill="none" stroke="#54c9d4" stroke-width="2.1" stroke-linecap="round"/>
+      <path d="m15 9 14 8-14 8v-5l6-3-6-3Z" fill="url(#arrow)"/>
+      <text x="47" y="23" fill="#121419" font-family="Manrope, Arial, sans-serif" font-size="16" font-weight="600">Aero</text>
+      <circle cx="342" cy="17" r="5" fill="#9de44b"/>
+    </g>
+    <text x="28" y="142" fill="#121419" font-family="Manrope, Arial, sans-serif" font-size="31" font-weight="600" letter-spacing="-1.5">Make tomorrow calm</text>
+    <text x="28" y="179" fill="#121419" font-family="Manrope, Arial, sans-serif" font-size="31" font-weight="600" letter-spacing="-1.5">around the launch.</text>
+    <line x1="28" y1="213" x2="399" y2="213" stroke="#121419" stroke-opacity=".13"/>
+    <text x="28" y="251" fill="#62656d" font-family="Manrope, Arial, sans-serif" font-size="12" font-weight="600">PLAN PREPARED</text>
+    <text x="28" y="292" fill="#121419" font-family="Manrope, Arial, sans-serif" font-size="28" font-weight="600" letter-spacing="-1.2">4 exact changes</text>
+    <rect x="28" y="323" width="371" height="46" rx="14" fill="#121419"/>
+    <text x="47" y="352" fill="#f8f9fb" font-family="Manrope, Arial, sans-serif" font-size="14" font-weight="600">Review plan</text>
+    <text x="372" y="352" text-anchor="end" fill="#f8f9fb" font-family="Manrope, Arial, sans-serif" font-size="17" font-weight="600">→</text>
+  </g>
+</svg>

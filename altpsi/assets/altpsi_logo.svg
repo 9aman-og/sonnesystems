@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">AltPsi</title>
+  <desc id="desc">An alternative diagonal path joins a stable psi.</desc>
+  <defs>
+    <linearGradient id="field" x1="64" y1="42" x2="448" y2="470" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#20242d"/>
+      <stop offset=".5" stop-color="#11141a"/>
+      <stop offset="1" stop-color="#090a0e"/>
+    </linearGradient>
+    <linearGradient id="alternative" x1="100" y1="138" x2="265" y2="318" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8b7cff"/>
+      <stop offset=".5" stop-color="#587dff"/>
+      <stop offset="1" stop-color="#46dce9"/>
+    </linearGradient>
+  </defs>
+  <rect x="28" y="28" width="456" height="456" rx="118" fill="url(#field)"/>
+  <rect x="29" y="29" width="454" height="454" rx="117" fill="none" stroke="#fff" stroke-opacity=".14" stroke-width="2"/>
+  <path d="M110 144h64l89 163" fill="none" stroke="url(#alternative)" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M264 120v286" fill="none" stroke="#f7f8fa" stroke-width="32" stroke-linecap="round"/>
+  <path d="M402 142v62c0 66-52 110-138 110" fill="none" stroke="#f7f8fa" stroke-width="32" stroke-linecap="round"/>
+  <circle cx="110" cy="144" r="7" fill="#8b7cff"/>
+</svg>

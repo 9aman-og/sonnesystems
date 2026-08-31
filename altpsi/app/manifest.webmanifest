@@ -1,0 +1,17 @@
+{
+  "name": "Aero by AltPsi",
+  "short_name": "Aero",
+  "description": "A private personal-intelligence workspace across your day, projects, notes, people, and inbox.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "aero-workspace",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "categories": ["productivity", "lifestyle", "utilities"],
+  "icons": [
+    { "src": "../assets/aero_logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "../assets/aero_logo.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Connect by Aero | Meet through useful work</title>
+  <meta name="description" content="Connect is Aero's focused place for finding collaborators, peers, projects, and communities through useful work.">
+  <link rel="canonical" href="https://sonnesystems.com/altpsi/app/connect.html">
+  <meta name="theme-color" content="#edf5ff">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="icon" type="image/svg+xml" href="../assets/connect_logo.svg">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Connect by Aero | Meet through useful work">
+  <meta property="og:description" content="Find collaborators, peers, projects, and communities through useful context instead of popularity.">
+  <meta property="og:url" content="https://sonnesystems.com/altpsi/app/connect.html">
+  <meta property="og:image" content="https://sonnesystems.com/altpsi/assets/connect_logo.png">
+  <meta property="og:image:alt" content="Connect signals converging into one shared path">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Connect by Aero | Meet through curiosity">
+  <meta name="twitter:description" content="Find collaborators, peers, projects, and communities through useful context instead of popularity.">
+  <meta name="twitter:image" content="https://sonnesystems.com/altpsi/assets/connect_logo.png">
+  <link rel="manifest" href="connect.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Connect">
+  <link rel="apple-touch-icon" href="../assets/connect_logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap">
+  <link rel="stylesheet" href="connect.css?v=connect22">
+  <link rel="stylesheet" href="connect-suite.css?v=connect22">
+</head>
+<body>
+  <a class="skip-link" href="#connect-main">Skip to the app</a>
+
+  <header class="connect-topbar">
+    <a class="connect-brand" href="connect.html" aria-label="Connect home">
+      <img src="../assets/connect_logo.svg" alt="">
+      <span class="connect-brand-lockup"><strong>Connect</strong><small>by Aero</small></span>
+    </a>
+
+    <nav class="primary-nav" aria-label="Connect">
+      <button class="top-nav active" type="button" data-action="view" data-view="discover">Home</button>
+      <button class="top-nav" type="button" data-action="view" data-view="reels">Instant</button>
+      <button class="top-nav" type="button" data-action="view" data-view="network">Network</button>
+      <button class="top-nav" type="button" data-action="view" data-view="connections">Messages <span id="connection-count" class="nav-count" hidden>0</span></button>
+      <button class="top-nav" type="button" data-action="view" data-view="plans">Workspace</button>
+      <button class="top-nav" type="button" data-action="view" data-view="channels">Channels</button>
+      <button class="top-nav" type="button" data-action="view" data-view="profile">You</button>
+    </nav>
+
+    <div class="top-actions">
+      <button class="icon-button" type="button" data-action="search" aria-label="Search Connect" title="Search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4 4"/></svg>
+      </button>
+      <button class="icon-button notification-button" type="button" data-action="notifications" aria-label="Open Connect notifications" title="Notifications">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8.5a6 6 0 0 0-12 0c0 7-3 7-3 8.5h18c0-1.5-3-1.5-3-8.5Z"/><path d="M9.5 20h5"/></svg>
+        <span id="notification-count" class="notification-count" hidden>0</span>
+      </button>
+      <button class="icon-button" type="button" data-action="safety" aria-label="Open safety centre" title="Safety centre">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.8 6v5.3c0 4.4 2.9 8.1 7.2 9.7 4.3-1.6 7.2-5.3 7.2-9.7V6L12 3Z"/><path d="m8.8 12 2 2 4.4-4.4"/></svg>
+      </button>
+      <button class="icon-button" type="button" data-suite-action="settings" aria-label="Open Connect settings" title="Settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+      </button>
+      <button id="connect-account-button" class="account-button" type="button" data-suite-action="auth" aria-label="Sign in to Aero"><span>Sign in</span></button>
+      <a class="ask-aero-connect" href="./?aeroFrom=connect#/aero"><img src="../assets/aero_logo.svg" alt="">Ask Aero</a>
+      <a class="open-lyfe" href="./">Open Aero <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main id="connect-main" tabindex="-1">
+    <section class="app-screen active" data-screen="discover" aria-labelledby="discover-title">
+      <div class="screen-heading discover-heading">
+        <div>
+          <p class="eyebrow">TODAY'S INTRODUCTIONS</p>
+          <h1 id="discover-title">People and projects worth your time.</h1>
+          <p id="discover-lede">Follow the work. Meet the people behind it.</p>
+        </div>
+        <div class="daily-note" aria-label="Introduction count">
+          <strong><span id="remaining-count">3</span> introductions</strong>
+          <span>Chosen from your interests</span>
+        </div>
+      </div>
+
+      <section id="connect-stories" class="connect-stories" aria-label="Stories and live updates"></section>
+      <nav id="home-feed-tabs" class="suite-tabs" aria-label="Choose your home feed"></nav>
+
+      <section class="network-pulse" aria-labelledby="network-pulse-title">
+        <div class="network-pulse-copy"><p class="eyebrow">ACTIVE SIGNALS</p><h2 id="network-pulse-title">A few people who are open to a useful conversation.</h2></div>
+        <div id="active-signals" class="active-signals"></div>
+      </section>
+
+      <div class="discover-shell">
+        <aside class="spark-rail" aria-labelledby="spark-title">
+          <div>
+            <p class="rail-label">YOUR LENS</p>
+            <h2 id="spark-title">What do you want to connect around?</h2>
+          </div>
+          <div id="spark-filters" class="spark-list" aria-label="Filter by interest"></div>
+          <button class="quiet-button pause-button" type="button" data-action="pause">
+            <span class="pause-icon" aria-hidden="true">Ⅱ</span>
+            <span><strong id="pause-label">Pause introductions</strong><small>Step away without losing anything</small></span>
+          </button>
+        </aside>
+
+        <div class="profile-stage">
+          <div id="profile-card"></div>
+          <div id="discover-actions" class="discover-actions">
+            <button class="choice-button pass" type="button" data-action="pass"><span aria-hidden="true">×</span><strong>Pass for now</strong><small>Quietly move on</small></button>
+            <button class="choice-button save" type="button" data-action="save-profile"><span aria-hidden="true">⌁</span><strong>Save to network</strong><small>No notification</small></button>
+            <button class="choice-button follow" type="button" data-suite-action="follow"><span aria-hidden="true">+</span><strong>Follow</strong><small>See their work</small></button>
+            <button class="choice-button network" type="button" data-suite-action="connect-person"><span aria-hidden="true">◎</span><strong>Add to network</strong><small>Open a direct path</small></button>
+            <button class="choice-button respond" type="button" data-action="respond"><span aria-hidden="true">↗</span><strong>Respond to their work</strong><small>Begin with useful context</small></button>
+          </div>
+        </div>
+      </div>
+
+      <section class="feed-section" aria-labelledby="feed-title">
+        <div class="feed-heading">
+          <div><p class="eyebrow">FROM THE NETWORK</p><h2 id="feed-title">Work in progress, shared with context.</h2></div>
+          <div class="feed-heading-actions"><button class="primary-button" type="button" data-action="new-post">Share your work</button></div>
+        </div>
+        <form class="quick-share" data-form="quick-post">
+          <img src="../assets/connect_logo.svg" alt="">
+          <label><span class="sr-only">Start a Connect post</span><textarea name="draft" rows="1" maxlength="900" placeholder="Share an update, question, useful link, or open call…"></textarea></label>
+          <button class="primary-button" type="submit">Continue</button>
+        </form>
+        <div id="feed-list" class="feed-grid"></div>
+      </section>
+
+    </section>
+
+    <section class="app-screen suite-screen" data-screen="reels" aria-labelledby="reels-title" hidden>
+      <div class="screen-heading suite-heading">
+        <div><p class="eyebrow">INSTANT</p><h1 id="reels-title">Watch the idea. Keep the context.</h1></div>
+        <button class="primary-button" type="button" data-suite-action="new-reel">Create Instant</button>
+      </div>
+      <div id="reels-app"></div>
+    </section>
+
+    <section class="app-screen suite-screen" data-screen="network" aria-labelledby="network-title" hidden>
+      <div class="screen-heading suite-heading">
+        <div><p class="eyebrow">PEOPLE + OPPORTUNITIES</p><h1 id="network-title">Find the right people through the work.</h1></div>
+        <button class="primary-button" type="button" data-suite-action="open-network-search">Find people</button>
+      </div>
+      <div id="network-app"></div>
+    </section>
+
+    <section class="app-screen" data-screen="connections" aria-labelledby="connections-title" hidden>
+      <div class="screen-heading">
+        <div>
+          <p class="eyebrow">CONNECTIONS</p>
+          <h1 id="connections-title">A network you can actually remember.</h1>
+        </div>
+      </div>
+      <div class="conversation-shell">
+        <aside class="conversation-list" aria-label="Your conversations">
+          <div class="list-head"><strong>Threads</strong><span id="thread-total">0</span></div>
+          <div id="connection-list"></div>
+        </aside>
+        <section id="conversation-panel" class="conversation-panel" aria-live="polite"></section>
+      </div>
+    </section>
+
+    <section class="app-screen" data-screen="plans" aria-labelledby="plans-title" hidden>
+      <div class="screen-heading">
+        <div>
+          <p class="eyebrow">SHARED WORKSPACE</p>
+          <h1 id="plans-title">Turn conversations into organized work.</h1>
+          <p>Pages, projects, decisions, and next steps.</p>
+        </div>
+        <button class="primary-button" type="button" data-action="new-plan">New page</button>
+      </div>
+      <div id="workspace-suite"></div>
+      <div id="plan-list" class="plan-grid"></div>
+      <section class="lyfe-bridge">
+        <img src="../assets/connect_logo.svg" alt="">
+        <div><p class="eyebrow">CONNECT / AERO</p><h2>Next steps move. Private context does not.</h2><p>Only the task title and note you approve enter your private workspace. Your network profile, filters, circles, and outreach drafts stay in Connect.</p></div>
+        <a href="./">Open Aero <span aria-hidden="true">↗</span></a>
+      </section>
+    </section>
+
+    <section class="app-screen" data-screen="circles" aria-labelledby="circles-title" hidden>
+      <div class="screen-heading">
+        <div>
+          <p class="eyebrow">SMALL TOPIC COMMUNITIES</p>
+          <h1 id="circles-title">Find the room where your question belongs.</h1>
+          <p>Circles are focused spaces for exchanging work, finding collaborators, and learning in public without turning every discussion into a broadcast.</p>
+        </div>
+        <button class="primary-button" type="button" data-action="new-circle">Start a circle</button>
+      </div>
+      <div id="circle-list" class="circle-grid"></div>
+    </section>
+
+    <section class="app-screen suite-screen" data-screen="channels" aria-labelledby="channels-title" hidden>
+      <div class="screen-heading suite-heading channel-heading">
+        <div><p class="eyebrow">CHANNELS</p><h1 id="channels-title">Rooms that remember the work.</h1></div>
+        <button class="primary-button" type="button" data-suite-action="new-channel">New channel</button>
+      </div>
+      <div id="channels-app"></div>
+    </section>
+
+    <section class="app-screen" data-screen="profile" aria-labelledby="profile-title" hidden>
+      <div class="screen-heading">
+        <div>
+          <p class="eyebrow">YOUR SIDE OF THE CONVERSATION</p>
+          <h1 id="profile-title">Show what you care about and where you can help.</h1>
+          <p>Your work, experience, skills, and availability.</p>
+        </div>
+      </div>
+
+      <section id="connect-profile-preview" class="connect-profile-preview" aria-label="Your Connect profile"></section>
+      <section id="profile-professional-suite" class="profile-professional-suite" aria-label="Professional profile details"></section>
+
+      <form id="profile-form" class="profile-form">
+        <section class="form-card">
+          <div class="form-card-head"><span>01</span><div><h2>The basics</h2><p>Enough context to make a professional or creative introduction useful.</p></div></div>
+          <div class="field-grid">
+            <label><span>What should people call you?</span><input name="name" maxlength="40" autocomplete="name" placeholder="Your first name"></label>
+            <label><span>Your username</span><input name="username" maxlength="32" autocomplete="username" placeholder="yourname"></label>
+            <label><span>Your city or time zone</span><input name="city" maxlength="60" autocomplete="address-level2" placeholder="City, region, or UTC offset"></label>
+            <label><span>What are you here for?</span><select name="intent"><option value="collaborators">Find collaborators</option><option value="peers">Meet thoughtful peers</option><option value="mentorship">Learn or mentor</option><option value="opportunities">Find projects and opportunities</option><option value="explore">Explore useful ideas</option></select></label>
+            <label class="profile-wide"><span>A useful headline</span><input name="headline" maxlength="100" placeholder="What are you building, learning, or helping with?"></label>
+          </div>
+        </section>
+
+        <section class="form-card">
+          <div class="form-card-head"><span>02</span><div><h2>Your sparks</h2><p>Pick a handful of things you would genuinely enjoy talking about.</p></div></div>
+          <div id="profile-sparks" class="profile-sparks" aria-label="Choose your interests"></div>
+        </section>
+
+        <section class="form-card">
+          <div class="form-card-head"><span>03</span><div><h2>What you are working on</h2><p>One concrete sentence gives the right person a useful place to begin.</p></div></div>
+          <div class="profile-story-fields">
+            <label><span>What are you building, researching, learning, or trying to solve?</span><textarea name="prompt" maxlength="280" rows="5" placeholder="Share the work, question, or problem, not a pitch."></textarea></label>
+            <label><span>About you</span><textarea name="bio" maxlength="500" rows="4" placeholder="A few genuine lines about what you care about and where someone could help."></textarea></label>
+            <label><span>Website (optional)</span><input name="website" maxlength="200" inputmode="url" placeholder="https://example.com"></label>
+          </div>
+        </section>
+
+        <div class="form-actions">
+          <p id="profile-save-note">Saved to your Connect profile.</p>
+          <button class="primary-button" type="submit">Save my profile</button>
+        </div>
+      </form>
+
+      <section class="privacy-card">
+        <div><p class="eyebrow">PRIVACY CHOICES</p><h2>You decide what crosses into Connect.</h2><p>Connect uses only the profile details you approve. Aero may use local Connect context only when you enable that source; it never makes your private workspace public.</p></div>
+        <div class="privacy-actions">
+          <button class="quiet-button" type="button" data-action="safety">Open safety centre</button>
+          <button class="quiet-button danger-text" type="button" data-action="reset">Erase Connect data</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <nav class="mobile-nav" aria-label="Connect mobile navigation">
+    <button class="active" type="button" data-action="view" data-view="discover"><span aria-hidden="true">◉</span>Home</button>
+    <button type="button" data-action="view" data-view="reels"><span aria-hidden="true">▷</span>Instant</button>
+    <button type="button" data-action="view" data-view="network"><span aria-hidden="true">◌</span>Network</button>
+    <button type="button" data-action="view" data-view="connections"><span aria-hidden="true">✉</span>Messages</button>
+    <button type="button" data-action="view" data-view="plans"><span aria-hidden="true">◇</span>Workspace</button>
+    <button type="button" data-action="view" data-view="channels"><span aria-hidden="true">#</span>Channels</button>
+    <button type="button" data-action="view" data-view="profile"><span aria-hidden="true">○</span>You</button>
+    <a class="aero-mobile-link" href="./?aeroFrom=connect#/aero"><img src="../assets/aero_logo.svg" alt="">Aero</a>
+  </nav>
+
+  <footer class="connect-footer">
+    <span>Aero Connect · shared identity, separate space</span>
+    <div><button type="button" data-suite-action="settings">Settings</button><button type="button" data-action="safety">Safety</button><a href="privacy.html">Privacy</a><a href="../">Aero</a><a href="../..">AltPsi</a></div>
+  </footer>
+
+  <input id="connect-import-file" type="file" accept=".json,application/json" hidden>
+  <div id="modal-root"></div>
+  <div id="toast-root" role="status" aria-live="polite" aria-atomic="true"></div>
+  <noscript><p class="noscript">Connect needs JavaScript.</p></noscript>
+  <script src="supabase-config.js?v=aero-core-11"></script>
+  <script src="cloud.js?v=aero-core-11"></script>
+  <script src="connect.js?v=connect18"></script>
+  <script src="connect-suite.js?v=connect22"></script>
+</body>
+</html>

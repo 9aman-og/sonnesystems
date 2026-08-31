@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b0d12" />
+  <title>Aero · adaptive personal intelligence by AltPsi</title>
+  <meta name="description" content="Aero is an adaptive intelligence layer across your day, work, library, people, and inbox." />
+  <meta property="og:title" content="Aero · say less, move with context" />
+  <meta property="og:description" content="One adaptive intelligence layer across your work." />
+  <meta property="og:image" content="https://sonnesystems.com/assets/aero_logo.png" />
+  <meta property="og:url" content="https://sonnesystems.com/altpsi/demo/" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="canonical" href="https://sonnesystems.com/altpsi/demo/" />
+  <link rel="icon" href="../assets/aero_logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles.css?v=live-3" />
+</head>
+<body>
+  <div class="sky-scene" aria-hidden="true">
+    <span class="cloud cloud-one"></span>
+    <span class="cloud cloud-two"></span>
+    <span class="sun-glow"></span>
+    <span class="horizon"></span>
+    <span class="water-line"></span>
+    <span class="bubble bubble-one"></span>
+    <span class="bubble bubble-two"></span>
+    <span class="bubble bubble-three"></span>
+  </div>
+
+  <div class="app-shell">
+    <header class="topbar glass-panel">
+      <a class="brand" href="./" aria-label="Aero demo home">
+        <img src="../assets/aero_logo.svg" alt="" />
+        <span><strong>Aero</strong><small>by AltPsi</small></span>
+      </a>
+
+      <nav class="surface-nav" aria-label="Aero workspace surfaces">
+        <button data-surface="Today">Today</button>
+        <button class="is-active" data-surface="Aero" aria-current="page">Aero</button>
+        <button data-surface="Connect">Connect</button>
+        <button data-surface="Tracking">Tracking</button>
+        <button data-surface="Library">Library</button>
+        <button data-surface="Gmail">Gmail</button>
+      </nav>
+
+      <button class="context-health" id="healthButton" aria-expanded="false">
+        <span class="health-orb"></span>
+        <span><strong>Context healthy</strong><small>6 sources in view</small></span>
+      </button>
+      <a class="open-lyfe" href="../app/#/aero" id="topOpenLyfe">Open Aero <span>→</span></a>
+    </header>
+
+    <main class="workspace">
+      <aside class="context-rail glass-panel" id="contextRail">
+        <div class="panel-heading">
+          <div><span class="eyebrow">Now in view</span><h2>Context</h2></div>
+          <button class="icon-button" id="collapseContext" aria-label="Collapse context">−</button>
+        </div>
+        <div class="surface-context">
+          <span class="surface-icon" id="surfaceIcon">◉</span>
+          <div><strong id="surfaceTitle">Across your workspace</strong><small id="surfaceSubtitle">Aero can see the connected picture</small></div>
+        </div>
+        <div class="context-stack" id="contextStack"></div>
+        <button class="text-button" id="provenanceButton">See why this context was chosen</button>
+        <div class="provenance" id="provenance" hidden>
+          Selected from recency, open work, named people, and your active surface. Private source boundaries remain intact.
+        </div>
+      </aside>
+
+      <section class="aero-stage">
+        <div class="welcome-card glass-panel">
+          <div class="companion-lockup">
+            <img src="../assets/aero_logo.svg" alt="Aero" />
+            <span class="presence-dot" aria-label="Aero is ready"></span>
+          </div>
+          <div class="welcome-copy">
+            <span class="eyebrow">LIVE PRODUCT PREVIEW · REPRESENTATIVE DATA</span>
+            <h1 id="welcomeTitle">Start with the short version.</h1>
+            <p id="welcomeText">Aero brings the right workspace context into view, routes the work, and keeps every external action in your hands.</p>
+          </div>
+          <div class="focus-weather" aria-label="Focus outlook">
+            <span class="weather-sun" aria-hidden="true"></span>
+            <div><strong>Clear runway</strong><small>2 decisions before 2 PM</small></div>
+          </div>
+        </div>
+
+        <section class="intelligence-card glass-panel" aria-live="polite">
+          <header class="intelligence-header">
+            <div><span class="eyebrow">Aero briefing</span><h2 id="briefingTitle">What deserves your attention</h2></div>
+            <span class="calibration-badge"><i></i> grounded in 6 sources</span>
+          </header>
+
+          <div class="priority-grid" id="priorityGrid">
+            <article class="priority-card priority-blue">
+              <span class="priority-number">01</span>
+              <div><strong>Resolve the launch memo direction</strong><p>A collaborator is waiting on the narrower framing. The latest note already contains the decision.</p></div>
+              <button class="mini-action" data-command="follow up about the launch memo">Prepare follow-up</button>
+            </article>
+            <article class="priority-card priority-green">
+              <span class="priority-number">02</span>
+              <div><strong>Protect the build block</strong><p>Your best uninterrupted window is 11:20-12:50. Three low-value tasks can move.</p></div>
+              <button class="mini-action" data-command="protect my build block">Preview changes</button>
+            </article>
+            <article class="priority-card priority-gold">
+              <span class="priority-number">03</span>
+              <div><strong>Close the research loop</strong><p>Two Library notes disagree on memory promotion. Compare before implementation.</p></div>
+              <button class="mini-action" data-command="compare my memory research notes">Compare notes</button>
+            </article>
+          </div>
+
+          <div class="response-zone" id="responseZone" hidden></div>
+        </section>
+
+        <section class="command-deck glass-panel">
+          <div class="command-context">
+            <img src="../assets/aero_logo.svg" alt="" />
+            <div><strong>Ask Aero</strong><span id="commandHint">Context from Today, Tracking, Library, Connect, and Gmail is available.</span></div>
+          </div>
+          <form id="commandForm">
+            <label class="sr-only" for="commandInput">Ask Aero</label>
+            <textarea id="commandInput" rows="1" placeholder="Try “follow up”, “compare these”, or “same as last time”…"></textarea>
+            <button class="speak-button" type="button" id="voiceButton" aria-label="Voice input">◉</button>
+            <button class="send-button" type="submit">Go <span>→</span></button>
+          </form>
+          <button class="continue-lyfe" type="button" id="openLyfeButton">Continue in Aero <span>→</span></button>
+          <div class="quick-commands" aria-label="Example requests">
+            <button data-command="what matters now">What matters now?</button>
+            <button data-command="follow up">Follow up</button>
+            <button data-command="compare my memory research notes">Compare these</button>
+            <button data-command="same as last time">Same as last time</button>
+          </div>
+        </section>
+      </section>
+
+      <aside class="memory-rail glass-panel">
+        <div class="panel-heading">
+          <div><span class="eyebrow">Adaptive memory</span><h2>What Aero knows</h2></div>
+          <span class="garden-health" title="Memory health">82</span>
+        </div>
+        <p class="garden-intro">Useful patterns only. Inspect, correct, or forget any one.</p>
+
+        <div class="memory-tabs" role="tablist" aria-label="Memory filters">
+          <button class="is-active" data-memory-filter="active" role="tab">Active</button>
+          <button data-memory-filter="candidate" role="tab">Learning <span id="candidateCount">1</span></button>
+        </div>
+        <div class="memory-list" id="memoryList"></div>
+
+        <section class="compression-card">
+          <div class="compression-ring"><strong id="compressionValue">22%</strong><span>less said</span></div>
+          <div><span class="eyebrow">This week</span><h3>Same intent, fewer words</h3><p id="compressionCopy">Aero resolved 7 familiar requests without making you restate the background.</p></div>
+        </section>
+
+        <button class="memory-control" id="memoryControl">Manage what Aero knows <span>→</span></button>
+      </aside>
+    </main>
+
+    <footer class="telemetry-strip glass-panel">
+      <span class="privacy-note"><i>✓</i> Draft-first mode · nothing external is sent automatically</span>
+      <div class="metric"><span>First-pass intent</span><strong id="intentMetric">94%</strong></div>
+      <div class="metric"><span>Clarifications</span><strong id="clarificationMetric">1 / 8</strong></div>
+      <div class="metric"><span>Corrections</span><strong id="correctionMetric">0</strong></div>
+      <button class="text-button" id="telemetryButton">View learning trace</button>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js?v=live-3"></script>
+</body>
+</html>

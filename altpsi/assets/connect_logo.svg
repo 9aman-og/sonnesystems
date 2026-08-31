@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Connect</title>
+  <desc id="desc">Three distinct signals converge into one shared path.</desc>
+  <defs>
+    <linearGradient id="field" x1="70" y1="52" x2="438" y2="462" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#222733"/>
+      <stop offset=".5" stop-color="#10131b"/>
+      <stop offset="1" stop-color="#07090e"/>
+    </linearGradient>
+    <linearGradient id="upper" x1="106" y1="148" x2="330" y2="256" gradientUnits="userSpaceOnUse"><stop stop-color="#59ecf6"/><stop offset="1" stop-color="#f5f8ff"/></linearGradient>
+    <linearGradient id="middle" x1="106" y1="256" x2="398" y2="256" gradientUnits="userSpaceOnUse"><stop stop-color="#a98dff"/><stop offset="1" stop-color="#f5f8ff"/></linearGradient>
+    <linearGradient id="lower" x1="106" y1="364" x2="330" y2="256" gradientUnits="userSpaceOnUse"><stop stop-color="#b8f55c"/><stop offset="1" stop-color="#f5f8ff"/></linearGradient>
+  </defs>
+  <rect x="28" y="28" width="456" height="456" rx="118" fill="url(#field)"/>
+  <rect x="29" y="29" width="454" height="454" rx="117" fill="none" stroke="#fff" stroke-opacity=".15" stroke-width="2"/>
+  <path d="M110 148h36c78 0 78 108 158 108h94" fill="none" stroke="url(#upper)" stroke-width="22" stroke-linecap="round"/>
+  <path d="M110 256h288" fill="none" stroke="url(#middle)" stroke-width="22" stroke-linecap="round"/>
+  <path d="M110 364h36c78 0 78-108 158-108" fill="none" stroke="url(#lower)" stroke-width="22" stroke-linecap="round"/>
+  <circle cx="110" cy="148" r="12" fill="#59ecf6"/>
+  <circle cx="110" cy="256" r="12" fill="#a98dff"/>
+  <circle cx="110" cy="364" r="12" fill="#b8f55c"/>
+  <circle cx="304" cy="256" r="13" fill="#f8fbff"/>
+</svg>
