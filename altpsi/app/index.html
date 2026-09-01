@@ -43,7 +43,7 @@
 <link rel="dns-prefetch" href="https://upload.wikimedia.org">
 <link rel="dns-prefetch" href="https://picsum.photos">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Inter:wght@400;500;600;700;800&amp;display=swap">
-<link rel="stylesheet" href="styles.css?v=aero-core-29">
+<link rel="stylesheet" href="styles.css?v=aero-core-31">
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -123,12 +123,12 @@
 <script src="aero-harness.js?v=aero-core-27"></script>
 <script src="aero-eval.js?v=aero-core-2"></script>
 <script src="aero-knowledge.js?v=aero-core-10"></script>
-<script src="app.js?v=aero-core-34"></script>
+<script src="app.js?v=aero-core-36"></script>
 <script>
 /* register the service worker so Aero installs and runs offline on Android.
    only over http/https (not file://). */
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
-  var workerRefreshKey = "aero.worker.refresh.aeroCore23";
+  var workerRefreshKey = "aero.worker.refresh.aeroCore26";
   if (!sessionStorage.getItem(workerRefreshKey)) {
     navigator.serviceWorker.addEventListener("controllerchange", function () {
       sessionStorage.setItem(workerRefreshKey, "1");
@@ -136,7 +136,7 @@ if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     }, { once: true });
   }
   window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js?v=aero-core-34").catch(function () { /* offline install optional */ });
+    navigator.serviceWorker.register("sw.js?v=aero-core-37").catch(function () { /* offline install optional */ });
   });
 }
 </script>

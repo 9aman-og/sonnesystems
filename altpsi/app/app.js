@@ -426,7 +426,7 @@ function defaultData() {
     // existing flat ledger for backwards compatibility and carry threadId.
     aeroThreads: [{
       id: firstThreadId,
-      title: "New conversation",
+      title: "New chat",
       projectId: null,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -445,20 +445,9 @@ function defaultData() {
   };
 }
 
-const AERO_WELCOME_NOTE = `Your Aero workspace keeps what matters close and turns context into a clear next move.
+const AERO_WELCOME_NOTE = `Ask naturally. Link a project when the work belongs somewhere. Say “remember this” only when you want something carried forward.
 
-THE SHORT TOUR
-
-Today - what needs you now, nothing more.
-Aero - your personal intelligence. Ask what matters, use shorthand, or propose a task, note, project or work log. Aero shows every workspace change before applying it.
-Tracking - tasks, projects, goals and work logs in one place.
-Library - quick notes and longer docs together.
-Profile - your identity, learning, and the details you choose to share with Connect.
-
-GOOD TO KNOW
-
-You can use Aero privately on this device or sign in to sync your workspace. Gmail connects only when you choose it, and messages enter your Library only when you save them.
-Aero can use Today, Tracking, Library, Connect, Gmail metadata and Profile only when you enable those sources. Its memory is typed, visible and yours to forget.`;
+Every change waits for your review.`;
 
 function firstRunData() {
   const d = defaultData();
@@ -471,10 +460,6 @@ function firstRunData() {
     createdAt: now,
     updatedAt: now,
   });
-  d.chat.push(
-    { id: uid(), threadId: d.aeroActiveThreadId, role: "sol", text: "I’m Aero. I use the workspace context you allow and preview every change.", ts: now },
-    { id: uid(), threadId: d.aeroActiveThreadId, role: "sol", text: "Ask what matters now, or show me a workflow you repeat.", ts: now + 1 },
-  );
   return d;
 }
 
@@ -510,10 +495,24 @@ function normalize(raw) {
     const text = migrateLegacyCompanionText(message.text);
     return text === message.text ? message : Object.assign({}, message, { text });
   });
+  const seededAeroIntros = new Set([
+    "I’m Aero.",
+    "I’m Aero. I use the workspace context you allow and preview every change.",
+    "I use the workspace context you allow and preview changes before they happen.",
+    "I use the workspace context you allow and preview every change.",
+    "Ask what matters now, or show me a workflow you repeat.",
+  ]);
+  base.chat = base.chat.filter((message, index) => !(
+    index < 2
+    && message.role !== "user"
+    && !message.episodeId
+    && !message.proposal
+    && seededAeroIntros.has(String(message.text || ""))
+  ));
   base.aeroThreads = Array.isArray(raw.aeroThreads)
     ? raw.aeroThreads.filter(thread => thread && typeof thread === "object" && thread.id).map(thread => ({
         id: String(thread.id),
-        title: String(thread.title || "New conversation").slice(0, 90),
+        title: (String(thread.title || "New chat") === "New conversation" ? "New chat" : String(thread.title || "New chat")).slice(0, 90),
         projectId: thread.projectId == null ? null : String(thread.projectId),
         createdAt: Number(thread.createdAt || Date.now()),
         updatedAt: Number(thread.updatedAt || thread.createdAt || Date.now()),
@@ -524,7 +523,7 @@ function normalize(raw) {
     const firstUserMessage = base.chat.find(message => message.role === "user");
     base.aeroThreads = [{
       id,
-      title: firstUserMessage ? String(firstUserMessage.text || "New conversation").slice(0, 90) : "New conversation",
+      title: firstUserMessage ? String(firstUserMessage.text || "New chat").slice(0, 90) : "New chat",
       projectId: null,
       createdAt: base.chat[0] ? Number(base.chat[0].ts || Date.now()) : Date.now(),
       updatedAt: base.chat.length ? Number(base.chat[base.chat.length - 1].ts || Date.now()) : Date.now(),
@@ -542,6 +541,18 @@ function normalize(raw) {
         }))
       : [],
   }));
+  const threadMessageCounts = base.chat.reduce((counts, message) => {
+    counts[message.threadId] = (counts[message.threadId] || 0) + 1;
+    return counts;
+  }, {});
+  const seededThreadPrompts = new Set(["What should we work on?", "Project workspace ready. What should move?"]);
+  base.chat = base.chat.filter(message => !(
+    message.role !== "user"
+    && !message.episodeId
+    && !message.proposal
+    && threadMessageCounts[message.threadId] === 1
+    && seededThreadPrompts.has(String(message.text || ""))
+  ));
   base.aeroRuns = Array.isArray(raw.aeroRuns) && window.AeroHarness
     ? raw.aeroRuns.map(run => AeroHarness.normalize(run)).filter(Boolean).slice(-200)
     : [];
@@ -709,7 +720,7 @@ function activeAeroMessages() {
 
 function titleFromAeroPrompt(value) {
   const clean = String(value || "").replace(/\s+/g, " ").trim();
-  if (!clean) return "Image conversation";
+  if (!clean) return "Image chat";
   return clean.length > 52 ? clean.slice(0, 51).trimEnd() + "…" : clean;
 }
 
@@ -717,18 +728,13 @@ function createAeroThread(projectId, title) {
   const now = Date.now();
   const thread = {
     id: uid(),
-    title: String(title || "New conversation").slice(0, 90),
+    title: String(title || "New chat").slice(0, 90),
     projectId: projectId || null,
     createdAt: now,
     updatedAt: now,
   };
   state.data.aeroThreads.unshift(thread);
   state.data.aeroActiveThreadId = thread.id;
-  state.data.chat.push({
-    id: uid(), threadId: thread.id, role: "sol",
-    text: projectId ? "Project workspace ready. What should move?" : "What should we work on?",
-    ts: now,
-  });
   save();
   return thread;
 }
@@ -2568,7 +2574,7 @@ function speakAeroMessage(messageId) {
 
 /* ---------------- view: Aero (legacy route id remains sol for old links) ---------------- */
 
-function bubbleHtml(m) {
+function bubbleHtml(m, index, messages) {
   const proposal = m.proposal && Array.isArray(m.proposal.actions) ? m.proposal : null;
   const actionCount = proposal ? proposal.actions.length : 0;
   const proposalState = proposal && proposal.status === "applied" ? "Applied"
@@ -2578,11 +2584,10 @@ function bubbleHtml(m) {
     <div class="aero-proposal-copy"><span class="aero-proposal-kicker">AERO PLAN</span><b>${esc(AeroCore.actionSummary(proposal.actions))}</b></div>
     <footer><strong>${actionCount} ${actionCount === 1 ? "change" : "changes"}</strong>${proposal.status === "pending" ? `<button class="btn btn-primary btn-sm" type="button" data-action="aero-review-proposal" data-id="${esc(m.id)}">Review plan</button>` : `<span class="aero-proposal-state">${proposalState}</span>`}</footer>
   </div>` : "";
-  const feedback = m.role === "sol" && m.episodeId ? (m.feedback
-    ? `<div class="aero-feedback is-rated"><span>${m.feedback === "helpful" ? "Marked helpful" : "Marked as a miss"}</span></div>`
-    : `<div class="aero-feedback" role="group" aria-label="Rate Aero's first response"><span>Did Aero get it?</span><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="helpful">Yes</button><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="missed">Not quite</button></div>`) : "";
-  const routeReceipt = m.role === "sol" && m.route && m.route.engine
-    ? `<div class="aero-route-receipt"><span>${esc(m.route.engine)}</span><b>${esc(m.route.reason || "local route")}</b>${m.route.steps > 1 ? `<small>${m.route.steps} steps</small>` : ""}</div>` : "";
+  const isLatest = !Array.isArray(messages) || index === messages.length - 1;
+  const feedback = m.role === "sol" && m.episodeId && isLatest ? (m.feedback
+    ? `<div class="aero-feedback is-rated"><span>${m.feedback === "helpful" ? "Useful" : "Needs work"}</span></div>`
+    : `<div class="aero-feedback" role="group" aria-label="Rate Aero's response"><span>Useful?</span><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="helpful">Yes</button><button type="button" data-action="aero-feedback" data-id="${esc(m.episodeId)}" data-outcome="missed">No</button></div>`) : "";
   const attachments = Array.isArray(m.attachments) && m.attachments.length
     ? `<div class="aero-message-images">${m.attachments.map(image => `<button type="button" data-action="aero-open-image" data-id="${esc(m.id)}" data-img="${esc(image.id)}" aria-label="Open attached image"><img src="${image.data}" alt="${esc(image.name || "Attached image")}"></button>`).join("")}</div>`
     : "";
@@ -2591,30 +2596,28 @@ function bubbleHtml(m) {
     : "";
   return `<div class="msg ${m.role === "user" ? "user" : "sol"}">
     ${m.role === "sol" ? SOL_AVATAR : ""}
-    <div class="bubble">${attachments}<span class="aero-message-text">${esc(m.text)}</span>${routeReceipt}${proposalHtml}${feedback}${messageTools}</div>
+    <div class="bubble">${attachments}<span class="aero-message-text">${esc(m.text)}</span>${proposalHtml}${feedback}${messageTools}</div>
     <span class="msg-time">${esc(clock(m.ts))}</span>
   </div>`;
 }
 
 const SOL_CHIPS = [
-  ["what actually matters?", true],
-  ["what changed?", true],
-  ["same as last time", true],
-  ["follow up with ", false],
-  ["remember that ", false],
+  { label: "Priorities", prompt: "what needs my attention?", send: true },
+  { label: "Plan an hour", prompt: "plan my next focused hour", send: true },
+  { label: "Catch me up", prompt: "what changed?", send: true },
+  { label: "Continue", prompt: "same as last time", send: true },
 ];
 
 function viewSol() {
   const s = state.data.settings;
   const provider = ["auto", "ollama", "groq", "offline"].includes(s.provider) ? s.provider : "auto";
-  const routeStatusHtml =
-    provider === "auto" ? `<span class="on">◇</span> local first${s.aeroCloudEnabled ? " + Groq" : ""}`
-    : provider === "ollama" ? `<span class="on">◇</span> local ${esc(s.ollamaModel || "qwen3:8b")}`
-    : provider === "groq" ? `<span class="on">◇</span> Groq for cloud-safe prompts`
-    : `○ built-in tools`;
+  const routeStatus = provider === "auto" ? `Local first${s.aeroCloudEnabled ? " with cloud routing" : ""}`
+    : provider === "ollama" ? `Local ${s.ollamaModel || "model"}`
+    : provider === "groq" ? "Cloud-safe routing"
+    : "Built-in tools";
   const statusHtml = aeroMemoryAuthorityError
-    ? `<span aria-hidden="true">!</span> private memory paused`
-    : routeStatusHtml;
+    ? `<span class="aero-status-dot is-alert" aria-hidden="true"></span> Memory paused`
+    : `<span class="aero-status-dot" aria-hidden="true"></span> Ready`;
   const activeThread = activeAeroThread();
   const messages = activeAeroMessages();
   const log = messages.map(bubbleHtml).join("");
@@ -2625,7 +2628,7 @@ function viewSol() {
   const draftImages = aeroDraftImages.length ? `<div class="aero-draft-images">${aeroDraftImages.map(image => `<span><img src="${image.data}" alt="${esc(image.name)}"><button type="button" data-action="aero-remove-draft-image" data-id="${esc(image.id)}" aria-label="Remove ${esc(image.name)}">×</button></span>`).join("")}</div>` : "";
   const context = aeroContextPack();
   const metrics = AeroCore.metrics(state.data.aero);
-  const sourceCards = context.sources.map(source => `<article class="aero-source-card"><span>${esc(source.label)}</span><p>${esc(source.detail)}</p></article>`).join("");
+  const sourceCards = context.sources.map(source => `<span class="aero-source-pill" title="${esc(source.detail)}"><i aria-hidden="true"></i>${esc(source.label)}</span>`).join("");
   const allMemories = AeroCore.normalize(state.data.aero).memories.slice().sort((a, b) => b.updatedAt - a.updatedAt).slice(0, 6);
   const memories = allMemories.length ? allMemories.map(memory => {
     const source = memory.sourceMode === "explicit"
@@ -2634,50 +2637,36 @@ function viewSol() {
     const lineage = memory.status === "superseded" ? " · replaced by a newer memory"
       : memory.status === "invalidated" ? " · dependency changed"
       : "";
-    return `<li class="is-${esc(memory.status)}"><span>${esc(memory.type)} · ${esc(memory.status)} · r${Math.max(0, Number(memory.revision || 0))}</span><p>${esc(memory.claim)}</p><small>${esc(source + lineage)}</small><button type="button" data-action="aero-forget" data-id="${esc(memory.id)}" aria-label="Forget this memory">Forget</button></li>`;
-  }).join("") : `<li class="aero-memory-empty"><p>Aero is not carrying anything yet.</p></li>`;
-  const study = metrics.longitudinal || { status: "insufficient", evidenceReady: false, releasePairs: 0, directionalPairs: 0, gates: [] };
-  const pairedSamples = Number(study.releasePairs || 0);
-  const matchedWords = pairedSamples
-    ? `${Number(study.baselineWords || 0).toFixed(1)} → ${Number(study.adaptedWords || 0).toFixed(1)}`
-    : "&mdash;";
-  const matchedAccuracy = pairedSamples && study.baselineFirstPassRate != null && study.adaptedFirstPassRate != null
-    ? `${Math.round(study.baselineFirstPassRate * 100)}% → ${Math.round(study.adaptedFirstPassRate * 100)}%`
-    : "&mdash;";
-  const compression = pairedSamples && study.compression != null ? Math.round(study.compression * 100) : null;
-  const accuracyDelta = pairedSamples && study.intentAccuracyDelta != null ? Math.round(study.intentAccuracyDelta * 100) : null;
+    const memoryLabel = memory.status === "candidate" ? "Suggested"
+      : memory.status === "disputed" ? "Needs review"
+      : memory.status === "superseded" ? "Replaced"
+      : memory.status === "invalidated" ? "Paused"
+      : memory.type;
+    return `<li class="is-${esc(memory.status)}"><span>${esc(memoryLabel)}</span><p>${esc(memory.claim)}</p><small>${esc(source + lineage)}</small><button type="button" data-action="aero-forget" data-id="${esc(memory.id)}" aria-label="Forget this memory">Forget</button></li>`;
+  }).join("") : `<li class="aero-memory-empty"><p>No memories yet.</p></li>`;
   const staleMemoryCount = (metrics.disputedMemories || 0) + (metrics.invalidatedMemories || 0);
   const memoryCount = metrics.activeMemories + " kept"
     + (metrics.candidateMemories ? " · " + metrics.candidateMemories + " candidate" + (metrics.candidateMemories === 1 ? "" : "s") : "")
     + (staleMemoryCount ? " · " + staleMemoryCount + " held back" : "");
-  const proofLabel = study.evidenceReady ? "personal evidence ready"
-    : pairedSamples ? "matched study in progress"
-    : study.directionalPairs ? "directional signal only" : "building a baseline";
-  const proofSummary = study.evidenceReady
-    ? `${compression}% less total user communication with environment-verified first-pass accuracy held (${accuracyDelta >= 0 ? "+" : ""}${accuracyDelta} points).`
-    : pairedSamples
-      ? `${pairedSamples} environment-verified routine pair${pairedSamples === 1 ? "" : "s"}; misses, corrections, and clarification words stay in the comparison.`
-      : study.directionalPairs
-        ? `${study.directionalPairs} local pair${study.directionalPairs === 1 ? "" : "s"} recorded. Local success is useful direction, not personal evidence.`
-        : "Repeat a signed-in workflow to start an environment-verified matched study.";
+  const memorySummary = metrics.activeMemories + ` ${metrics.activeMemories === 1 ? "memory" : "memories"}`;
   const notificationCount = aeroUnreadNotificationCount();
   return `<header class="aero-head">
-      <div class="aero-title-lockup"><img src="../assets/aero_logo.svg" alt=""><div><span class="eyebrow">AERO</span><h1>Ready when you are.</h1><p>Your work and context, shaped into a clear next move.</p></div></div>
-      <div class="aero-head-actions"><span class="sol-status">${statusHtml}</span><button class="aero-attention-button" type="button" data-action="aero-notifications">Updates${notificationCount ? `<span>${notificationCount}</span>` : ""}</button><button class="linklike" data-action="settings">Settings</button></div>
+      <div class="aero-title-lockup"><img src="../assets/aero_logo.svg" alt=""><h1>Aero</h1></div>
+      <div class="aero-head-actions"><span class="sol-status" title="${esc(routeStatus)}">${statusHtml}</span><button class="aero-attention-button" type="button" data-action="aero-notifications">Updates${notificationCount ? `<span>${notificationCount}</span>` : ""}</button><button class="linklike" data-action="settings">Settings</button></div>
     </header>
     <div class="aero-workspace">
       <aside class="aero-sidebar panel" aria-label="Aero conversations and projects">
-        <button class="btn btn-primary aero-new-chat" type="button" data-action="aero-new-thread">+ New conversation</button>
-        <section><span class="eyebrow">PROJECTS</span><div class="aero-sidebar-list">${activeProjects.length ? activeProjects.slice(0, 8).map(project => `<button type="button" data-action="aero-open-project" data-id="${esc(project.id)}"><span>${esc(project.name)}</span><small>${Math.max(0, Math.min(100, Number(project.progress || 0)))}%</small></button>`).join("") : `<p>No active projects yet.</p>`}</div></section>
-        <section><span class="eyebrow">RECENT</span><div class="aero-sidebar-list aero-thread-list">${recentThreads.map(thread => `<button type="button" class="${activeThread && thread.id === activeThread.id ? "active" : ""}" data-action="aero-open-thread" data-id="${esc(thread.id)}"><span>${esc(thread.title || "New conversation")}</span><small>${esc(timeAgo(thread.updatedAt))}</small></button>`).join("")}</div></section>
-        <button class="linklike aero-library-link" type="button" data-action="nav" data-view="aero-work">Open Aero work →</button>
+        <button class="btn btn-primary aero-new-chat" type="button" data-action="aero-new-thread">+ New chat</button>
+        <section><span class="eyebrow">PROJECTS</span><div class="aero-sidebar-list">${activeProjects.length ? activeProjects.slice(0, 8).map(project => `<button type="button" data-action="aero-open-project" data-id="${esc(project.id)}"><span>${esc(project.name)}</span><small>${Math.max(0, Math.min(100, Number(project.progress || 0)))}%</small></button>`).join("") : `<p>No projects</p>`}</div></section>
+        <section><span class="eyebrow">CHATS</span><div class="aero-sidebar-list aero-thread-list">${recentThreads.map(thread => `<button type="button" class="${activeThread && thread.id === activeThread.id ? "active" : ""}" data-action="aero-open-thread" data-id="${esc(thread.id)}"><span>${esc(thread.title || "New chat")}</span><small>${esc(timeAgo(thread.updatedAt))}</small></button>`).join("")}</div></section>
+        <button class="linklike aero-library-link" type="button" data-action="nav" data-view="aero-work">All work</button>
       </aside>
       <section class="aero-conversation panel">
-        <div class="aero-conversation-context"><span>Context</span><b>${esc(aeroSourceLabel(context.surface))}</b><label>Project <select id="aero-project-select" aria-label="Link this conversation to a project">${projectOptions}</select></label><button class="linklike" type="button" data-action="aero-context">Inspect</button><button class="linklike" type="button" data-action="sol-clear">Clear</button></div>
-        <div class="aero-thread-title"><strong>${esc(activeThread ? activeThread.title : "New conversation")}</strong><small>${threadProject ? esc(threadProject.name) : "General workspace"} · saved automatically</small></div>
-        <div id="chat-log">${log || `<div class="aero-empty"><img src="../assets/aero_logo.svg" alt=""><h2>What are we moving?</h2><p>Name the outcome. Aero will gather what matters and show every change before it happens.</p></div>`}</div>
-        <div class="sol-chips">${SOL_CHIPS.map(([c, send]) =>
-          `<button class="chip" data-action="sol-chip" data-send="${send ? 1 : 0}" data-t="${esc(c)}">${esc(c.trim())}</button>`).join("")}
+        <div class="aero-conversation-context"><button class="aero-context-chip" type="button" data-action="aero-context"><i aria-hidden="true"></i>${esc(aeroSourceLabel(context.surface))}</button><label><span>Project</span><select id="aero-project-select" aria-label="Link this chat to a project">${projectOptions}</select></label><button class="linklike" type="button" data-action="sol-clear">Clear</button></div>
+        <div class="aero-thread-title"><strong>${esc(activeThread ? activeThread.title : "New chat")}</strong><small>${threadProject ? esc(threadProject.name) : "General"} · Saved</small></div>
+        <div id="chat-log">${log || `<div class="aero-empty"><img src="../assets/aero_logo.svg" alt=""><h2>What can I help with?</h2></div>`}</div>
+        <div class="sol-chips">${SOL_CHIPS.map(chip =>
+          `<button class="chip" data-action="sol-chip" data-send="${chip.send ? 1 : 0}" data-t="${esc(chip.prompt)}">${esc(chip.label)}</button>`).join("")}
         </div>
         ${draftImages}
         <form class="composer aero-composer" data-form="sol">
@@ -2687,14 +2676,12 @@ function viewSol() {
           <button class="btn btn-primary" type="submit">Send</button>
           <input type="file" id="aero-image-input" accept="image/jpeg,image/png,image/webp" multiple hidden>
         </form>
-        <p class="aero-composer-note">Nothing changes without your review. Images use only this message on the protected route.</p>
       </section>
       <details class="aero-inspector">
-        <summary><span><b>Context, memory and learning</b><small>${context.sources.length} sources · ${memoryCount} · ${proofLabel}</small></span><span>Inspect</span></summary>
+        <summary><span><b>Context &amp; memory</b><small>${context.sources.length} connected · ${memorySummary}</small></span><span>Manage</span></summary>
         <aside class="aero-rail">
-          <section class="aero-rail-card"><header><span class="eyebrow">AVAILABLE CONTEXT</span><b>${Math.round(context.provenanceCoverage * 100)}% ready</b></header><div class="aero-source-grid">${sourceCards || `<p>No sources are enabled.</p>`}</div><button class="linklike" type="button" data-action="settings">Choose sources →</button></section>
-          <section class="aero-rail-card"><header><span class="eyebrow">WHAT AERO KNOWS</span><b>${memoryCount}</b></header><ul class="aero-memory-list">${memories}</ul><button class="linklike" type="button" data-action="aero-teach">Teach Aero →</button></section>
-          <section class="aero-rail-card aero-proof"><header><span class="eyebrow">GETTING EASIER</span><b>${proofLabel}</b></header><div class="aero-proof-grid"><div><strong>${metrics.scored}</strong><span>rated results</span></div><div><strong>${pairedSamples}</strong><span>verified routine pairs</span></div><div><strong>${matchedWords}</strong><span>all user words · first → repeat</span></div><div><strong>${matchedAccuracy}</strong><span>right without repair</span></div></div><p>${esc(proofSummary)}</p></section>
+          <section class="aero-rail-card"><header><span class="eyebrow">SOURCES</span><b>${context.sources.length}</b></header><div class="aero-source-grid">${sourceCards || `<p>No sources</p>`}</div><button class="linklike" type="button" data-action="settings">Edit sources</button></section>
+          <section class="aero-rail-card"><header><span class="eyebrow">MEMORY</span><b>${memoryCount}</b></header><ul class="aero-memory-list">${memories}</ul><button class="linklike" type="button" data-action="aero-teach">Add memory</button></section>
         </aside>
       </details>
     </div>`;
@@ -2707,12 +2694,12 @@ function scrollChat() {
 
 function pushChat(role, text, meta) {
   let thread = activeAeroThread();
-  if (!thread) thread = createAeroThread(null, "New conversation");
+  if (!thread) thread = createAeroThread(null, "New chat");
   const m = Object.assign({ id: uid(), threadId: thread.id, role, text, ts: Date.now() }, meta || {});
   state.data.chat.push(m);
   if (state.data.chat.length > 500) state.data.chat = state.data.chat.slice(-500);
   thread.updatedAt = m.ts;
-  if (role === "user" && (!thread.title || thread.title === "New conversation" || thread.title === "Image conversation")) {
+  if (role === "user" && (!thread.title || thread.title === "New chat" || thread.title === "New conversation" || thread.title === "Image chat" || thread.title === "Image conversation")) {
     thread.title = titleFromAeroPrompt(text);
     const title = document.querySelector(".aero-thread-title strong");
     if (title) title.textContent = thread.title;
@@ -2723,8 +2710,9 @@ function pushChat(role, text, meta) {
   if (state.view === "sol" && thread.id === state.data.aeroActiveThreadId) {
     const log = document.getElementById("chat-log");
     if (log) {
-      const emptyEl = log.querySelector(".empty");
+      const emptyEl = log.querySelector(".aero-empty");
       if (emptyEl) emptyEl.remove();
+      log.querySelectorAll(".aero-feedback").forEach(element => element.remove());
       log.insertAdjacentHTML("beforeend", bubbleHtml(m));
       scrollChat();
     }
@@ -4257,8 +4245,7 @@ function aeroContextModal() {
   const enabled = state.data.settings.aeroSources || {};
   const ids = ["today", "tracking", "library", "connect", "gmail", "profile"];
   openModal(
-    `<div class="modal-head"><div><span class="settings-kicker">AERO CONTEXT</span><h3>What Aero can use</h3></div></div>
-     <p class="aero-modal-lede">This is the bounded context pack for the current turn. Disabled sources are not added to model prompts.</p>
+    `<div class="modal-head"><div><span class="settings-kicker">AERO</span><h3>Context</h3></div></div>
      <div class="aero-context-list">${ids.map(id => {
        const source = pack.sources.find(item => item.id === id);
        return `<article class="${enabled[id] === false ? "is-off" : ""}"><span>${esc(aeroSourceLabel(id))}</span><b>${enabled[id] === false ? "Off" : source ? "Available" : "Enabled, no current data"}</b><p>${esc(source ? source.detail : id === "gmail" ? "Connect Gmail and load Today to make recent metadata available." : "No recent items in this source.")}</p></article>`;
@@ -4276,7 +4263,7 @@ function aeroNotificationsModal() {
   attention.notifications.forEach(item => { item.read = true; });
   save();
   openModal(
-    `<div class="modal-head"><div><span class="settings-kicker">AERO UPDATES</span><h3>Quiet unless it matters.</h3></div></div>
+    `<div class="modal-head"><div><span class="settings-kicker">AERO</span><h3>Updates</h3></div></div>
      <p class="aero-modal-lede">Aero starts at most one conversation a day. A second is reserved for something urgent.</p>
      ${body}
      <div class="modal-actions"><button type="button" class="btn" data-action="modal-close">Done</button><button type="button" class="btn btn-primary" data-action="settings">Notification settings</button></div>`,
@@ -4286,7 +4273,7 @@ function aeroNotificationsModal() {
 
 function aeroTeachModal() {
   openModal(
-    `<div class="modal-head"><div><span class="settings-kicker">TEACH AERO</span><h3>Make one thing explicit</h3></div></div>
+    `<div class="modal-head"><div><span class="settings-kicker">AERO</span><h3>Add memory</h3></div></div>
      <p class="aero-modal-lede">Explicit memories start active because you chose them. Inferred patterns never get that privilege automatically.</p>
      <form data-form="aero-teach" class="aero-teach-form">
        ${fld("Memory", `<textarea name="claim" required maxlength="800" rows="4" placeholder="When I say ‘research this’, compare the contribution, evidence, failure modes and what changes my decision."></textarea>`)}
@@ -4544,13 +4531,13 @@ function viewAeroWork() {
     const runLabel = latestRun ? ` · ${latestRun.verified}/${latestRun.total} steps verified · ${latestRun.status.replace(/-/g, " ")}` : "";
     return `<article class="aero-work-card panel">
       <header><span>${project ? esc(project.name) : "GENERAL"}</span><time>${esc(timeAgo(thread.updatedAt))}</time></header>
-      <h2>${esc(thread.title || "New conversation")}</h2>
+      <h2>${esc(thread.title || "New chat")}</h2>
       <p>${esc(last ? snippet(last.text) : "A fresh Aero workspace.")}</p>
       <footer><span>${messages.length} message${messages.length === 1 ? "" : "s"}${imageCount ? " · " + imageCount + " image" + (imageCount === 1 ? "" : "s") : ""}${esc(runLabel)}</span><button class="btn btn-sm" type="button" data-action="aero-open-thread" data-id="${esc(thread.id)}">Open</button></footer>
     </article>`;
   }).join("");
-  const empty = `<section class="panel saved-library-empty"><span class="eyebrow">AERO WORK</span><h2>Conversations become project context.</h2><p>Start in Aero. Work is saved here automatically.</p><button class="btn btn-primary" type="button" data-action="aero-new-thread">Start with Aero</button></section>`;
-  return pageHead("Aero work", `<button class="btn btn-primary" type="button" data-action="aero-new-thread">New conversation</button>`, "project-linked conversations and images, saved automatically")
+  const empty = `<section class="panel saved-library-empty"><span class="eyebrow">AERO WORK</span><h2>No work yet.</h2><button class="btn btn-primary" type="button" data-action="aero-new-thread">New chat</button></section>`;
+  return pageHead("Aero work", `<button class="btn btn-primary" type="button" data-action="aero-new-thread">New chat</button>`, "WORK")
     + (cards ? `<div class="aero-work-grid">${cards}</div>` : empty);
 }
 
@@ -5261,7 +5248,7 @@ document.addEventListener("click", (e) => {
       break;
     }
     case "aero-new-thread":
-      createAeroThread(null, "New conversation");
+      createAeroThread(null, "New chat");
       state.aeroSourceView = "today";
       state.aeroObject = null;
       aeroDraftImages = [];
@@ -5318,7 +5305,7 @@ document.addEventListener("click", (e) => {
         const thread = activeAeroThread();
         if (thread) {
           d.chat = d.chat.filter(message => message.threadId !== thread.id);
-          thread.title = "New conversation";
+          thread.title = "New chat";
           thread.updatedAt = Date.now();
         }
         save(); render();

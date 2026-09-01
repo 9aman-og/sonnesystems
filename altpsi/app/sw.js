@@ -2,18 +2,18 @@
    HTML is network-first (always fresh when online); versioned assets cache-first. */
 "use strict";
 
-const CACHE = "altpsi-aero-core-36-connect-22";
+const CACHE = "altpsi-aero-core-39-connect-22";
 const SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=aero-core-29",
+  "./styles.css?v=aero-core-31",
   "./supabase-config.js?v=aero-core-16",
   "./cloud.js?v=aero-core-18",
   "./aero-core.js?v=aero-core-15",
   "./aero-harness.js?v=aero-core-27",
   "./aero-eval.js?v=aero-core-2",
   "./aero-knowledge.js?v=aero-core-10",
-  "./app.js?v=aero-core-34",
+  "./app.js?v=aero-core-36",
   "./connect.html",
   "./connect.css?v=connect22",
   "./connect-suite.css?v=connect22",
