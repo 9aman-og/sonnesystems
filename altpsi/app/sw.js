@@ -1,96 +1,73 @@
-/* Aero service worker - offline app shell for the installed Android/PWA app.
-   HTML is network-first (always fresh when online); versioned assets cache-first. */
 "use strict";
 
-const CACHE = "altpsi-aero-core-39-connect-22";
+const CACHE = "altpsi-aero-clean-room-1";
 const SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=aero-core-31",
-  "./supabase-config.js?v=aero-core-16",
-  "./cloud.js?v=aero-core-18",
-  "./aero-core.js?v=aero-core-15",
-  "./aero-harness.js?v=aero-core-27",
-  "./aero-eval.js?v=aero-core-2",
-  "./aero-knowledge.js?v=aero-core-10",
-  "./app.js?v=aero-core-36",
-  "./connect.html",
-  "./connect.css?v=connect22",
-  "./connect-suite.css?v=connect22",
-  "./connect.js?v=connect18",
-  "./connect-suite.js?v=connect22",
-  "./connect.webmanifest",
-  "./privacy.html",
-  "./legal.css?v=2",
-  "../assets/connect_logo.png",
-  "../assets/connect_logo.svg",
-  "../assets/aero_logo.png",
-  "../assets/aero_logo.svg",
-  "../assets/altpsi_logo.svg",
   "./manifest.webmanifest",
-  "./icon-192.png",
-  "./icon-512.png",
+  "./supabase-config.js?v=aero-clean-1",
+  "./cloud.js?v=aero-clean-1",
+  "./aero-eval.js?v=aero-clean-1",
+  "./aero-core.js?v=aero-clean-1",
+  "./aero-harness.js?v=aero-clean-1",
+  "./aero-knowledge.js?v=aero-clean-1",
+  "../app-next/brand-mark.svg",
+  "../app-next/brand-maskable.svg",
+  "../app-next/styles.css?v=clean-room-1",
+  "../app-next/core/store.js?v=aero-clean-1",
+  "../app-next/core/aero.js?v=aero-clean-1",
+  "../app-next/ui/views.js?v=aero-clean-1",
+  "../app-next/app.js?v=aero-clean-1",
 ];
 
-self.addEventListener("install", (e) => {
+self.addEventListener("install", (event) => {
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then((c) => Promise.allSettled(SHELL.map((u) => c.add(u)))));
+  event.waitUntil(caches.open(CACHE).then((cache) => Promise.allSettled(SHELL.map((url) => cache.add(url)))));
 });
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil(
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => /^(?:lyfe|altpsi)-/.test(k) && k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((key) => /^(?:lyfe|altpsi)-/.test(key) && key !== CACHE).map((key) => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener("fetch", (e) => {
-  const req = e.request;
-  if (req.method !== "GET") return;
-  const url = new URL(req.url);
-
-  // never touch the user's data or third-party APIs (Ollama, Wikipedia, fonts, photos)
+self.addEventListener("fetch", (event) => {
+  const request = event.request;
+  if (request.method !== "GET") return;
+  const url = new URL(request.url);
   if (url.origin !== location.origin) return;
 
-  const isDoc = req.mode === "navigate" ||
-    (req.headers.get("accept") || "").includes("text/html");
-
-  if (isDoc) {
-    // network-first so the app shell updates the moment you're online
-    e.respondWith(
-      fetch(req, { cache: "no-store" }).then((res) => {
-        const copy = res.clone();
-        const pageKey = url.pathname.endsWith("/connect.html") ? "./connect.html" : "./index.html";
-        caches.open(CACHE).then((c) => c.put(pageKey, copy)).catch(() => {});
-        return res;
-      }).catch(() => caches.match(req).then((h) => h || caches.match("./index.html")))
+  const isDocument = request.mode === "navigate" || (request.headers.get("accept") || "").includes("text/html");
+  if (isDocument) {
+    event.respondWith(
+      fetch(request, { cache: "no-store" }).then((response) => {
+        if (url.pathname.endsWith("/app/") || url.pathname.endsWith("/app/index.html")) {
+          caches.open(CACHE).then((cache) => cache.put("./index.html", response.clone())).catch(() => {});
+        }
+        return response;
+      }).catch(() => caches.match(request).then((hit) => hit || caches.match("./index.html")))
     );
     return;
   }
 
-  // the cloud config must never be served stale: filling in the Supabase keys
-  // later has to take effect without bumping a version. Network-first, with the
-  // cache only as an offline fallback.
   if (url.pathname.endsWith("supabase-config.js")) {
-    e.respondWith(
-      fetch(req, { cache: "no-store" }).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
-        return res;
-      }).catch(() => caches.match(req))
+    event.respondWith(
+      fetch(request, { cache: "no-store" }).then((response) => {
+        caches.open(CACHE).then((cache) => cache.put(request, response.clone())).catch(() => {});
+        return response;
+      }).catch(() => caches.match(request))
     );
     return;
   }
 
-  // versioned static assets: cache-first, then fill the cache
-  e.respondWith(
-    caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-      if (res && res.status === 200 && res.type === "basic") {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+  event.respondWith(
+    caches.match(request).then((hit) => hit || fetch(request).then((response) => {
+      if (response && response.status === 200 && response.type === "basic") {
+        caches.open(CACHE).then((cache) => cache.put(request, response.clone())).catch(() => {});
       }
-      return res;
-    }).catch(() => Response.error()))
+      return response;
+    }))
   );
 });

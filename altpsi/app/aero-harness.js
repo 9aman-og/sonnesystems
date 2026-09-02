@@ -1,18 +1,21 @@
 /* ============================================================
-   Aero Harness v0.4
+   Aero Harness v0.5
    Clean-room, model-neutral execution control for Lyfe.
 
    Models may propose work. This module owns the executable contract,
-   approval binding, bounded execution, read-only audit, atomic rollback,
-   and evidence-carrying termination. It contains no EOS or IISc code.
+   approval binding, deterministic information-flow policy, bounded execution,
+   read-only audit, atomic rollback, and evidence-carrying termination. It
+   contains no EOS or IISc code.
    ============================================================ */
 (function () {
   "use strict";
 
-  var VERSION = "aero-harness-v0.4";
-  var POLICY_VERSION = "aero-local-policy-v1";
-  var CONTRACT_SCHEMA = "aero-action-contract-v1";
+  var VERSION = "aero-harness-v0.5";
+  var POLICY_VERSION = "aero-local-policy-v2";
+  var CONTRACT_SCHEMA = "aero-action-contract-v2";
   var CERTIFICATE_SCHEMA = "aero-completion-certificate-v1";
+  var FLOW_SCHEMA = "aero-flow-manifest-v1";
+  var FLOW_POLICY_VERSION = "aero-flow-policy-v1";
   var MAX_STEPS = 12;
   var MAX_EVENTS = 180;
   var MAX_EVIDENCE_PER_STEP = 8;
@@ -29,6 +32,9 @@
     "memoryType", "memoryKey", "dependsOn", "supersedes", "query", "hours",
   ];
   var ALLOWED_ACTIONS = Object.keys(ACTION_LABELS);
+  var FLOW_ORIGINS = ["system", "user", "workspace", "external", "model", "derived", "unknown"];
+  var FLOW_SENSITIVITY = ["public", "private", "secret"];
+  var FLOW_TRUST = { unknown: 0, external: 1, model: 1, derived: 2, workspace: 3, user: 4, system: 5 };
 
   function list(value) { return Array.isArray(value) ? value : []; }
   function text(value, max) { return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max || 500); }
@@ -179,6 +185,250 @@
     return { ok: true, code: "OK", message: "Action is valid" };
   }
 
+  /* The flow governor keeps instruction authority separate from data. A
+     sanitizer may change text, but it cannot upgrade where that text came
+     from. Only user and system sources can control an operation. */
+  function uniqueStrings(values, max, size) {
+    var seen = {};
+    return list(values).map(function (value) { return text(value, size || 140); }).filter(function (value) {
+      if (!value || seen[value]) return false;
+      seen[value] = true; return true;
+    }).slice(0, max || 64);
+  }
+  function normalizeFlowSource(raw) {
+    raw = raw && typeof raw === "object" ? raw : {};
+    var origin = FLOW_ORIGINS.indexOf(text(raw.origin, 30)) >= 0 ? text(raw.origin, 30) : "unknown";
+    var sensitivity = FLOW_SENSITIVITY.indexOf(text(raw.sensitivity, 30)) >= 0 ? text(raw.sensitivity, 30) : "private";
+    return {
+      id: text(raw.id, 140) || "source.unknown",
+      label: text(raw.label, 120) || origin,
+      origin: origin,
+      trust: origin,
+      sensitivity: sensitivity,
+      authority: origin === "user" || origin === "system" ? "control" : "data",
+      sanitized: raw.sanitized === true,
+    };
+  }
+  function sourceIndex(sources) {
+    return list(sources).reduce(function (out, source) { out[source.id] = source; return out; }, {});
+  }
+  function joinFlowLabels(sourceIds, sources) {
+    var normalizedSources = list(sources).map(normalizeFlowSource);
+    var index = sourceIndex(normalizedSources);
+    var selected = uniqueStrings(sourceIds, 64, 140).map(function (sourceId) { return index[sourceId]; }).filter(Boolean);
+    if (!selected.length) selected = [normalizeFlowSource({ id: "source.unknown", origin: "unknown" })];
+    var weakest = selected.slice().sort(function (a, b) { return FLOW_TRUST[a.trust] - FLOW_TRUST[b.trust]; })[0];
+    var sensitivity = selected.some(function (source) { return source.sensitivity === "secret"; }) ? "secret"
+      : selected.some(function (source) { return source.sensitivity === "private"; }) ? "private" : "public";
+    return {
+      sourceIds: selected.map(function (source) { return source.id; }),
+      origins: uniqueStrings(selected.map(function (source) { return source.origin; }), 16, 30),
+      trust: weakest.trust,
+      sensitivity: sensitivity,
+      authority: selected.every(function (source) { return source.authority === "control"; }) ? "control" : "data",
+      sanitized: selected.some(function (source) { return source.sanitized; }),
+    };
+  }
+  function actionAuthorizedByIntent(intent, type) {
+    var value = text(intent, 2_000).toLowerCase();
+    var negated = {
+      add_task: /\b(?:do\s+not|don't|dont|never)\b[\s\S]{0,70}\b(?:add|create|make|schedule|turn)\b[\s\S]{0,50}\b(?:tasks?|todos?|reminders?)\b/,
+      complete_task: /\b(?:do\s+not|don't|dont|never)\b[\s\S]{0,70}\b(?:complete|finish|mark|tick|check)\b/,
+      add_note: /\b(?:do\s+not|don't|dont|never)\b[\s\S]{0,70}\b(?:add|create|save|write|make)\b[\s\S]{0,50}\bnotes?\b/,
+      add_doc: /\b(?:do\s+not|don't|dont|never)\b[\s\S]{0,70}\b(?:add|create|save|write|make)\b[\s\S]{0,50}\b(?:docs?|documents?)\b/,
+      log_work: /\b(?:do\s+not|don't|dont|never)\b[\s\S]{0,70}\b(?:log|record)\b[\s\S]{0,50}\b(?:work|hours?|time)\b/,
+      add_goal: /\b(?:do\s+not|don't|dont|never)\b[\s\S]{0,70}\b(?:add|create|make|set)\b[\s\S]{0,50}\bgoals?\b/,
+      add_education: /\b(?:do\s+not|don't|dont|never)\b[\s\S]{0,70}\b(?:add|create|save|track)\b[\s\S]{0,50}\b(?:course|degree|learning|skill)\b/,
+      add_project: /\b(?:do\s+not|don't|dont|never)\b[\s\S]{0,70}\b(?:add|create|make|start)\b[\s\S]{0,50}\bprojects?\b/,
+      memory_upsert: /\b(?:do\s+not|don't|dont|never)\b[\s\S]{0,70}\b(?:remember|memorize|save[\s\S]{0,30}memory)\b/,
+      memory_forget: /\b(?:do\s+not|don't|dont|never)\b[\s\S]{0,70}\bforget\b/,
+    };
+    if (negated[type] && negated[type].test(value)) return false;
+    var patterns = {
+      add_task: /(?:^|\b)(?:task|todo|reminder)\s*:|\bremind\s+me\b|\bremember\s+to\b|\b(?:i\s+(?:need|have)\s+to|i\s+gotta|gotta)\b|\b(?:add|create|make|schedule|turn)\b[\s\S]{0,90}\b(?:tasks?|todos?|reminders?)\b/,
+      complete_task: /^\s*(?:done|did|finished|completed?)\b|\b(?:complete|finish|mark|tick|check)\b[\s\S]{0,90}\b(?:task|todo|it|this|done)\b/,
+      add_note: /^\s*(?:note(?:\s+down(?:\s+that)?)?|jot(?:\s+down)?)\b|\b(?:add|create|save|write|make|turn)\b[\s\S]{0,90}\bnotes?\b/,
+      add_doc: /^\s*(?:doc(?:ument)?|new\s+doc|start\s+(?:a\s+)?doc)\b|\b(?:add|create|save|write|make|start|turn)\b[\s\S]{0,90}\b(?:docs?|documents?)\b/,
+      log_work: /(?:^|\b)(?:worked|log|logged|spent)\b|\b(?:log|record)\b[\s\S]{0,90}\b(?:work|hours?|time)\b/,
+      add_goal: /^\s*(?:goal|new\s+goal|my\s+goal\s+is(?:\s+to)?)\b|\b(?:add|create|make|set|turn)\b[\s\S]{0,90}\bgoals?\b/,
+      add_education: /(?:^|\b)(?:learning|studying|course)\s*:|\b(?:i(?:'m|\s+am)\s+)?(?:learning|studying)\b|\b(?:add|create|save|track)\b[\s\S]{0,90}\b(?:courses?|degrees?|certifications?|languages?|books?|papers?|skills?|learning)\b/,
+      add_project: /(?:^|\b)project\s*:|\b(?:add|create|make|start|turn)\b[\s\S]{0,90}\bprojects?\b/,
+      memory_upsert: /\bremember\b(?!\s+to\b)|\bmemorize\b|^\s*learn(?:\s+that)?\b|\bteach\s+(?:aero|you)\b|\bsave\b[\s\S]{0,90}\bmemory\b/,
+      memory_forget: /\bforget\b|\bstop\s+remembering\b|\bremove\b[\s\S]{0,90}\bmemory\b/,
+    };
+    return !!(patterns[type] && patterns[type].test(value));
+  }
+  function sourceMentionedByIntent(intent, source) {
+    var value = text(intent, 2_000).toLowerCase();
+    var idValue = text(source && source.id, 140).toLowerCase();
+    var label = text(source && source.label, 120).toLowerCase();
+    if (label && label.length > 2 && value.indexOf(label) >= 0) return true;
+    if (/gmail/.test(idValue)) return /\b(?:gmail|email|inbox)\b/.test(value);
+    if (/connect/.test(idValue)) return /\b(?:connect|thread|conversation|message)\b/.test(value);
+    if (/knowledge|import|file|chatgpt|gemini/.test(idValue)) return /\b(?:knowledge|import|file|chatgpt|gemini|document)\b/.test(value);
+    if (/library|note|doc|saved/.test(idValue)) return /\b(?:library|note|doc|saved)\b/.test(value);
+    if (/web|browser|page|site/.test(idValue)) return /\b(?:web|browser|page|site|article)\b/.test(value);
+    if (/tracking|today|workspace/.test(idValue)) return /\b(?:task|project|goal|tracking|today|workspace)\b/.test(value);
+    return false;
+  }
+  function actionAuthorizationBudget(intent, type) {
+    if (!actionAuthorizedByIntent(intent, type)) return 0;
+    var value = text(intent, 2_000).toLowerCase();
+    var wordNumbers = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
+    var quantityNouns = {
+      add_task: "(?:tasks?|todos?|reminders?)", complete_task: "(?:tasks?|todos?|items?)",
+      add_note: "notes?", add_doc: "(?:docs?|documents?)", log_work: "(?:logs?|entries|sessions?)",
+      add_goal: "goals?", add_education: "(?:courses?|degrees?|certifications?|skills?|items?)",
+      add_project: "projects?", memory_upsert: "memories", memory_forget: "memories",
+    };
+    var quantityPattern = new RegExp("\\b([1-9]|1[0-2]|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\\s+" + quantityNouns[type] + "\\b");
+    var quantity = value.match(quantityPattern);
+    var explicit = quantity ? (wordNumbers[quantity[1]] || Number(quantity[1])) : 0;
+    var markers = {
+      add_task: /\b(?:task|todo|remind\s+me|remember\s+to|i\s+(?:need|have)\s+to)\b/g,
+      complete_task: /\b(?:done|did|complete|completed|finish|finished|mark|tick|check)\b/g,
+      add_note: /\b(?:note|jot\s+down)\b/g,
+      add_doc: /\b(?:doc|document)\b/g,
+      log_work: /\b(?:log|logged|worked|spent)\b/g,
+      add_goal: /\bgoal\b/g,
+      add_education: /\b(?:learning|studying|course|degree|certification|skill)\b/g,
+      add_project: /\bproject\b/g,
+      memory_upsert: /\b(?:remember|memorize|learn|teach)\b/g,
+      memory_forget: /\b(?:forget|remove\s+memory)\b/g,
+    };
+    var mentions = markers[type] ? (value.match(markers[type]) || []).length : 1;
+    return Math.max(1, Math.min(MAX_STEPS, explicit || mentions || 1));
+  }
+  function normalizeFlowManifest(raw, steps, intent) {
+    raw = raw && typeof raw === "object" ? raw : {};
+    var mode = raw.mode === "enforce" ? "enforce" : "legacy-trusted";
+    var normalizedInput = list(raw.sources).map(normalizeFlowSource).slice(0, 48);
+    var suppliedUser = normalizedInput.find(function (source) { return source.id === "turn.user"; });
+    var suppliedModel = normalizedInput.find(function (source) { return source.id === "turn.model"; });
+    var suppliedSystem = normalizedInput.find(function (source) { return source.id === "turn.system"; });
+    var seenSources = {};
+    var sources = [normalizeFlowSource({
+      id: "turn.user", label: "User request", origin: "user",
+      sensitivity: suppliedUser && suppliedUser.sensitivity || "private",
+    })];
+    seenSources["turn.user"] = true;
+    if (suppliedSystem) {
+      sources.push(normalizeFlowSource({ id: "turn.system", label: suppliedSystem.label || "System policy", origin: "system", sensitivity: suppliedSystem.sensitivity }));
+      seenSources["turn.system"] = true;
+    }
+    if (suppliedModel) {
+      sources.push(normalizeFlowSource({ id: "turn.model", label: suppliedModel.label || "Model output", origin: "model", sensitivity: suppliedModel.sensitivity }));
+      seenSources["turn.model"] = true;
+    }
+    normalizedInput.forEach(function (source) {
+      if (seenSources[source.id]) return;
+      seenSources[source.id] = true; sources.push(source);
+    });
+    var known = sourceIndex(sources);
+    var unresolved = false;
+    function resolveSourceIds(values) {
+      var result = uniqueStrings(values, 48, 140).map(function (sourceId) {
+        if (known[sourceId]) return sourceId;
+        unresolved = true; return "source.unknown";
+      });
+      if (!result.length) result = mode === "enforce" ? influences.slice() : ["turn.user"];
+      return uniqueStrings(result, 48, 140);
+    }
+    var influences = uniqueStrings(raw.influences, 48, 140).filter(function (sourceId) { return !!known[sourceId]; });
+    if (!influences.length) influences = mode === "enforce" ? sources.map(function (source) { return source.id; }) : ["turn.user"];
+    var rawFields = raw.fields && typeof raw.fields === "object" && !Array.isArray(raw.fields) ? Object.assign({}, raw.fields) : {};
+    if (!Object.keys(rawFields).length && raw.schema === FLOW_SCHEMA) {
+      list(raw.flows).forEach(function (flow) {
+        if (!flow || typeof flow !== "object") return;
+        var path = text(flow.path, 220);
+        if (path) rawFields[path] = list(flow.sourceIds);
+      });
+    }
+    var controls = [];
+    var flows = [];
+    list(steps).forEach(function (step, stepIndex) {
+      var action = step && step.action || {};
+      var authorized = actionAuthorizedByIntent(intent, action.type);
+      controls.push({
+        stepId: text(step && step.id, 140), stepIndex: stepIndex, actionType: text(action.type, 60),
+        sourceIds: authorized ? ["turn.user"] : resolveSourceIds(influences),
+        sink: capabilityFor(action),
+      });
+      Object.keys(action).filter(function (field) { return field !== "type"; }).forEach(function (field) {
+        var shortPath = stepIndex + "." + field;
+        var fullPath = "steps." + stepIndex + ".action." + field;
+        var supplied = rawFields[fullPath] == null ? rawFields[shortPath] : rawFields[fullPath];
+        flows.push({
+          stepId: text(step && step.id, 140), stepIndex: stepIndex, actionType: text(action.type, 60),
+          field: text(field, 80), path: fullPath, sourceIds: resolveSourceIds(supplied), sink: capabilityFor(action),
+        });
+      });
+    });
+    if (unresolved && !known["source.unknown"]) sources.push(normalizeFlowSource({ id: "source.unknown", label: "Unresolved source", origin: "unknown", sensitivity: "private" }));
+    return canonical({
+      schema: FLOW_SCHEMA, policyVersion: FLOW_POLICY_VERSION, mode: mode,
+      sources: sources, influences: resolveSourceIds(influences), controls: controls, flows: flows,
+    });
+  }
+  function flowViolation(code, message, flow, sources) {
+    var labels = joinFlowLabels(flow && flow.sourceIds, sources);
+    var index = sourceIndex(sources);
+    var from = labels.sourceIds.map(function (sourceId) { return index[sourceId] ? index[sourceId].label : sourceId; }).join(" + ") || "Unknown source";
+    return {
+      code: code, message: text(message, 320), stepId: text(flow && flow.stepId, 140),
+      path: text(flow && (flow.path || "steps." + flow.stepIndex + ".action.type"), 220),
+      sourceIds: labels.sourceIds, sink: text(flow && flow.sink, 120),
+      counterexample: text(from + " -> " + (flow && (flow.field || "action type")) + " -> " + (flow && flow.sink || "denied sink"), 420),
+    };
+  }
+  function flowDecisionFor(run) {
+    var manifest = run && run.flow ? run.flow : normalizeFlowManifest(null, run && run.steps, run && run.intent);
+    var violations = [];
+    if (manifest.mode === "enforce") {
+      var operationCounts = {};
+      manifest.controls.forEach(function (control) {
+        if (!actionAuthorizedByIntent(run.intent, control.actionType)) {
+          violations.push(flowViolation("FLOW_CONTROL_NOT_AUTHORIZED", "The user did not authorize this operation type", control, manifest.sources));
+          return;
+        }
+        operationCounts[control.actionType] = Number(operationCounts[control.actionType] || 0) + 1;
+        if (operationCounts[control.actionType] > actionAuthorizationBudget(run.intent, control.actionType)) {
+          violations.push(flowViolation("FLOW_CONTROL_CARDINALITY", "The plan contains more changes than the user authorized", control, manifest.sources));
+          return;
+        }
+        if (joinFlowLabels(control.sourceIds, manifest.sources).authority !== "control") {
+          violations.push(flowViolation("FLOW_CONTROL_FROM_DATA", "Data cannot choose an operation", control, manifest.sources));
+        }
+      });
+      manifest.flows.forEach(function (flow) {
+        var labels = joinFlowLabels(flow.sourceIds, manifest.sources);
+        var sourceMap = sourceIndex(manifest.sources);
+        var flowSources = labels.sourceIds.map(function (sourceId) { return sourceMap[sourceId]; }).filter(Boolean);
+        var hasUnresolved = flowSources.some(function (source) { return source.origin === "unknown"; });
+        var hasExternal = flowSources.some(function (source) { return source.origin === "external"; });
+        if (hasUnresolved) violations.push(flowViolation("FLOW_SOURCE_UNRESOLVED", "The value has unresolved provenance", flow, manifest.sources));
+        if (labels.sensitivity === "secret" && flow.sink !== "secret.vault") {
+          violations.push(flowViolation("FLOW_SECRET_TO_NON_SECRET_SINK", "Secret data cannot enter this destination", flow, manifest.sources));
+        }
+        if (flow.actionType === "memory_upsert" && hasExternal) {
+          var memoryAuthorized = actionAuthorizedByIntent(run.intent, "memory_upsert");
+          var unmentioned = flowSources.filter(function (source) { return source.origin === "external" && (!memoryAuthorized || !sourceMentionedByIntent(run.intent, source)); });
+          if (unmentioned.length) violations.push(flowViolation("FLOW_EXTERNAL_MEMORY_PROMOTION", "External content cannot promote itself into personal memory", flow, manifest.sources));
+        }
+        if (flow.actionType === "memory_forget" && hasExternal) {
+          violations.push(flowViolation("FLOW_EXTERNAL_MEMORY_TARGET", "External content cannot choose a memory to forget", flow, manifest.sources));
+        }
+      });
+    }
+    var payload = {
+      policyVersion: FLOW_POLICY_VERSION, manifestDigest: digestValue(manifest),
+      ok: violations.length === 0, code: violations.length ? violations[0].code : "FLOW_ALLOWED",
+      violations: violations,
+    };
+    payload.decisionDigest = digestValue(payload);
+    return payload;
+  }
+
   function event(type, detail, code) { return { id: id("evt"), type: type, code: text(code, 80), detail: text(detail, 280), at: now() }; }
   function normalizeBudget(value) {
     value = value && typeof value === "object" ? value : {};
@@ -195,6 +445,7 @@
       runId: text(run && run.id, 140), threadId: text(run && run.threadId, 120),
       episodeId: text(run && run.episodeId, 120), intent: text(run && run.intent, 1_000),
       rollbackPolicy: text(run && run.rollbackPolicy, 60), budget: normalizeBudget(run && run.budget),
+      flow: canonical(run && run.flow),
       steps: list(run && run.steps).map(function (step, index) {
         return {
           id: text(step && step.id, 140), index: index, action: canonical(step && step.action),
@@ -273,6 +524,7 @@
       status: steps.length ? "awaiting-approval" : "completed",
       rollbackPolicy: "all-or-nothing", budget: Object.assign({}, DEFAULT_BUDGET),
       contractDigest: "", planDigest: "", approval: null, steps: steps,
+      flow: null, flowDecision: null,
       checkpoint: { nextStep: 0, completedKeys: [] },
       transaction: { state: steps.length ? "prepared" : "committed", policy: "all-or-nothing", appliedStepIds: [], rollbackCount: 0 },
       taskState: { goal: text(input.intent, 1_000), verifiedFacts: [], evidenceLedger: [], unmetStepIds: steps.map(function (step) { return step.id; }), auditRound: 0 },
@@ -280,6 +532,12 @@
       events: [event("run.created", steps.length + " proposed step" + (steps.length === 1 ? "" : "s"))],
       createdAt: now(), updatedAt: now(),
     };
+    run.flow = normalizeFlowManifest(input.flow, run.steps, run.intent);
+    run.flowDecision = flowDecisionFor(run);
+    if (!run.flowDecision.ok) {
+      run.failure = issue(run.flowDecision.code, run.flowDecision.violations[0].message, "flow", run.flowDecision.violations[0].stepId);
+      run.events.push(event("run.flow-blocked", run.flowDecision.violations[0].counterexample, run.flowDecision.code));
+    }
     run.contractDigest = digestContract(run); run.planDigest = run.contractDigest;
     if (!steps.length) run.terminationCertificate = issueCertificate(run);
     return run;
@@ -329,6 +587,8 @@
       unmetStepIds: run.steps.filter(function (step) { return step.status !== "succeeded"; }).map(function (step) { return step.id; }),
       auditRound: Math.max(0, Number(rawState.auditRound || 0)),
     };
+    run.flow = normalizeFlowManifest(raw.flow, run.steps, run.intent);
+    run.flowDecision = flowDecisionFor(run);
     run.events = list(raw.events).slice(-MAX_EVENTS);
     run.contractDigest = text(raw.contractDigest || raw.planDigest, 100) || digestContract(run); run.planDigest = run.contractDigest;
     run.approval = raw.approval && typeof raw.approval === "object" ? {
@@ -357,6 +617,13 @@
   function approve(raw) {
     var run = normalize(raw);
     if (!run || run.status !== "awaiting-approval") return run;
+    run.flowDecision = flowDecisionFor(run);
+    if (!run.flowDecision.ok) {
+      var violation = run.flowDecision.violations[0];
+      setFailure(run, issue(violation.code, violation.message, "flow", violation.stepId));
+      addEvent(run, "run.flow-blocked", violation.counterexample, violation.code);
+      return run;
+    }
     run.contractDigest = digestContract(run); run.planDigest = run.contractDigest;
     run.approval = {
       id: id("approval"), contractDigest: run.contractDigest, planDigest: run.contractDigest,
@@ -392,6 +659,12 @@
     if (!run.approval || run.approval.contractDigest !== currentDigest || run.contractDigest !== currentDigest) reject("CONTRACT_CHANGED", "Executable contract changed after approval");
     if (run.approval && run.approval.expiresAt && run.approval.expiresAt < now()) reject("APPROVAL_EXPIRED", "Approval expired");
     if (run.approval && run.approval.useCount > 0) reject("APPROVAL_REPLAY", "Approval has already been consumed");
+    run.flowDecision = flowDecisionFor(run);
+    if (!run.flowDecision.ok) {
+      run.flowDecision.violations.forEach(function (violation) {
+        reject(violation.code, violation.message + " (" + violation.counterexample + ")", violation.stepId);
+      });
+    }
     if (run.rollbackPolicy !== "all-or-nothing" || run.transaction.policy !== "all-or-nothing") reject("ROLLBACK_POLICY", "Atomic rollback policy is required");
     if (JSON.stringify(run.budget) !== JSON.stringify(DEFAULT_BUDGET)) reject("BUDGET_CHANGED", "Execution budget is outside the local policy");
     if (run.steps.length > run.budget.maxSteps) reject("STEP_BUDGET", "Step budget exceeded");
@@ -420,6 +693,7 @@
         var outcome = hooks.compensate(entry.result, deepFreeze({
           runId: run.id, stepId: step.id, idempotencyKey: step.idempotencyKey,
           action: canonical(step.action), contractDigest: run.contractDigest,
+          flowDigest: run.flowDecision.manifestDigest, flowDecisionDigest: run.flowDecision.decisionDigest,
         }));
         if (outcome === false || (outcome && typeof outcome === "object" && outcome.compensated === false)) throw new Error("Compensation did not confirm restoration");
         step.status = "rolled-back"; invalidateAudit(step); run.transaction.rollbackCount += 1;
@@ -507,7 +781,9 @@
         var executionContext = deepFreeze({
           runId: run.id, stepId: step.id, capability: step.capability,
           acceptance: step.acceptance, idempotencyKey: step.idempotencyKey,
-          contractDigest: run.contractDigest, attempt: step.attempts, freshContext: true,
+          contractDigest: run.contractDigest, flowDigest: run.flowDecision.manifestDigest,
+          flowDecisionDigest: run.flowDecision.decisionDigest,
+          attempt: step.attempts, freshContext: true,
         });
         var rawResult = hooks.execute(deepFreeze(canonical(step.action)), step.idempotencyKey, executionContext);
         var changed = rawResult && typeof rawResult === "object" ? Number(rawResult.applied || 0) : Number(rawResult || 0);
@@ -517,6 +793,7 @@
         var auditRaw = hooks.audit(deepFreeze({
           runId: run.id, stepId: step.id, action: canonical(step.action), capability: step.capability,
           acceptance: step.acceptance, idempotencyKey: step.idempotencyKey, contractDigest: run.contractDigest,
+          flowDigest: run.flowDecision.manifestDigest, flowDecisionDigest: run.flowDecision.decisionDigest,
         }), rawResult) || {};
         run.taskState.auditRound += 1;
         var audit = normalizeAudit(Object.assign({}, auditRaw, { auditedAt: now(), valid: true }));
@@ -581,17 +858,22 @@
       verified: run.steps.filter(function (step) { return step.status === "succeeded" && step.audit && step.audit.verified && step.audit.integrity === "clean" && step.audit.valid; }).length,
       facts: run.taskState.verifiedFacts.length, evidence: run.taskState.evidenceLedger.length,
       total: run.steps.length, atomic: run.transaction.state === "committed" || run.transaction.state === "rolled-back",
+      flow: { ok: run.flowDecision.ok, code: run.flowDecision.code, violations: run.flowDecision.violations.length },
       certified: certificate.valid, lastEvent: run.events[run.events.length - 1] || null, updatedAt: run.updatedAt,
     };
   }
 
   window.AeroHarness = {
-    VERSION: VERSION, POLICY_VERSION: POLICY_VERSION, MAX_STEPS: MAX_STEPS,
+    VERSION: VERSION, POLICY_VERSION: POLICY_VERSION, FLOW_SCHEMA: FLOW_SCHEMA,
+    FLOW_POLICY_VERSION: FLOW_POLICY_VERSION, MAX_STEPS: MAX_STEPS,
     createRun: createRun, normalize: normalize, approve: approve, cancel: cancel,
     preflight: preflight, executeApproved: executeApproved, retry: retry,
     receipt: receipt, verifyCertificate: verifyCertificate,
     digestActions: function (actions) { return digestValue(list(actions).map(canonical)); },
     digestContract: digestContract, digestValue: digestValue,
     validateAction: validateAction, actionAllowed: actionAllowed,
+    normalizeFlowManifest: normalizeFlowManifest, flowDecisionFor: flowDecisionFor,
+    joinFlowLabels: joinFlowLabels, actionAuthorizedByIntent: actionAuthorizedByIntent,
+    actionAuthorizationBudget: actionAuthorizationBudget,
   };
 })();

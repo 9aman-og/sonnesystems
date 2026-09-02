@@ -16,6 +16,22 @@ jobs:
           python-version: "3.12"
       - run: python scripts/checks.py
 
+  aero-shell:
+    name: Deployed Aero shell and safety boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: |
+          node --check altpsi/app/sw.js
+          node --check altpsi/app-next/app.js
+          node --check altpsi/app-next/core/store.js
+          node --check altpsi/app-next/core/aero.js
+          node --check altpsi/app-next/ui/views.js
+          node altpsi/app-next/core/aero.test.js
+
   backend-tests:
     name: Backend tests
     runs-on: ubuntu-latest
