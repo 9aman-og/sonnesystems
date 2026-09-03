@@ -21,6 +21,7 @@ function load(relative) {
 load("app/aero-eval.js");
 load("app/aero-core.js");
 load("app/aero-harness.js");
+load("app-next/core/attention.js");
 load("app-next/core/store.js");
 load("app-next/core/aero.js");
 
@@ -66,6 +67,7 @@ const originalApply = Store.applyAction;
 Store.applyAction = function (action) { localExecutions += 1; return originalApply(action); };
 window.LyfeCloud = {
   user: { id: "account-1", email: "test@example.com", name: "Test" },
+  aeroGatewayEnabled: true,
   aeroExecutionEnabled: true,
   aeroMemoryEnabled: true,
   async flush() { return true; },
@@ -99,6 +101,61 @@ Store.applyAction = originalApply;
 
 const answer = Aero.propose("what matters now?");
 assert.equal(typeof answer.then, "function");
+await answer;
+
+let cloudPayload = null;
+let cloudCalls = 0;
+window.LyfeCloud.invokeAero = async function (payload) {
+  cloudCalls += 1;
+  cloudPayload = payload;
+  return {
+    result: {
+      bubbles: ["A compiler translates a program before execution; an interpreter executes it through another runtime."],
+      actions: [{ type: "add_task", title: "Model-selected mutation" }],
+      assumption: null,
+    },
+    model: "test-specialist",
+    usage: { input: 14, output: 20 },
+  };
+};
+Store.update(function (data) {
+  data.settings.provider = "auto";
+  data.settings.aeroCloudEnabled = true;
+}, "test-cloud", false);
+
+const cloudAnswer = await Aero.propose("What is the difference between a compiler and an interpreter?");
+assert.equal(cloudAnswer.kind, "answer");
+assert.equal(cloudAnswer.plan.engine, "groq");
+assert.equal(cloudAnswer.plan.model, "test-specialist");
+assert.match(cloudAnswer.answer, /compiler translates/i);
+assert.deepEqual(Object.keys(cloudPayload).sort(), ["date", "kind", "prompt"], "only the current clean prompt envelope may leave the app");
+assert.equal(JSON.stringify(cloudPayload).includes("Review research"), false, "workspace context must never enter the protected specialist payload");
+assert.equal(Store.get().aeroRuns.some(run => run.intent === "What is the difference between a compiler and an interpreter?"), false, "model-proposed mutations are not executable authority");
+
+const callsBeforePrivate = cloudCalls;
+const privateAnswer = await Aero.propose("what are my tasks?");
+assert.equal(privateAnswer.plan.engine, "built-in", "personal workspace questions stay on-device");
+assert.equal(cloudCalls, callsBeforePrivate);
+
+for (const implicitWorkspacePrompt of ["what's due?", "summarize the project", "find the latest note"]) {
+  const workspaceAnswer = await Aero.propose(implicitWorkspacePrompt);
+  assert.equal(workspaceAnswer.plan.engine, "built-in", `implicit workspace intent stays on-device: ${implicitWorkspacePrompt}`);
+}
+assert.equal(cloudCalls, callsBeforePrivate, "workspace intent never reaches the general specialist even without a possessive");
+
+const directAction = await Aero.propose("remind me to test the protected route tomorrow");
+assert.equal(directAction.kind, "proposal");
+assert.equal(cloudCalls, callsBeforePrivate, "deterministic workspace commands do not need a model call");
+
+window.LyfeCloud.invokeAero = async function () {
+  const error = new Error("The free specialist is busy.");
+  error.status = 429;
+  throw error;
+};
+const fallback = await Aero.propose("Explain the observer pattern in software design.");
+assert.equal(fallback.kind, "answer");
+assert.equal(fallback.plan.engine, "built-in");
+assert.match(fallback.notice, /busy/i);
 
 for (const file of ["app/index.html", "app-next/index.html", "app-next/app.js", "app-next/ui/views.js"]) {
   const source = fs.readFileSync(path.join(root, file), "utf8");

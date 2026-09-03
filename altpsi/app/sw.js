@@ -1,23 +1,24 @@
 "use strict";
 
-const CACHE = "altpsi-aero-clean-room-1";
+const CACHE = "altpsi-aero-clean-room-2";
 const SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
-  "./supabase-config.js?v=aero-clean-1",
-  "./cloud.js?v=aero-clean-1",
-  "./aero-eval.js?v=aero-clean-1",
-  "./aero-core.js?v=aero-clean-1",
-  "./aero-harness.js?v=aero-clean-1",
-  "./aero-knowledge.js?v=aero-clean-1",
+  "./supabase-config.js?v=aero-clean-2",
+  "./cloud.js?v=aero-clean-2",
+  "./aero-eval.js?v=aero-clean-2",
+  "./aero-core.js?v=aero-clean-2",
+  "./aero-harness.js?v=aero-clean-2",
+  "./aero-knowledge.js?v=aero-clean-2",
   "../app-next/brand-mark.svg",
   "../app-next/brand-maskable.svg",
-  "../app-next/styles.css?v=clean-room-1",
-  "../app-next/core/store.js?v=aero-clean-1",
-  "../app-next/core/aero.js?v=aero-clean-1",
-  "../app-next/ui/views.js?v=aero-clean-1",
-  "../app-next/app.js?v=aero-clean-1",
+  "../app-next/styles.css?v=clean-room-2",
+  "../app-next/core/attention.js?v=aero-clean-2",
+  "../app-next/core/store.js?v=aero-clean-2",
+  "../app-next/core/aero.js?v=aero-clean-2",
+  "../app-next/ui/views.js?v=aero-clean-2",
+  "../app-next/app.js?v=aero-clean-2",
 ];
 
 self.addEventListener("install", (event) => {

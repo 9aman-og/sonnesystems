@@ -59,7 +59,7 @@
       notes: [], docs: [], saved: [], chat: [],
       aeroThreads: [{ id: threadId, title: "New chat", projectId: null, createdAt: Date.now(), updatedAt: Date.now() }],
       aeroActiveThreadId: threadId,
-      aeroAttention: { day: "", proactiveCount: 0, lastProactiveAt: 0, proactiveFingerprints: [], notifications: [] },
+      aeroAttention: window.AeroAttention ? window.AeroAttention.freshState() : { day: "", proactiveCount: 0, lastProactiveAt: 0, proactiveFingerprints: [], notifications: [] },
       aeroRuns: [],
       aero: window.AeroCore ? window.AeroCore.freshState() : { version: 1, memories: [], episodes: [], lastContext: null },
     };
@@ -81,6 +81,9 @@
     }
     if (!next.aeroThreads.some(function (thread) { return thread.id === next.aeroActiveThreadId; })) next.aeroActiveThreadId = next.aeroThreads[0].id;
     next.aero = window.AeroCore ? window.AeroCore.normalize(raw.aero) : (raw.aero || defaults.aero);
+    next.aeroAttention = window.AeroAttention
+      ? window.AeroAttention.normalize(raw.aeroAttention)
+      : Object.assign({}, defaults.aeroAttention, raw.aeroAttention || {});
     next.aeroRuns = window.AeroHarness ? next.aeroRuns.map(window.AeroHarness.normalize).filter(Boolean).slice(-200) : next.aeroRuns;
     next.rev = Math.max(0, Number(raw.rev || 0));
     next.savedAt = Math.max(0, Number(raw.savedAt || 0));

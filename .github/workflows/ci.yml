@@ -27,10 +27,12 @@ jobs:
       - run: |
           node --check altpsi/app/sw.js
           node --check altpsi/app-next/app.js
+          node --check altpsi/app-next/core/attention.js
           node --check altpsi/app-next/core/store.js
           node --check altpsi/app-next/core/aero.js
           node --check altpsi/app-next/ui/views.js
           node altpsi/app-next/core/aero.test.js
+          node altpsi/app-next/core/attention.test.js
 
   backend-tests:
     name: Backend tests

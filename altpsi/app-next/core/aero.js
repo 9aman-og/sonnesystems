@@ -3,6 +3,7 @@
 
   var store = window.AeroStore;
   var serverBindings = new Map();
+  var cloudBackoffUntil = 0;
 
   function clean(value, max) {
     return String(value == null ? "" : value).replace(/\s+/g, " ").trim().slice(0, max || 2000);
@@ -13,6 +14,37 @@
     date.setHours(12, 0, 0, 0);
     date.setDate(date.getDate() + Number(offset || 0));
     return date.toISOString().slice(0, 10);
+  }
+
+  function cloudAvailable(data, attachments) {
+    var settings = data && data.settings || {};
+    var provider = ["auto", "groq", "offline"].indexOf(settings.provider) >= 0 ? settings.provider : "auto";
+    return !attachments.length
+      && settings.aeroCloudEnabled === true
+      && provider !== "offline"
+      && Date.now() >= cloudBackoffUntil
+      && !!(window.LyfeCloud && window.LyfeCloud.user && window.LyfeCloud.aeroGatewayEnabled
+        && typeof window.LyfeCloud.invokeAero === "function");
+  }
+
+  async function askProtectedSpecialist(request) {
+    var response = await window.LyfeCloud.invokeAero({
+      prompt: clean(request, 4000),
+      date: isoDate(0),
+      kind: window.AeroCore.classifyIntent(request),
+    });
+    var result = response && response.result && typeof response.result === "object" ? response.result : {};
+    var bubbles = Array.isArray(result.bubbles) ? result.bubbles.map(function (item) { return clean(item, 1000); }).filter(Boolean).slice(0, 2) : [];
+    if (!bubbles.length) throw new Error("The protected specialist returned no answer.");
+    return {
+      answer: bubbles.join("\n\n"),
+      model: clean(response.model, 120) || "protected specialist",
+      usage: response.usage && typeof response.usage === "object" ? {
+        input: Math.max(0, Number(response.usage.input || 0)),
+        output: Math.max(0, Number(response.usage.output || 0)),
+      } : null,
+      ignoredActionCount: Array.isArray(result.actions) ? result.actions.length : 0,
+    };
   }
 
   function parseDue(value) {
@@ -153,15 +185,21 @@
   async function propose(request, attachments) {
     var data = store.get();
     var text = clean(request);
+    var safeAttachments = Array.isArray(attachments) ? attachments.slice(0, 12) : [];
     var thread = store.activeThread();
     var episode = window.AeroCore.beginEpisode(data.aero, text, "aero", thread.id);
     data.aero = episode.aero;
     store.appendMessage("user", text, {
       episodeId: episode.episode.id,
-      attachments: (Array.isArray(attachments) ? attachments : []).slice(0, 12).map(function (item) { return { id: item.id, name: item.name, type: item.type, size: item.size, localOnly: true }; }),
+      attachments: safeAttachments.map(function (item) { return { id: item.id, name: item.name, type: item.type, size: item.size, localOnly: true }; }),
     });
 
-    var plan = window.AeroCore.routePlan({ signal: text, engines: { ollama: false, groq: false, gpt: false, gemini: false }, cloudAllowed: false });
+    var intentFamily = window.AeroCore.classifyIntent(text);
+    // The v0 specialist is intentionally narrow: it answers context-free general
+    // questions only. Triage, research, follow-up, organization, and memory
+    // requests can imply workspace context even when the user omits "my".
+    var mayUseCloud = intentFamily === "general" && cloudAvailable(data, safeAttachments);
+    var plan = window.AeroCore.routePlan({ signal: text, engines: { ollama: false, groq: mayUseCloud, gpt: false, gemini: false }, cloudAllowed: mayUseCloud });
     var context = window.AeroCore.contextPack({
       surface: "now",
       lyfe: data,
@@ -176,11 +214,32 @@
     var actions = parseActions(text);
 
     if (!actions.length || decision.mode === "clarify") {
-      var answer = localAnswer(text, data, decision, context);
+      var answer = "";
+      var notice = "";
+      var specialist = null;
+      if (decision.mode !== "clarify" && plan.engine === "groq") {
+        try {
+          specialist = await askProtectedSpecialist(text);
+          answer = specialist.answer;
+          plan.model = specialist.model;
+          plan.usage = specialist.usage;
+          plan.reason = "current prompt only; no workspace context";
+        } catch (error) {
+          var status = Number(error && error.status || 0);
+          cloudBackoffUntil = Date.now() + (status === 429 ? 60_000 : 30_000);
+          plan.engine = "built-in";
+          plan.reason = "protected route unavailable; local fallback";
+          notice = error && error.message ? error.message : "The protected model is unavailable; Aero stayed local.";
+        }
+      }
+      if (!answer) answer = localAnswer(text, data, decision, context);
       data.aero = window.AeroCore.finishEpisode(data.aero, episode.episode.id, decision.mode === "clarify" ? "missed" : "answered", { route: plan.engine, actionTypes: [] });
-      store.appendMessage("assistant", answer, { episodeId: episode.episode.id });
+      store.appendMessage("assistant", answer, {
+        episodeId: episode.episode.id,
+        route: { engine: plan.engine, reason: plan.reason, model: plan.model || "", usage: plan.usage || null },
+      });
       store.save("aero-answer");
-      return { kind: "answer", answer: answer, plan: plan, decision: decision, episodeId: episode.episode.id, context: context };
+      return { kind: "answer", answer: answer, plan: plan, decision: decision, episodeId: episode.episode.id, context: context, notice: notice };
     }
 
     var run = window.AeroHarness.createRun({

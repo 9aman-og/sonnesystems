@@ -588,8 +588,8 @@
     var steps = signal.split(/\s+(?:and then|then|after that|also)\s+|[;\n]+/i)
       .map(function (step) { return text(step, 500); }).filter(Boolean).slice(0, 6);
     if (!steps.length) steps = [signal];
-    var sensitive = /\b(private|personal|gmail|email|message|health|money|account|password|family|inbox|profile|library|lyfe)\b/.test(value);
-    var personalContext = /\b(?:my|our|mine)\b.{0,40}\b(?:task|note|doc|project|goal|work|plan|schedule|history|memory|chat|file|people|contact)\b/.test(value);
+    var sensitive = /\b(?:private|personal|gmail|emails?|messages?|health|money|accounts?|passwords?|family|inbox|profiles?|libraries|library|lyfe)\b/.test(value);
+    var personalContext = /\b(?:my|our|mine)\b.{0,40}\b(?:tasks?|notes?|docs?|documents?|projects?|goals?|work|plans?|schedules?|history|memories|memory|chats?|files?|people|contacts?)\b/.test(value);
     var workspaceAction = /^(?:please\s+)?(?:remind|add (?:a )?(?:task|note|goal|project)|create (?:a )?(?:task|note|doc|goal|project)|task|todo|note\s*:|doc\s*:|goal\s*:|learning\s*:|log\s+|done\s+|remember\s+that|forget\s+)/.test(value);
     var privacy = sensitive || personalContext || workspaceAction ? "private" : "standard";
     var preferred = engines.inklingLocal ? "inkling" : engines.ollama ? "ollama" : "built-in";

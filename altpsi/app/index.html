@@ -17,7 +17,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&amp;display=swap">
-  <link rel="stylesheet" href="../app-next/styles.css?v=clean-room-1">
+  <link rel="stylesheet" href="../app-next/styles.css?v=clean-room-2">
 </head>
 <body>
   <a class="skip-link" href="#surface">Skip to content</a>
@@ -35,6 +35,10 @@
       <div class="top-actions">
         <button class="icon-button" type="button" aria-label="Search" data-action="search">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 4 4"></path></svg>
+        </button>
+        <button class="icon-button attention-button" type="button" aria-label="Open updates" data-action="attention">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10a5 5 0 0 1 10 0v4l2 3H5l2-3z"></path><path d="M10 20h4"></path></svg>
+          <span data-attention-count hidden>0</span>
         </button>
         <button class="profile-button" type="button" aria-label="Open settings" data-route="settings">A</button>
       </div>
@@ -79,20 +83,21 @@
   <div id="overlay-root"></div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-  <script src="supabase-config.js?v=aero-clean-1"></script>
-  <script src="cloud.js?v=aero-clean-1"></script>
-  <script src="aero-core.js?v=aero-clean-1"></script>
-  <script src="aero-harness.js?v=aero-clean-1"></script>
-  <script src="aero-eval.js?v=aero-clean-1"></script>
-  <script src="aero-knowledge.js?v=aero-clean-1"></script>
-  <script src="../app-next/core/store.js?v=aero-clean-1"></script>
-  <script src="../app-next/core/aero.js?v=aero-clean-1"></script>
-  <script src="../app-next/ui/views.js?v=aero-clean-1"></script>
-  <script src="../app-next/app.js?v=aero-clean-1"></script>
+  <script src="supabase-config.js?v=aero-clean-2"></script>
+  <script src="cloud.js?v=aero-clean-2"></script>
+  <script src="aero-core.js?v=aero-clean-2"></script>
+  <script src="aero-harness.js?v=aero-clean-2"></script>
+  <script src="aero-eval.js?v=aero-clean-2"></script>
+  <script src="aero-knowledge.js?v=aero-clean-2"></script>
+  <script src="../app-next/core/attention.js?v=aero-clean-2"></script>
+  <script src="../app-next/core/store.js?v=aero-clean-2"></script>
+  <script src="../app-next/core/aero.js?v=aero-clean-2"></script>
+  <script src="../app-next/ui/views.js?v=aero-clean-2"></script>
+  <script src="../app-next/app.js?v=aero-clean-2"></script>
   <script>
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     window.addEventListener("load", function () {
-      navigator.serviceWorker.register("sw.js?v=aero-clean-1").catch(function () { /* offline install optional */ });
+      navigator.serviceWorker.register("sw.js?v=aero-clean-2").catch(function () { /* offline install optional */ });
     });
   }
   </script>

@@ -13,6 +13,8 @@
   var sourceCount = document.querySelector("[data-source-count]");
   var attachmentInput = document.getElementById("attachment-input");
   var attachmentStrip = document.querySelector("[data-attachments]");
+  var attentionButton = document.querySelector('[data-action="attention"]');
+  var attentionCount = document.querySelector("[data-attention-count]");
   var toast = document.getElementById("toast");
   var toastTimer = 0;
   var returnFocus = null;
@@ -36,6 +38,37 @@
     toast.dataset.tone = tone || "neutral";
     toast.hidden = false;
     toastTimer = window.setTimeout(function () { toast.hidden = true; }, 2600);
+  }
+
+  function updateAttentionBadge() {
+    if (!(attentionButton && attentionCount && window.AeroAttention && store.get())) return;
+    var summary = window.AeroAttention.summary(store.get().aeroAttention);
+    attentionCount.textContent = summary.unread > 9 ? "9+" : String(summary.unread);
+    attentionCount.hidden = summary.unread === 0;
+    attentionButton.setAttribute("aria-label", summary.unread ? "Open " + summary.unread + " unread update" + (summary.unread === 1 ? "" : "s") : "Open updates");
+  }
+
+  function refreshAttention(allowInterrupt) {
+    if (!(window.AeroAttention && store.get())) return null;
+    var data = store.get();
+    var result = window.AeroAttention.refresh(
+      data.aeroAttention,
+      window.AeroAttention.deriveCandidates(data),
+      {
+        mode: data.settings.aeroProactiveMode || "brief",
+        focused: document.body.classList.contains("overlay-open") || document.activeElement === input,
+        quietHours: { start: 22, end: 8 },
+      }
+    );
+    if (result.changed) {
+      data.aeroAttention = result.state;
+      store.save("attention-governor");
+    }
+    updateAttentionBadge();
+    if (allowInterrupt && result.interrupt && document.visibilityState !== "hidden") {
+      showToast(result.interrupt.title + (result.interrupt.detail ? " · " + result.interrupt.detail : ""), "attention");
+    }
+    return result;
   }
 
   function currentRoute() {
@@ -74,6 +107,7 @@
     vm.context = aero.contextSummary();
     sourceCount.textContent = vm.context.count;
     shell.dataset.appState = "ready";
+    updateAttentionBadge();
     document.body.classList.toggle("settings-route", vm.route === "settings");
     if (vm.route === "work" && vm.projectId) surface.innerHTML = views.project(data, vm.projectId);
     else if (vm.route === "work") surface.innerHTML = views.work(data, vm);
@@ -152,6 +186,7 @@
         openOverlay(views.reviewPanel(result.run, prepared.authority), "sheet-overlay");
       }
       else openOverlay(views.assistantPanel(result), "sheet-overlay");
+      if (result.notice) showToast(result.notice, "neutral");
     } catch (error) {
       showToast(error && error.message || "Aero could not complete that request.", "error");
     } finally {
@@ -171,7 +206,9 @@
   }
 
   function modelPanel() {
-    return '<section class="modal-card policy-card" role="dialog" aria-modal="true" aria-labelledby="policy-title"><header><h2 id="policy-title">Model policy</h2><button type="button" data-action="close-sheet">' + views.icon('close') + '</button></header><div class="policy-list"><div class="is-selected"><span>Automatic</span><b>Local first</b><small>Private context stays on-device. Cloud routes require an explicit source-safe task.</small></div><div><span>Local only</span><b>Built-in + Ollama</b><small>No cloud model calls.</small></div></div><footer><button type="button" data-action="close-sheet">Done</button></footer></section>';
+    var settings = store.get().settings || {};
+    var automatic = settings.aeroCloudEnabled === true && settings.provider !== "offline";
+    return '<section class="modal-card policy-card" role="dialog" aria-modal="true" aria-labelledby="policy-title"><header><h2 id="policy-title">Model policy</h2><button type="button" data-action="close-sheet" aria-label="Close">' + views.icon('close') + '</button></header><div class="policy-list"><button type="button" data-action="set-model-policy" data-policy="auto" class="' + (automatic ? 'is-selected' : '') + '"><span>Automatic</span><b>Protected routing</b><small>Only the current clean prompt may use the specialist. Your workspace stays local.</small></button><button type="button" data-action="set-model-policy" data-policy="offline" class="' + (!automatic ? 'is-selected' : '') + '"><span>On-device</span><b>Local only</b><small>No model request leaves this device.</small></button></div><footer><button type="button" data-action="close-sheet">Done</button></footer></section>';
   }
 
   async function proposeDirect(intent, actions) {
@@ -237,6 +274,15 @@
     var data = store.get();
     if (action === "close-sheet") { closeOverlay(); return; }
     if (action === "search") { openOverlay(views.searchPanel(data, ""), "search-overlay"); return; }
+    if (action === "attention") {
+      if (window.AeroAttention) {
+        data.aeroAttention = window.AeroAttention.markAllRead(data.aeroAttention);
+        store.save("attention-read");
+        updateAttentionBadge();
+      }
+      openOverlay(views.attentionPanel(data), "sheet-overlay");
+      return;
+    }
     if (action === "open-context" || action === "focus-menu") { openOverlay(views.contextPanel(aero.contextSummary()), "sheet-overlay"); return; }
     if (action === "attach") { attachmentInput.click(); return; }
     if (action === "voice") { beginVoice(); return; }
@@ -318,6 +364,55 @@
       var setting = target.dataset.setting;
       store.update(function (next) { next.settings[setting] = !next.settings[setting]; }, "setting", true);
       render();
+      return;
+    }
+    if (action === "toggle-attention") {
+      store.update(function (next) { next.settings.aeroProactiveMode = next.settings.aeroProactiveMode === "off" ? "brief" : "off"; }, "attention-policy", true);
+      render();
+      return;
+    }
+    if (action === "set-model-policy") {
+      var policy = target.dataset.policy === "auto" ? "auto" : "offline";
+      store.update(function (next) {
+        next.settings.provider = policy;
+        next.settings.aeroCloudEnabled = policy === "auto";
+      }, "model-policy", true);
+      openOverlay(modelPanel(), "modal-overlay");
+      render();
+      return;
+    }
+    if (action === "attention-read-all") {
+      if (window.AeroAttention) {
+        data.aeroAttention = window.AeroAttention.markAllRead(data.aeroAttention);
+        store.save("attention-read");
+        updateAttentionBadge();
+      }
+      return;
+    }
+    if (action === "attention-dismiss") {
+      if (window.AeroAttention) {
+        data.aeroAttention = window.AeroAttention.feedback(data.aeroAttention, target.dataset.id, "dismissed");
+        data.aeroAttention.notifications = data.aeroAttention.notifications.filter(function (item) { return item.id !== target.dataset.id; });
+        store.save("attention-feedback");
+        openOverlay(views.attentionPanel(data), "sheet-overlay");
+        updateAttentionBadge();
+      }
+      return;
+    }
+    if (action === "attention-open") {
+      if (window.AeroAttention) {
+        data.aeroAttention = window.AeroAttention.feedback(data.aeroAttention, target.dataset.id, "opened");
+        store.save("attention-feedback");
+      }
+      var refs = String(target.dataset.ref || "").split(",");
+      if (target.dataset.source === "task") {
+        var attentionTask = data.tasks.find(function (item) { return refs.indexOf(String(item.id)) >= 0; });
+        if (attentionTask) openOverlay(taskPanel(attentionTask), "modal-overlay");
+      } else if (target.dataset.source === "run") {
+        var attentionRun = data.aeroRuns.find(function (item) { return String(item.id) === String(target.dataset.ref); });
+        if (attentionRun) openOverlay(views.runPanel(attentionRun), "modal-overlay");
+      }
+      updateAttentionBadge();
       return;
     }
     if (action === "connect-source") {
@@ -482,8 +577,14 @@
       vm.projectId = route.projectId ? decodeURIComponent(route.projectId) : "";
       render();
       resizeInput();
+      refreshAttention(true);
+      window.setInterval(function () { refreshAttention(true); }, 15 * 60 * 1000);
     } catch (error) {
       surface.innerHTML = '<div class="fatal-state"><img src="' + views.esc(String(window.AERO_SHELL_BASE || "") + 'brand-mark.svg') + '" alt=""><h1>Aero could not open.</h1><button type="button" onclick="location.reload()">Try again</button></div>';
     }
   })();
+
+  document.addEventListener("visibilitychange", function () {
+    if (vm.ready && document.visibilityState === "visible") refreshAttention(true);
+  });
 })();

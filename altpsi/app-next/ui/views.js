@@ -30,6 +30,7 @@
       layers: '<path d="m12 4 8 4-8 4-8-4z"></path><path d="m4 12 8 4 8-4M4 16l8 4 8-4"></path>',
       memory: '<path d="M8 5.5h8a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3v-7a3 3 0 0 1 3-3Z"></path><path d="M9 2.5v3M15 2.5v3M9 18.5v3M15 18.5v3M2.5 9h2.5M19 9h2.5M2.5 15h2.5M19 15h2.5"></path>',
       sliders: '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"></path><circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle>',
+      bell: '<path d="M7 10a5 5 0 0 1 10 0v4l2 3H5l2-3z"></path><path d="M10 20h4"></path>',
       user: '<circle cx="12" cy="8" r="3.5"></circle><path d="M5.5 20c.7-4 3-6 6.5-6s5.8 2 6.5 6"></path>',
       link: '<path d="M10 13.5 13.5 10"></path><path d="M8.5 16.5 7 18a3.5 3.5 0 0 1-5-5l3-3a3.5 3.5 0 0 1 5 0M15.5 7.5 17 6a3.5 3.5 0 0 1 5 5l-3 3a3.5 3.5 0 0 1-5 0"></path>',
       trash: '<path d="M5 7h14M9 7V4h6v3M7.5 7l.7 13h7.6l.7-13M10 11v5M14 11v5"></path>',
@@ -220,6 +221,8 @@
     var mailConnected = !!(window.LyfeCloud && window.LyfeCloud.gmailToken);
     var mailCount = window.AeroStore.getGmail ? window.AeroStore.getGmail().length : 0;
     var importedCount = window.AeroKnowledge ? Number(window.AeroKnowledge.stats().records || 0) : 0;
+    var cloudOn = settings.aeroCloudEnabled === true && settings.provider !== 'offline';
+    var attentionOn = settings.aeroProactiveMode !== 'off';
     return '<section class="route-head settings-head"><div><p class="eyebrow">Settings</p><h1>Your Aero.</h1></div></section>' +
       '<div class="settings-layout"><nav class="settings-nav" aria-label="Settings sections"><button type="button" data-action="settings-jump" data-target="account">Account</button><button type="button" data-action="settings-jump" data-target="sources">Sources</button><button type="button" data-action="settings-jump" data-target="intelligence">Intelligence</button><button type="button" data-action="settings-jump" data-target="privacy">Privacy</button></nav><div class="settings-content">' +
       '<section class="settings-section" id="account"><div class="settings-title"><h2>Account</h2></div><div class="settings-card profile-setting"><span class="profile-large">' + esc((displayName(data, account).slice(0, 2)).toUpperCase()) + '</span><span><b>' + esc(settings.name || account && account.name || 'Local profile') + '</b><small>' + esc(account && account.email || (vm.authStatus === 'cloud' ? 'Private account' : 'This device')) + '</small></span><button type="button" data-action="account">' + (vm.authStatus === 'cloud' ? 'Manage' : 'Sign in') + '</button></div></section>' +
@@ -229,13 +232,13 @@
       sourceRow('gmail', 'Mail', mailConnected ? mailCount + ' recent messages in view' : 'Connect only when you want mail in context', sources.gmail !== false, mailConnected) +
       sourceRow('connect', 'People', peopleCount + ' conversations and collaborators', sources.connect !== false, true) +
       sourceRow('knowledge', 'Memory', memories + ' active memories', sources.knowledge !== false, true) + '</div></section>' +
-      '<section class="settings-section" id="intelligence"><div class="settings-title"><h2>Intelligence</h2></div><div class="settings-card rows"><button class="setting-row is-button" type="button" data-action="model-policy"><span class="setting-icon">' + icon('sliders') + '</span><span class="setting-copy"><b>Model policy</b><small>Local first · cloud off by default</small></span><span class="setting-state">Automatic</span>' + icon('chevron') + '</button><div class="setting-row"><span class="setting-icon">' + icon('memory') + '</span><span class="setting-copy"><b>Adaptive memory</b><small>Learn only from outcomes you confirm</small></span><span></span><button class="switch' + (settings.aeroLocalLearning !== false ? ' is-on' : '') + '" type="button" role="switch" aria-label="Adaptive memory" aria-checked="' + (settings.aeroLocalLearning !== false) + '" data-action="toggle-setting" data-setting="aeroLocalLearning"><span></span></button></div></div></section>' +
+      '<section class="settings-section" id="intelligence"><div class="settings-title"><h2>Intelligence</h2></div><div class="settings-card rows"><button class="setting-row is-button" type="button" data-action="model-policy"><span class="setting-icon">' + icon('sliders') + '</span><span class="setting-copy"><b>Model policy</b><small>' + (cloudOn ? 'Local context · protected specialist for clean prompts' : 'On-device only') + '</small></span><span class="setting-state">' + (cloudOn ? 'Automatic' : 'Local') + '</span>' + icon('chevron') + '</button><div class="setting-row"><span class="setting-icon">' + icon('memory') + '</span><span class="setting-copy"><b>Adaptive memory</b><small>Learn only from outcomes you confirm</small></span><span></span><button class="switch' + (settings.aeroLocalLearning !== false ? ' is-on' : '') + '" type="button" role="switch" aria-label="Adaptive memory" aria-checked="' + (settings.aeroLocalLearning !== false) + '" data-action="toggle-setting" data-setting="aeroLocalLearning"><span></span></button></div><div class="setting-row"><span class="setting-icon">' + icon('bell') + '</span><span class="setting-copy"><b>Brief updates</b><small>One normally · a second only when critical</small></span><span></span><button class="switch' + (attentionOn ? ' is-on' : '') + '" type="button" role="switch" aria-label="Brief updates" aria-checked="' + attentionOn + '" data-action="toggle-attention"><span></span></button></div></div></section>' +
       '<section class="settings-section" id="privacy"><div class="settings-title"><h2>Privacy</h2></div><div class="settings-card rows"><button class="setting-row is-button" type="button" data-action="export-data"><span class="setting-icon">' + icon('file') + '</span><span class="setting-copy"><b>Export your data</b><small>One readable JSON file</small></span>' + icon('chevron') + '</button><button class="setting-row is-button" type="button" data-action="privacy"><span class="setting-icon">' + icon('shield') + '</span><span class="setting-copy"><b>Action controls</b><small>Every write is previewed and bound to approval</small></span>' + icon('chevron') + '</button></div></section>' +
       '</div></div>';
   }
 
   function assistantPanel(result) {
-    var meta = result.plan ? result.plan.engine + ' · ' + result.plan.privacy : 'local';
+    var meta = result.plan && result.plan.engine === 'groq' ? 'Protected specialist' : 'On-device';
     return '<section class="side-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><header><span class="sheet-brand"><img src="' + esc(shellAsset('brand-mark.svg')) + '" alt="">Aero</span><button type="button" data-action="close-sheet" aria-label="Close">' + icon('close') + '</button></header><div class="sheet-body response-body"><p class="sheet-kicker">' + esc(meta) + '</p><h2 id="sheet-title">' + esc(result.answer) + '</h2>' + (result.decision && result.decision.mode === 'clarify' ? '<div class="response-chips"><button type="button" data-action="composer-fill" data-value="Create a task">Create a task</button><button type="button" data-action="composer-fill" data-value="Save a note">Save a note</button></div>' : '') + '</div><footer class="sheet-footer"><button class="sheet-secondary" type="button" data-action="close-sheet">Done</button></footer></section>';
   }
 
@@ -264,6 +267,15 @@
 
   function contextPanel(summary) {
     return '<section class="side-sheet" role="dialog" aria-modal="true" aria-labelledby="context-title"><header><span class="sheet-brand"><img src="' + esc(shellAsset('brand-mark.svg')) + '" alt="">Context</span><button type="button" data-action="close-sheet" aria-label="Close">' + icon('close') + '</button></header><div class="sheet-body"><p class="sheet-kicker">In view</p><h2 id="context-title">' + summary.count + ' trusted sources</h2><div class="source-list">' + summary.sources.map(function (source) { return '<div><span class="source-dot"></span><b>' + esc(source.label) + '</b><small>' + source.count + ' item' + (source.count === 1 ? '' : 's') + '</small></div>'; }).join('') + '</div></div><footer class="sheet-footer"><button class="sheet-secondary" type="button" data-route="settings">Manage sources</button><button class="sheet-primary" type="button" data-action="close-sheet">Done</button></footer></section>';
+  }
+
+  function attentionPanel(data) {
+    var state = window.AeroAttention ? window.AeroAttention.normalize(data.aeroAttention) : data.aeroAttention || { notifications: [] };
+    var items = state.notifications || [];
+    var body = items.length ? '<div class="attention-list">' + items.map(function (item) {
+      return '<article class="attention-item urgency-' + esc(item.urgency) + (item.read ? ' is-read' : '') + '"><button type="button" data-action="attention-open" data-id="' + esc(item.id) + '" data-source="' + esc(item.sourceType) + '" data-ref="' + esc(item.sourceRef) + '"><span>' + esc(item.urgency === 'critical' ? 'Critical' : item.urgency === 'urgent' ? 'Now' : 'Update') + '</span><b>' + esc(item.title) + '</b><small>' + esc(item.detail) + '</small></button><button class="attention-dismiss" type="button" data-action="attention-dismiss" data-id="' + esc(item.id) + '" aria-label="Dismiss ' + esc(item.title) + '">' + icon('close') + '</button></article>';
+    }).join('') + '</div>' : '<div class="attention-empty"><span>' + icon('check') + '</span><h2>All clear.</h2></div>';
+    return '<section class="side-sheet attention-sheet" role="dialog" aria-modal="true" aria-labelledby="attention-title"><header><span class="sheet-brand"><img src="' + esc(shellAsset('brand-mark.svg')) + '" alt="">Updates</span><button type="button" data-action="close-sheet" aria-label="Close">' + icon('close') + '</button></header><div class="sheet-body"><p class="sheet-kicker">Quiet by default</p><h2 id="attention-title">What needs you.</h2>' + body + '</div><footer class="sheet-footer"><button class="sheet-secondary" type="button" data-action="attention-read-all">Mark all read</button><button class="sheet-primary" type="button" data-action="close-sheet">Done</button></footer></section>';
   }
 
   function quickForm(kind, projectId) {
@@ -301,6 +313,7 @@
     receiptPanel: receiptPanel,
     runPanel: runPanel,
     contextPanel: contextPanel,
+    attentionPanel: attentionPanel,
     quickForm: quickForm,
     accountPanel: accountPanel,
     otpPanel: otpPanel,
