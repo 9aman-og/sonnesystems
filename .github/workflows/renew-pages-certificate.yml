@@ -1,0 +1,37 @@
+name: Renew Pages certificate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/renew-pages-certificate.yml
+      - scripts/renew_pages_certificate.py
+
+permissions:
+  contents: read
+  pages: write
+
+# Keep renewal requests sequential so a new run cannot interrupt reattachment.
+concurrency:
+  group: pages-certificate-renewal
+  cancel-in-progress: false
+
+jobs:
+  renew:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check renewal recovery behavior
+        run: python -m unittest discover -s scripts -p 'test_renew_pages_certificate.py'
+      - name: Renew and verify the Pages certificate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SONNE_PAGES_DOMAIN: sonnesystems.com
+        run: python scripts/renew_pages_certificate.py

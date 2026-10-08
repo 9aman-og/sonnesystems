@@ -37,6 +37,19 @@ After DNS propagates and GitHub issues the certificate, enforce HTTPS:
 & "C:\Program Files\GitHub CLI\gh.exe" api repos/9aman-og/sonnesystems/pages/builds/latest --jq .status
 ```
 
+## Renewing a failed Pages certificate
+
+Run **Renew Pages certificate** from the repository's Actions tab if GitHub
+reports an expired certificate or a stuck ACME authorization. The workflow
+uses GitHub's temporary Actions token with `pages: write` permission; no
+personal token or extra secret is required.
+
+It removes and restores the configured domain, waits for a valid certificate,
+verifies HTTPS and site content on the apex and `www` hosts, then enables HTTPS
+enforcement. A failed reset restores the original domain binding. A current
+certificate is verified without resetting the domain. The workflow also runs
+when its repair script or workflow file changes on `main`.
+
 ## The backend (when a feature needs it)
 
 `backend/` deploys to any host that runs Python:
