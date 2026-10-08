@@ -18,7 +18,8 @@ def github_api(repository, method, payload=None):
         text=True, capture_output=True, timeout=45,
     )
     if result.returncode:
-        raise RuntimeError(result.stderr.strip() or result.stdout.strip())
+        message = result.stderr.strip() or result.stdout.strip()
+        raise RuntimeError(f"GitHub Pages {method} failed: {message}")
     return json.loads(result.stdout) if result.stdout.strip() else {}
 
 
@@ -105,7 +106,13 @@ if __name__ == "__main__":
     for host in (domain, f"www.{domain}"):
         try:
             addresses = sorted({entry[4][0] for entry in socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)})
-            print(f"Public DNS for {host}: {addresses}", flush=True)
+            print(f"::notice::Public DNS for {host}: {addresses}", flush=True)
         except OSError as error:
             print(f"DNS lookup failed for {host}: {error}", flush=True)
-    renew_certificate(repository, domain)
+    try:
+        renew_certificate(repository, domain)
+    except Exception as error:
+        # Put the exact error in the check annotation as well as the job log.
+        message = str(error).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+        print(f"::error::{message}", flush=True)
+        raise
