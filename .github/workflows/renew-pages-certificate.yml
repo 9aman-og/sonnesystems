@@ -2,15 +2,15 @@ name: Renew Pages certificate
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/renew-pages-certificate.yml
-      - scripts/renew_pages_certificate.py
+    inputs:
+      diagnostics_only:
+        description: Read DNS and certificate state without changing Pages settings
+        type: boolean
+        default: false
 
 permissions:
   contents: read
-  pages: write
+  pages: read
 
 # Keep renewal requests sequential so a new run cannot interrupt reattachment.
 concurrency:
@@ -30,8 +30,19 @@ jobs:
           python-version: "3.12"
       - name: Check renewal recovery behavior
         run: python -m unittest discover -s scripts -p 'test_renew_pages_certificate.py'
-      - name: Renew and verify the Pages certificate
+      - name: Inspect DNS and certificate state
         env:
           GH_TOKEN: ${{ github.token }}
           SONNE_PAGES_DOMAIN: sonnesystems.com
-        run: python scripts/renew_pages_certificate.py
+        run: python scripts/renew_pages_certificate.py --diagnose-only
+      - name: Renew and verify the Pages certificate
+        if: ${{ !inputs.diagnostics_only }}
+        env:
+          GH_TOKEN: ${{ secrets.SONNE_PAGES_ADMIN_TOKEN }}
+          SONNE_PAGES_DOMAIN: sonnesystems.com
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo '::error::Add SONNE_PAGES_ADMIN_TOKEN as a repository Actions secret with Pages write permission. GitHub Actions GITHUB_TOKEN cannot update the custom domain.'
+            exit 1
+          fi
+          python scripts/renew_pages_certificate.py

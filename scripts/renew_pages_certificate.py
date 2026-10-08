@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Renew a failed Pages certificate with the GitHub Actions token."""
+"""Inspect or renew a failed Pages certificate with an administrator's token."""
+import argparse
 import json
 import os
 import socket
@@ -9,8 +10,11 @@ import urllib.request
 from datetime import date, datetime, timezone
 
 
-def github_api(repository, method, payload=None):
-    command = ["gh", "api", "--method", method, f"repos/{repository}/pages"]
+def github_api(repository, method, payload=None, endpoint=""):
+    path = f"repos/{repository}/pages"
+    if endpoint:
+        path += f"/{endpoint}"
+    command = ["gh", "api", "--method", method, path]
     if payload is not None:
         command.extend(["--input", "-"])
     result = subprocess.run(
@@ -99,8 +103,13 @@ def renew_certificate(repository, domain, timeout_seconds=900, poll_seconds=20):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--diagnose-only", action="store_true", help="Read DNS and Pages state without changing the domain.")
+    args = parser.parse_args()
     repository = os.environ.get("GITHUB_REPOSITORY", "9aman-og/sonnesystems")
     domain = os.environ.get("SONNE_PAGES_DOMAIN", "sonnesystems.com")
+    if os.environ.get("SONNE_PAGES_ADMIN_TOKEN"):
+        os.environ["GH_TOKEN"] = os.environ["SONNE_PAGES_ADMIN_TOKEN"]
     if not os.environ.get("GH_TOKEN"):
         raise RuntimeError("A GitHub token with Pages write permission is required.")
     for host in (domain, f"www.{domain}"):
@@ -110,7 +119,16 @@ if __name__ == "__main__":
         except OSError as error:
             print(f"DNS lookup failed for {host}: {error}", flush=True)
     try:
-        renew_certificate(repository, domain)
+        site = github_api(repository, "GET")
+        print(f"::notice::Pages certificate: {json.dumps(site.get('https_certificate'))}", flush=True)
+        try:
+            health = github_api(repository, "GET", endpoint="health")
+        except RuntimeError as error:
+            print(f"::warning::DNS health check unavailable: {error}", flush=True)
+        else:
+            print(f"::notice::Pages DNS health: {json.dumps(health)}", flush=True)
+        if not args.diagnose_only:
+            renew_certificate(repository, domain)
     except Exception as error:
         # Put the exact error in the check annotation as well as the job log.
         message = str(error).replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
