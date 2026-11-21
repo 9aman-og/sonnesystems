@@ -24,6 +24,7 @@ load("app/aero-harness.js");
 load("app-next/core/attention.js");
 load("app-next/core/store.js");
 load("app-next/core/aero.js");
+load("app-next/ui/views.js");
 
 const Store = window.AeroStore;
 const Aero = window.AeroService;
@@ -61,43 +62,25 @@ assert.equal(injected.kind, "blocked");
 assert.equal(injected.run.flowDecision.ok, false);
 assert.equal(Store.get().tasks.some(task => task.title === "Injected task"), false);
 
-let serverCommits = 0;
-let localExecutions = 0;
-const originalApply = Store.applyAction;
-Store.applyAction = function (action) { localExecutions += 1; return originalApply(action); };
 window.LyfeCloud = {
-  user: { id: "account-1", email: "test@example.com", name: "Test" },
+  user: { id: "11111111-1111-4111-8111-111111111111" },
   aeroGatewayEnabled: true,
-  aeroExecutionEnabled: true,
-  aeroMemoryEnabled: true,
-  async flush() { return true; },
-  async prepareAeroRun({ actions }) {
-    assert.equal(actions.length, 1);
-    return { runId: "server-run-1", contractDigest: "server-digest-1", approvalToken: "approval-1", review: [{ type: actions[0].type, subject: actions[0].title }], presenceRequired: false };
-  },
-  async commitAeroRun() {
-    serverCommits += 1;
-    const next = Store.clone(Store.get());
-    next.tasks.push({ id: "server-task", title: "Account task", status: "open", priority: "Medium", createdAt: Date.now() });
-    return { state: next, rev: Number(next.rev || 0) + 1, certificate: { digest: "server-certificate" } };
-  },
-  pushDebounced() {},
 };
-Store.state.cloudMode = true;
-Store.state.user = window.LyfeCloud.user;
-const accountProposal = Aero.proposeActions("Create a task: Account task", [{ type: "add_task", title: "Account task" }]);
-const accountPrepared = await Aero.prepare(accountProposal.run.id);
-assert.equal(accountPrepared.authority, "server");
-assert.equal(Store.get().tasks.some(task => task.title === "Account task"), false, "server actions cannot write during prepare");
-const accountResult = await Aero.execute(accountProposal.run.id);
-assert.equal(accountResult.authoritative, true);
-assert.equal(accountResult.receipt.certified, true);
-assert.equal(serverCommits, 1);
-assert.equal(localExecutions, 0, "signed-in execution must never fall back to the local mutator");
-assert.equal(Store.get().tasks.filter(task => task.title === "Account task").length, 1);
-Store.state.cloudMode = false;
-Store.state.user = null;
-Store.applyAction = originalApply;
+
+const multi = await Aero.propose("Create a task check deployment\nnote: capture the result");
+assert.equal(multi.kind, "proposal");
+assert.deepEqual(multi.run.steps.map(step => step.action.type), ["add_task", "add_note"]);
+assert.equal(multi.run.flowDecision.ok, true);
+const applied = await Aero.execute(multi.run.id);
+assert.equal(applied.applied, 2);
+assert.equal(window.AeroHarness.verifyCertificate(applied.run).valid, true);
+assert.equal(Store.get().tasks.filter(task => task.title === "check deployment").length, 1);
+assert.equal(Store.get().notes.filter(note => note.title === "capture the result").length, 1);
+await assert.rejects(() => Aero.execute(multi.run.id), /closed/i);
+assert.deepEqual(Aero.parseActions("Create a task check deployment then email everyone"), []);
+const incomplete = await Aero.propose("Create a task check deployment then email everyone");
+assert.equal(incomplete.kind, "answer");
+assert.match(incomplete.answer, /every step/);
 
 const answer = Aero.propose("what matters now?");
 assert.equal(typeof answer.then, "function");

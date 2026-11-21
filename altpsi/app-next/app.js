@@ -174,6 +174,16 @@
     }).join("");
   }
 
+  function showReview(prepared) {
+    openOverlay(prepared.result ? views.receiptPanel(prepared.result) : views.reviewPanel(prepared), "sheet-overlay");
+  }
+
+  function showUnsettled(runId) {
+    var run = aero.findRun(runId);
+    if (run) openOverlay(views.receiptPanel({ run: run, authoritative: false, status: "uncertain" }), "sheet-overlay");
+    else showToast("Aero couldn’t load the account record. Reopen Activity to check again.", "error");
+  }
+
   async function submitAero(request) {
     setBusy(true);
     try {
@@ -182,13 +192,13 @@
       renderAttachments();
       render();
       if (result.kind === "proposal") {
-        var prepared = await aero.prepare(result.run.id);
-        openOverlay(views.reviewPanel(result.run, prepared.authority), "sheet-overlay");
+        showReview(await aero.prepare(result.run.id));
       }
       else openOverlay(views.assistantPanel(result), "sheet-overlay");
       if (result.notice) showToast(result.notice, "neutral");
     } catch (error) {
-      showToast(error && error.message || "Aero could not complete that request.", "error");
+      if (error && error.code === "outcome_uncertain") showUnsettled(error.runId);
+      else showToast(error && error.message || "Aero could not complete that request.", "error");
     } finally {
       setBusy(false);
     }
@@ -216,10 +226,11 @@
     try {
       var result = aero.proposeActions(intent, actions);
       render();
-      var prepared = await aero.prepare(result.run.id);
-      openOverlay(views.reviewPanel(result.run, prepared.authority), "sheet-overlay");
+      if (result.kind === "blocked") openOverlay(views.assistantPanel(result), "sheet-overlay");
+      else showReview(await aero.prepare(result.run.id));
     } catch (error) {
-      showToast(error && error.message || "The change could not be prepared.", "error");
+      if (error && error.code === "outcome_uncertain") showUnsettled(error.runId);
+      else showToast(error && error.message || "The change could not be prepared.", "error");
     }
   }
 
@@ -327,13 +338,14 @@
         var activityWork = data.worklog.find(function (item) { return item.id === target.dataset.id; });
         if (activityWork) openOverlay(objectPanel({ title: activityWork.text || "Work logged", body: (activityWork.hours || 0) + " hours · " + (activityWork.date || "") }, "Work"), "modal-overlay");
       } else {
-        var activityRun = data.aeroRuns.find(function (item) { return item.id === target.dataset.id; });
+        var activityRun = aero.findRun(target.dataset.id);
         if (activityRun) openOverlay(views.runPanel(activityRun), "modal-overlay");
       }
       return;
     }
     if (action === "approve-run") {
       var button = target;
+      var approveLabel = button.textContent;
       button.disabled = true;
       button.textContent = "Applying…";
       try {
@@ -341,13 +353,69 @@
         render();
         openOverlay(views.receiptPanel(result), "sheet-overlay");
       } catch (error) {
-        showToast(error && error.message || "The plan stopped safely.", "error");
-        button.disabled = false;
-        button.textContent = "Try again";
+        if (error && error.code === "outcome_uncertain") {
+          showUnsettled(error.runId);
+        } else if (error && error.code === "review_expired" && aero.findRun(target.dataset.run)) {
+          openOverlay(views.runPanel(aero.findRun(target.dataset.run)), "modal-overlay");
+          showToast(error.message);
+        } else {
+          showToast(error && error.message || "Aero couldn’t apply this plan.", "error");
+          button.disabled = false;
+          button.textContent = approveLabel;
+        }
       }
       return;
     }
-    if (action === "cancel-run") { await aero.cancel(target.dataset.run); closeOverlay(); render(); showToast("No changes applied."); return; }
+    if (action === "reconcile-run") {
+      var checkButton = target;
+      checkButton.disabled = true;
+      checkButton.textContent = "Checking…";
+      try {
+        var checked = await aero.reconcileRun(target.dataset.run);
+        render();
+        if (checked && checked.status === "prepared") openOverlay(views.runPanel(checked.run), "modal-overlay");
+        else if (checked) openOverlay(views.receiptPanel(checked), "sheet-overlay");
+        else closeOverlay();
+      } catch (error) {
+        showUnsettled(target.dataset.run);
+      }
+      return;
+    }
+    if (action === "reprepare-run") {
+      var reviewButton = target;
+      reviewButton.disabled = true;
+      reviewButton.textContent = "Preparing…";
+      try {
+        showReview(await aero.prepare(target.dataset.run));
+      } catch (error) {
+        if (error && error.code === "outcome_uncertain") showUnsettled(error.runId);
+        else showToast(error && error.message || "This plan needs to be created again.", "error");
+        reviewButton.disabled = false;
+        reviewButton.textContent = "Review again";
+      }
+      return;
+    }
+    if (action === "edit-run") {
+      var previousRun = aero.findRun(target.dataset.run);
+      if (previousRun) {
+        closeOverlay(false);
+        input.value = previousRun.intent;
+        resizeInput();
+        input.focus();
+      }
+      return;
+    }
+    if (action === "cancel-run") {
+      try {
+        var cancelledRun = await aero.cancel(target.dataset.run);
+        closeOverlay();
+        render();
+        showToast(cancelledRun && cancelledRun.status === "completed" ? "The change had already completed." : "No changes applied.");
+      } catch (error) {
+        showUnsettled(error && error.runId || target.dataset.run);
+      }
+      return;
+    }
     if (action === "archive-tab") { vm.archiveTab = target.dataset.tab || "objects"; render(); return; }
     if (action === "forget-memory") {
       var memory = data.aero.memories.find(function (item) { return item.id === target.dataset.id; });
@@ -565,6 +633,12 @@
   window.addEventListener("hashchange", applyRoute);
   store.subscribe(function () { if (vm.ready) render(); });
 
+  function checkPendingRuns() {
+    aero.reconcilePending().then(function (results) {
+      if (results.length) render();
+    }).catch(function () { /* Activity keeps unresolved work visible. */ });
+  }
+
   (async function init() {
     try {
       await store.boot();
@@ -578,6 +652,7 @@
       render();
       resizeInput();
       refreshAttention(true);
+      checkPendingRuns();
       window.setInterval(function () { refreshAttention(true); }, 15 * 60 * 1000);
     } catch (error) {
       surface.innerHTML = '<div class="fatal-state"><img src="' + views.esc(String(window.AERO_SHELL_BASE || "") + 'brand-mark.svg') + '" alt=""><h1>Aero could not open.</h1><button type="button" onclick="location.reload()">Try again</button></div>';
@@ -587,4 +662,5 @@
   document.addEventListener("visibilitychange", function () {
     if (vm.ready && document.visibilityState === "visible") refreshAttention(true);
   });
+  window.addEventListener("online", function () { if (vm.ready) checkPendingRuns(); });
 })();

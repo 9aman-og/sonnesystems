@@ -9,11 +9,15 @@
     authStatus: "loading",
     user: null,
     cloudRev: 0,
+    localVersion: 0,
     connectData: null,
     gmailMessages: [],
     gmailStatus: "idle",
   };
   var listeners = [];
+  var workspaceWrites = Promise.resolve();
+  var syncEpoch = 0;
+  var syncTimer = null;
 
   function id(prefix) {
     try { return (prefix || "item") + "_" + crypto.randomUUID(); }
@@ -115,21 +119,92 @@
     var rev = Math.max(Number(current.rev || 0), storedRev) + 1;
     var payload = Object.assign({ rev: rev }, current, { rev: rev, savedAt: Date.now() });
     state.data = payload;
-    try { localStorage.setItem(state.activeKey, JSON.stringify(payload)); } catch (error) { /* memory remains authoritative for this session */ }
+    cache();
     return payload;
+  }
+
+  function cache(reason) {
+    state.localVersion += 1;
+    try { localStorage.setItem(state.activeKey, JSON.stringify(state.data)); } catch (error) { /* session still works */ }
+    if (reason) notify(reason);
+  }
+
+  function ownsWorkspace(owner) {
+    return !!(owner && state.cloudMode && state.user && state.user.id === owner
+      && window.LyfeCloud && window.LyfeCloud.user && window.LyfeCloud.user.id === owner);
+  }
+
+  function queueWorkspaceWrite(data) {
+    var owner = state.user && state.user.id;
+    var epoch = syncEpoch;
+    var snapshot = clone(data);
+    var write = workspaceWrites.catch(function () {}).then(async function () {
+      if (!ownsWorkspace(owner) || epoch !== syncEpoch) return false;
+      var cloud = window.LyfeCloud;
+      if (!cloud.aeroExecutionEnabled) return cloud.push(snapshot, snapshot.rev);
+      var expected = state.cloudRev;
+      var result = await cloud.push(snapshot, Math.max(expected + 1, snapshot.rev), { expectedRev: expected, ownerId: owner });
+      if (!ownsWorkspace(owner) || epoch !== syncEpoch || !result || result.applied !== true || !Number.isSafeInteger(result.rev)) return false;
+      state.cloudRev = result.rev;
+      return result;
+    });
+    workspaceWrites = write;
+    return write;
+  }
+
+  function flushWorkspace() {
+    clearTimeout(syncTimer);
+    syncTimer = null;
+    // The proposal was cached locally. This writes it with the current
+    // confirmed workspace revision before asking the server to bind a plan.
+    return queueWorkspaceWrite(persistLocal());
   }
 
   function save(reason, immediate) {
     var payload = persistLocal();
-    if (state.cloudMode && window.LyfeCloud && window.LyfeCloud.user) {
-      if (immediate && typeof window.LyfeCloud.push === "function") {
-        window.LyfeCloud.push(payload, payload.rev).catch(function () { /* local copy remains safe */ });
-      } else if (typeof window.LyfeCloud.pushDebounced === "function") {
-        window.LyfeCloud.pushDebounced(payload, payload.rev);
+    if (ownsWorkspace(state.user && state.user.id)) {
+      clearTimeout(syncTimer);
+      syncTimer = null;
+      if (immediate) {
+        queueWorkspaceWrite(payload).catch(function () { /* local copy remains safe */ });
+      } else {
+        var epoch = syncEpoch;
+        syncTimer = setTimeout(function () {
+          syncTimer = null;
+          if (epoch === syncEpoch) queueWorkspaceWrite(state.data).catch(function () {});
+        }, 800);
       }
     }
     notify(reason || "save");
     return payload;
+  }
+
+  function sameReceipt(candidate, run) {
+    return candidate && candidate.id === run.id && candidate.status === run.status
+      && candidate.remote && candidate.remote.id === run.remote.id
+      && candidate.remote.phase === run.remote.phase
+      && candidate.remote.contractDigest === run.remote.contractDigest
+      && candidate.serverReceipt && candidate.serverReceipt.certified === run.serverReceipt.certified
+      && (run.status !== "completed" || (candidate.serverCertificate && run.serverCertificate
+        && candidate.serverCertificate.digest === run.serverCertificate.digest));
+  }
+
+  async function syncRunReceipt(run, owner, minimumRevision, snapshot) {
+    var cloud = window.LyfeCloud;
+    if (!ownsWorkspace(owner) || !cloud.aeroExecutionEnabled) return false;
+    var latest = snapshot || await cloud.pull({ track: false });
+    if (!ownsWorkspace(owner) || !latest || !latest.data || !Number.isSafeInteger(latest.rev) || latest.rev < minimumRevision) return false;
+    var runs = array(latest.data.aeroRuns);
+    if (runs.some(function (item) { return sameReceipt(item, run); })) return true;
+    // Merge just the receipt. A concurrent workspace edit must cause the CAS
+    // to stop rather than let a stale browser document overwrite that edit.
+    var patched = Object.assign({}, latest.data, {
+      aeroRuns: runs.filter(function (item) { return item.id !== run.id; }).concat([run]).slice(-200),
+    });
+    var confirmed = await cloud.push(patched, latest.rev + 1, { expectedRev: latest.rev, ownerId: owner, quietConflict: true });
+    if (!ownsWorkspace(owner) || !confirmed || confirmed.applied !== true) return false;
+    if (state.cloudRev === latest.rev && Number.isSafeInteger(confirmed.rev)) state.cloudRev = confirmed.rev;
+    return array(confirmed.data && confirmed.data.aeroRuns).some(function (item) { return sameReceipt(item, run); });
   }
 
   function replace(next, reason, shouldSave) {
@@ -142,11 +217,20 @@
   function adopt(next, revision, reason) {
     state.data = normalize(next);
     state.data.rev = Math.max(0, Number(revision == null ? state.data.rev : revision));
-    state.data.savedAt = Date.now();
     state.cloudRev = Math.max(state.cloudRev, state.data.rev);
-    try { localStorage.setItem(state.activeKey, JSON.stringify(Object.assign({ rev: state.data.rev }, state.data))); } catch (error) { /* session state remains usable */ }
-    notify(reason || "authoritative-update");
+    syncEpoch += 1;
+    cache(reason || "authoritative-update");
     return state.data;
+  }
+
+  function adoptWorkspace(remote, localVersion, owner) {
+    if (!ownsWorkspace(owner) || state.localVersion !== localVersion || remote.rev < state.cloudRev) return false;
+    // Authoritative typed memory has a separate revision and does not get
+    // replaced by the cached memory embedded in a workspace snapshot.
+    var next = remote.data;
+    if (window.LyfeCloud.aeroMemoryEnabled) next = Object.assign({}, next, { aero: state.data.aero });
+    adopt(next, remote.rev, "authoritative-workspace");
+    return true;
   }
 
   function update(mutator, reason, immediate) {
@@ -181,10 +265,13 @@
 
   function findOpenTask(title) {
     var needle = String(title || "").toLowerCase().trim();
-    return state.data.tasks.find(function (task) {
+    var candidates = state.data.tasks.filter(function (task) {
       var value = String(task.title || "").toLowerCase().trim();
-      return task.status !== "done" && task.status !== "completed" && (value === needle || value.indexOf(needle) >= 0 || needle.indexOf(value) >= 0);
+      return value && task.status !== "done" && task.status !== "completed"
+        && (value.indexOf(needle) >= 0 || needle.indexOf(value) >= 0);
     });
+    if (candidates.length > 1) throw new Error("More than one open task matches. Use a more specific title.");
+    return candidates[0];
   }
 
   function applyAction(action) {
@@ -362,12 +449,8 @@
       }
       if (typeof window.LyfeCloud.subscribe === "function") {
         window.LyfeCloud.subscribe(function (payload) {
-          if (!payload || Number(payload.rev || 0) <= Number(state.data.rev || 0)) return;
-          state.data = normalize(payload.data);
-          state.data.rev = Number(payload.rev || state.data.rev || 0);
-          state.cloudRev = state.data.rev;
-          try { localStorage.setItem(state.activeKey, JSON.stringify(state.data)); } catch (error) { /* optional cache */ }
-          notify("cloud");
+          if (!payload || Number(payload.rev || 0) <= state.cloudRev) return;
+          adoptWorkspace(payload, state.localVersion, state.user && state.user.id);
         });
       }
     } else if (status === "gate") {
@@ -411,6 +494,10 @@
     adopt: adopt,
     update: update,
     save: save,
+    cache: cache,
+    flushWorkspace: flushWorkspace,
+    syncRunReceipt: syncRunReceipt,
+    adoptWorkspace: adoptWorkspace,
     subscribe: function (listener) { listeners.push(listener); return function () { listeners = listeners.filter(function (item) { return item !== listener; }); }; },
     appendMessage: appendMessage,
     activeThread: activeThread,

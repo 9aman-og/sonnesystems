@@ -97,7 +97,7 @@
     if (!authListenerAttached) {
       authListenerAttached = true;
       sb.auth.onAuthStateChange(function (event, session) {
-        current = userFrom(session);
+        setCurrentUser(session);
         // Supabase access-token refresh events commonly omit provider_token.
         // Keep the last Google token in memory until Google rejects it or the
         // person signs out; never copy it into Lyfe data or localStorage.
@@ -147,6 +147,16 @@
     };
   }
 
+  function setCurrentUser(session) {
+    var next = userFrom(session);
+    if ((current && current.id) !== (next && next.id)) {
+      confirmedRev = 0;
+      queuedRemote = null;
+      googleProviderToken = "";
+    }
+    current = next;
+  }
+
   function sanitize(data) {
     // strip device-only secrets so they never leave the machine
     var clone;
@@ -158,7 +168,12 @@
   function rememberConfirmed(data, rev) {
     var value = Number(rev || 0);
     if (!Number.isSafeInteger(value) || value < 0) return;
-    confirmedRev = value;
+    confirmedRev = Math.max(confirmedRev, value);
+  }
+
+  function actionTimeout() {
+    return typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function"
+      ? AbortSignal.timeout(12_000) : undefined;
   }
 
   function releaseQueuedRemote() {
@@ -249,6 +264,7 @@
         "content-type": "application/json",
       },
       body: JSON.stringify(payload || {}),
+      signal: actionTimeout(),
     });
     if (response.status === 401 && retry !== false) {
       var refreshed = await sb.auth.refreshSession();
@@ -294,6 +310,7 @@
         "content-type": "application/json",
       },
       body: JSON.stringify(payload || {}),
+      signal: actionTimeout(),
     });
     if (response.status === 401 && retry !== false) {
       var refreshed = await sb.auth.refreshSession();
@@ -482,7 +499,7 @@
         if (res && res.error) throw res.error;
         var session = res && res.data ? res.data.session : null;
         if (session) {
-          current = userFrom(session);
+          setCurrentUser(session);
           if (session.provider_token) googleProviderToken = String(session.provider_token);
           cleanUrl();
           return "cloud";
@@ -546,10 +563,10 @@
       return callAeroExecution(Object.assign({ op: "prepare" }, payload || {}), true);
     },
 
-    async commitAeroRun(payload) {
+    async commitAeroRun(payload, options) {
       if (!configured || !aeroExecutionEnabled) throw cloudError("The protected Aero execution route is not enabled.", 503, "execution_disabled");
       var result = await callAeroExecution(Object.assign({ op: "commit" }, payload || {}), true);
-      if (result && result.state && typeof result.rev === "number") rememberConfirmed(result.state, result.rev);
+      if (!(options && options.track === false) && result && result.state && typeof result.rev === "number") rememberConfirmed(result.state, result.rev);
       return result;
     },
 
@@ -675,7 +692,7 @@
       var result = await sb.auth.verifyOtp({ email: cleanEmail, token: cleanToken, type: "email" });
       if (result && result.error) throw result.error;
       var session = result && result.data ? result.data.session : null;
-      current = userFrom(session);
+      setCurrentUser(session);
       if (session && session.provider_token) googleProviderToken = String(session.provider_token);
       return result;
     },
@@ -688,35 +705,49 @@
       queuedRemote = null;
     },
 
-    async pull() {
+    async pull(options) {
       if (!sb || !current) return null;
-      var r = await sb.from(TABLE).select("data, rev").eq("user_id", current.id).maybeSingle();
+      var ownerId = current.id;
+      var query = sb.from(TABLE).select("data, rev").eq("user_id", ownerId);
+      var signal = actionTimeout();
+      if (signal && typeof query.abortSignal === "function") query = query.abortSignal(signal);
+      var r = await query.maybeSingle();
       if (r.error) throw r.error;
+      if (!current || current.id !== ownerId) return null;
       if (!r.data) {
-        rememberConfirmed(null, 0);
         return null;
       }
-      rememberConfirmed(r.data.data, Number(r.data.rev || 0));
+      if (!(options && options.track === false)) rememberConfirmed(r.data.data, Number(r.data.rev || 0));
       return { data: r.data.data, rev: r.data.rev || 0 };
     },
 
-    async push(data, rev) {
+    async push(data, rev, options) {
       if (!sb || !current) return false;
+      options = options || {};
+      var ownerId = options.ownerId || current.id;
+      if (current.id !== ownerId) return false;
+      var pinned = options.expectedRev != null;
       var requestedRev = Number(rev || 0);
       var snapshot = sanitize(data);
       if (aeroExecutionEnabled) {
         if (!Number.isSafeInteger(requestedRev) || requestedRev < 1) throw cloudError("The workspace revision is invalid.", 409, "invalid_revision");
+        if (pinned && (!Number.isSafeInteger(options.expectedRev) || options.expectedRev < 0)) return false;
         pendingWrites += 1;
         var operation = writeChain.catch(function () {}).then(async function () {
-          var committed = await sb.rpc("lyfe_compare_and_swap_state", {
-            p_expected_rev: confirmedRev,
+          if (!current || current.id !== ownerId) return false;
+          var query = sb.rpc("lyfe_compare_and_swap_state", {
+            p_expected_rev: pinned ? options.expectedRev : confirmedRev,
             p_data: snapshot,
           });
+          var signal = actionTimeout();
+          if (signal && typeof query.abortSignal === "function") query = query.abortSignal(signal);
+          var committed = await query;
           if (committed.error) throw committed.error;
+          if (!current || current.id !== ownerId) return false;
           var result = committed.data || {};
           if (!result.applied) {
             if (result.data && typeof result.rev === "number") rememberConfirmed(result.data, result.rev);
-            emitCloudConflict(result);
+            if (!options.quietConflict) emitCloudConflict(result);
             return false;
           }
           if (result.data && typeof result.rev === "number") rememberConfirmed(result.data, result.rev);
@@ -728,6 +759,7 @@
           releaseQueuedRemote();
         });
       }
+      if (pinned) return false;
       var r = await sb.from(TABLE).upsert({
         user_id: current.id,
         data: snapshot,
@@ -750,10 +782,10 @@
       }, 800);
     },
 
-    flush: async function (data, rev) {
+    flush: async function (data, rev, options) {
       clearTimeout(pushTimer);
       pushTimer = null;
-      return LyfeCloud.push(data, rev);
+      return LyfeCloud.push(data, rev, options);
     },
 
     subscribe: function (onRemote) {

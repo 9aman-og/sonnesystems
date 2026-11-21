@@ -97,12 +97,20 @@
 
   function recentEvents(data) {
     var events = [];
-    data.aeroRuns.forEach(function (run) {
-      events.push({ id: run.id, kind: run.status === "completed" ? "success" : "run", title: run.status === "completed" ? "Change verified" : run.status === "cancelled" ? "Change cancelled" : "Change prepared", detail: run.intent || (run.steps[0] && run.steps[0].title) || "Aero action", at: run.updatedAt || run.createdAt });
+    var unresolved = new Map(window.AeroService.pendingRuns().map(function (run) { return [run.id, run]; }));
+    var runs = data.aeroRuns.filter(function (run) { return !unresolved.has(run.id); }).concat(Array.from(unresolved.values()));
+    runs.forEach(function (run) {
+      var checking = unresolved.has(run.id);
+      var title = checking ? "Outcome unconfirmed" : run.status === "completed"
+        ? (run.remote && run.remote.recovered ? "Verified after reconnect" : "Change applied")
+        : run.status === "cancelled" ? "Change cancelled"
+        : run.status === "failed" ? "Change stopped"
+        : run.status === "running" ? "Applying change" : "Change prepared";
+      events.push({ id: run.id, kind: !checking && run.status === "completed" ? "success" : "run", title: title, detail: run.intent || "Aero action", at: run.updatedAt || run.createdAt, checking: checking });
     });
     data.notes.slice(-6).forEach(function (note) { events.push({ id: note.id, kind: "file", title: "Note updated", detail: note.title || "Untitled", at: note.updatedAt || note.createdAt }); });
     data.worklog.slice(-6).forEach(function (item) { events.push({ id: item.id, kind: "work", title: "Work logged", detail: item.text || "Work", at: item.createdAt || Date.parse(item.date) }); });
-    return events.sort(function (a, b) { return Number(b.at || 0) - Number(a.at || 0); }).slice(0, 6);
+    return events.sort(function (a, b) { return Number(!!b.checking) - Number(!!a.checking) || Number(b.at || 0) - Number(a.at || 0); }).slice(0, 6);
   }
 
   function emptyInline(title, action, label) {
@@ -246,23 +254,112 @@
     return action.title || action.name || action.claim || action.query || action.text || action.body || 'Item';
   }
 
-  function reviewPanel(run, authority) {
+  var actionLabels = {
+    add_task: "Create task", complete_task: "Complete task", add_note: "Save note",
+    add_doc: "Create document", add_project: "Create workspace", add_goal: "Set goal",
+    add_education: "Track learning", log_work: "Log work", memory_upsert: "Remember",
+    memory_forget: "Forget memory",
+  };
+
+  function actionDetails(action) {
+    var details = [];
+    if (action.due) details.push("Due " + dateLabel(action.due));
+    if (action.priority) details.push(action.priority + " priority");
+    if (action.hours != null) details.push(action.hours + (Number(action.hours) === 1 ? " hour" : " hours"));
+    if (action.date) details.push(dateLabel(action.date));
+    if (action.scope && action.scope !== "global") details.push("Scope " + action.scope);
+    return details.join(" · ");
+  }
+
+  function stepList(run, review, history) {
+    return '<ol class="review-list">' + run.steps.map(function (step, index) {
+      var action = step.action;
+      var item = review && review[index];
+      var subject = item && item.subject || actionValue(action);
+      var detail = actionDetails(action);
+      var body = action.body || action.description || "";
+      var status = step.status === "succeeded" ? "Applied" : step.status === "proposed" ? "Awaiting review" : step.status.replace(/-/g, " ");
+      return '<li><article><b>' + esc(actionLabels[action.type] || "Change") + '</b>'
+        + (subject !== "Item" ? '<p>' + esc(subject) + '</p>' : '')
+        + (body && body !== subject && !history ? '<p class="review-preview">' + esc(body) + '</p>' : '')
+        + (detail ? '<small>' + esc(detail) + '</small>' : '')
+        + (history ? '<small class="step-status">' + esc(status) + '</small>' : '')
+        + '</article></li>';
+    }).join('') + '</ol>';
+  }
+
+  function reviewPanel(prepared) {
+    var run = prepared.run;
     var safe = run.flowDecision && run.flowDecision.ok;
-    return '<section class="side-sheet review-sheet" role="dialog" aria-modal="true" aria-labelledby="review-title"><header><span class="sheet-brand"><img src="' + esc(shellAsset('brand-mark.svg')) + '" alt="">Review</span><button type="button" data-action="close-sheet" aria-label="Close">' + icon('close') + '</button></header><div class="sheet-body"><p class="sheet-kicker">' + esc(run.steps.length + ' change' + (run.steps.length === 1 ? '' : 's')) + '</p><h2 id="review-title">' + esc(run.intent) + '</h2><div class="review-list">' + run.steps.map(function (step, index) { return '<article><span>0' + (index + 1) + '</span><div><b>' + esc(step.title.split(':')[0]) + '</b><p>' + esc(actionValue(step.action)) + '</p><small>' + esc(step.acceptance) + '</small></div></article>'; }).join('') + '</div>' +
-      '<div class="approval-boundary ' + (safe ? 'is-safe' : 'is-blocked') + '">' + icon(safe ? 'shield' : 'close') + '<div><b>' + (safe ? (authority === 'server' ? 'Bound to this account revision' : 'Bound to this exact plan') : 'Plan blocked') + '</b><small>' + esc(safe ? (authority === 'server' ? 'The protected account transaction matches this review.' : 'Nothing outside this review can run.') : run.flowDecision.violations[0].message) + '</small></div></div></div>' +
-      '<footer class="sheet-footer"><button class="sheet-secondary" type="button" data-action="cancel-run" data-run="' + esc(run.id) + '">Cancel</button><button class="sheet-primary" type="button" data-action="approve-run" data-run="' + esc(run.id) + '"' + (safe ? '' : ' disabled') + '>Approve ' + run.steps.length + '</button></footer></section>';
+    var count = run.steps.length;
+    var summary = count + (count === 1 ? " change" : " changes");
+    var boundary = prepared.presenceRequired ? "Device verification required" : "Applies as one change set";
+    if (!safe) boundary = run.flowDecision && run.flowDecision.violations[0]
+      ? run.flowDecision.violations[0].message : "Plan blocked";
+    return '<section class="side-sheet review-sheet" role="dialog" aria-modal="true" aria-labelledby="review-title">'
+      + '<header><span class="sheet-brand">Review</span><button type="button" data-action="close-sheet" aria-label="Close">' + icon('close') + '</button></header>'
+      + '<div class="sheet-body"><h2 id="review-title">' + esc(summary) + '</h2>' + stepList(run, prepared.authority === "server" ? prepared.review : null, false)
+      + '<div class="approval-boundary ' + (safe ? 'is-safe' : 'is-blocked') + '">' + icon(safe ? 'shield' : 'close') + '<b>' + esc(boundary) + '</b></div></div>'
+      + '<footer class="sheet-footer"><button class="sheet-secondary" type="button" data-action="cancel-run" data-run="' + esc(run.id) + '">Cancel</button>'
+      + '<button class="sheet-primary" type="button" data-action="approve-run" data-run="' + esc(run.id) + '"' + (safe ? '' : ' disabled') + '>'
+      + (prepared.presenceRequired ? 'Verify and apply' : 'Apply ' + summary) + '</button></footer></section>';
   }
 
   function receiptPanel(result) {
     var run = result.run;
-    var ok = result.authoritative === true ? !!(result.receipt && result.receipt.certified) : run.status === 'completed' && window.AeroHarness.verifyCertificate(run).valid;
+    var unknown = result.status === "uncertain";
     var receipt = result.receipt || window.AeroHarness.receipt(run);
-    return '<section class="side-sheet receipt-sheet" role="dialog" aria-modal="true" aria-labelledby="receipt-title"><header><span class="sheet-brand"><img src="' + esc(shellAsset('brand-mark.svg')) + '" alt="">Aero</span><button type="button" data-action="close-sheet" aria-label="Close">' + icon('close') + '</button></header><div class="sheet-body"><span class="receipt-mark ' + (ok ? 'is-success' : 'is-failed') + '">' + icon(ok ? 'check' : 'close') + '</span><p class="sheet-kicker">' + (ok ? 'Verified' : 'Not applied') + '</p><h2 id="receipt-title">' + esc(ok ? (run.steps.length + ' change' + (run.steps.length === 1 ? '' : 's') + ' complete') : (result.failures[0] || 'The plan stopped safely')) + '</h2><div class="receipt-facts"><div><span>Applied</span><b>' + receipt.completed + '/' + receipt.total + '</b></div><div><span>Evidence</span><b>' + receipt.evidence + '</b></div><div><span>Atomic</span><b>' + (receipt.atomic ? 'Yes' : 'No') + '</b></div></div>' + (ok ? '<div class="receipt-note">' + icon('shield') + '<span>Execution and audit agree.</span></div>' : '') + '</div><footer class="sheet-footer"><button class="sheet-primary wide" type="button" data-action="close-sheet">Done</button></footer></section>';
+    var verified = run.status === "completed" && !!(receipt && receipt.certified);
+    var rolledBack = !result.authoritative && run.transaction.state === "rolled-back";
+    var stopped = !!(receipt && receipt.stopped) || rolledBack;
+    var failure = (result.failures || [])[0];
+    var iconName = unknown ? "clock" : verified || stopped || result.noop ? "check" : "close";
+    var tone = unknown ? "is-pending" : verified || stopped || result.noop ? "is-success" : "is-failed";
+    var title = "Review the outcome";
+    var detail = failure || "Aero couldn’t verify completion.";
+    var action = '<button class="sheet-primary wide" type="button" data-action="close-sheet">Done</button>';
+    if (unknown) {
+      title = "Outcome unconfirmed";
+      detail = "Check the account record before applying this change again.";
+      action = '<button class="sheet-secondary" type="button" data-action="close-sheet">Close</button>'
+        + '<button class="sheet-primary" type="button" data-action="reconcile-run" data-run="' + esc(run.id) + '">Check status</button>';
+    } else if (verified) {
+      title = receipt.completed + (receipt.completed === 1 ? " change applied" : " changes applied");
+      detail = result.recovered ? "Verified after reconnect." : "Verified.";
+    } else if (stopped) {
+      title = "No changes applied";
+      detail = failure || (rolledBack ? "Aero restored the original state." : "The account record confirms the plan stopped.");
+      if (run.remote && (run.remote.phase === "stale" || run.remote.phase === "expired")) {
+        action = '<button class="sheet-secondary" type="button" data-action="close-sheet">Close</button>'
+          + '<button class="sheet-primary" type="button" data-action="edit-run" data-run="' + esc(run.id) + '">Edit request</button>';
+      }
+    } else if (result.noop) {
+      title = "Memory is up to date";
+      detail = "This request didn’t require any changes.";
+    }
+    return '<section class="side-sheet receipt-sheet" role="dialog" aria-modal="true" aria-labelledby="receipt-title">'
+      + '<header><span class="sheet-brand">Aero</span><button type="button" data-action="close-sheet" aria-label="Close">' + icon('close') + '</button></header>'
+      + '<div class="sheet-body"><span class="receipt-mark ' + tone + '">' + icon(iconName) + '</span>'
+      + '<h2 id="receipt-title">' + esc(title) + '</h2><p class="receipt-detail">' + esc(detail) + '</p></div>'
+      + '<footer class="sheet-footer">' + action + '</footer></section>';
   }
 
   function runPanel(run) {
-    var status = run.status === 'completed' ? 'Verified' : run.status === 'cancelled' ? 'Cancelled' : run.status === 'failed' ? 'Stopped' : 'Prepared';
-    return '<section class="modal-card detail-card" role="dialog" aria-modal="true" aria-labelledby="run-title"><header><span class="detail-type">' + esc(status) + '</span><button type="button" data-action="close-sheet" aria-label="Close">' + icon('close') + '</button></header><h2 id="run-title">' + esc(run.intent || 'Aero change') + '</h2><div class="review-list">' + run.steps.map(function (step, index) { return '<article><span>0' + (index + 1) + '</span><div><b>' + esc(step.action.type.replace(/_/g, ' ')) + '</b><p>' + esc(actionValue(step.action)) + '</p><small>' + esc(step.status) + '</small></div></article>'; }).join('') + '</div><footer><button type="button" data-action="close-sheet">Done</button></footer></section>';
+    var recovery = window.AeroService.recoveryState(run.id);
+    var checking = recovery && (recovery.phase === "committing" || recovery.phase === "uncertain");
+    var resumable = run.status === "awaiting-approval" && run.flowDecision && run.flowDecision.ok;
+    var stopped = run.remote && (run.remote.phase === "stale" || run.remote.phase === "expired");
+    var status = checking ? "Outcome unconfirmed" : run.status === "completed" ? (run.remote && run.remote.recovered ? "Verified after reconnect" : "Completed")
+      : run.status === "cancelled" ? "Cancelled" : run.status === "failed" ? "Stopped" : run.status === "running" ? "Applying" : "Awaiting review";
+    var primary = '<button type="button" data-action="close-sheet">Done</button>';
+    if (checking) primary = '<button type="button" data-action="reconcile-run" data-run="' + esc(run.id) + '">Check status</button>';
+    else if (resumable) primary = '<button type="button" data-action="reprepare-run" data-run="' + esc(run.id) + '">' + (recovery ? 'Review again' : 'Review plan') + '</button>';
+    else if (stopped) primary = '<button type="button" data-action="edit-run" data-run="' + esc(run.id) + '">Edit request</button>';
+    return '<section class="modal-card detail-card run-detail-card" role="dialog" aria-modal="true" aria-labelledby="run-title">'
+      + '<header><span class="detail-type">' + esc(status) + '</span><button type="button" data-action="close-sheet" aria-label="Close">' + icon('close') + '</button></header>'
+      + '<div class="run-detail-scroll"><h2 id="run-title">' + esc(run.intent || 'Aero change') + '</h2>'
+      + (stopped && run.failure ? '<p>' + esc(run.failure.message) + '</p>' : '') + stepList(run, null, true) + '</div>'
+      + '<footer>' + primary + '</footer></section>';
   }
 
   function contextPanel(summary) {

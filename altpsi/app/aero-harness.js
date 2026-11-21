@@ -256,7 +256,11 @@
       memory_upsert: /\bremember\b(?!\s+to\b)|\bmemorize\b|^\s*learn(?:\s+that)?\b|\bteach\s+(?:aero|you)\b|\bsave\b[\s\S]{0,90}\bmemory\b/,
       memory_forget: /\bforget\b|\bstop\s+remembering\b|\bremove\b[\s\S]{0,90}\bmemory\b/,
     };
-    return !!(patterns[type] && patterns[type].test(value));
+    if (!patterns[type]) return false;
+    if (patterns[type].test(value)) return true;
+    return value.split(/\s+(?:and then|then|also)\s+|;\s*/i).some(function (clause) {
+      return patterns[type].test(clause);
+    });
   }
   function sourceMentionedByIntent(intent, source) {
     var value = text(intent, 2_000).toLowerCase();
@@ -528,7 +532,8 @@
       checkpoint: { nextStep: 0, completedKeys: [] },
       transaction: { state: steps.length ? "prepared" : "committed", policy: "all-or-nothing", appliedStepIds: [], rollbackCount: 0 },
       taskState: { goal: text(input.intent, 1_000), verifiedFacts: [], evidenceLedger: [], unmetStepIds: steps.map(function (step) { return step.id; }), auditRound: 0 },
-      terminationCertificate: null, failure: null,
+      terminationCertificate: null, serverCertificate: null, serverReceipt: null,
+      remote: null, failure: null,
       events: [event("run.created", steps.length + " proposed step" + (steps.length === 1 ? "" : "s"))],
       createdAt: now(), updatedAt: now(),
     };
@@ -601,6 +606,21 @@
       stateDigest: text(raw.approval.stateDigest, 100),
     } : null;
     run.terminationCertificate = raw.terminationCertificate && typeof raw.terminationCertificate === "object" ? canonical(raw.terminationCertificate) : null;
+    var rawRemote = raw.remote && typeof raw.remote === "object" && !Array.isArray(raw.remote) ? raw.remote : null;
+    run.remote = rawRemote ? {
+      kind: ["workspace", "memory"].indexOf(rawRemote.kind) >= 0 ? rawRemote.kind : "workspace",
+      id: text(rawRemote.id, 100),
+      contractDigest: text(rawRemote.contractDigest, 100),
+      targetDigest: text(rawRemote.targetDigest, 100),
+      phase: ["prepared", "committing", "uncertain", "completed", "expired", "stale", "cancelled"].indexOf(rawRemote.phase) >= 0 ? rawRemote.phase : "prepared",
+      recovered: rawRemote.recovered === true,
+      preparedAt: Number(rawRemote.preparedAt || 0),
+      updatedAt: Number(rawRemote.updatedAt || 0),
+    } : null;
+    run.serverCertificate = raw.serverCertificate && typeof raw.serverCertificate === "object" && !Array.isArray(raw.serverCertificate)
+      ? canonical(raw.serverCertificate) : null;
+    run.serverReceipt = raw.serverReceipt && typeof raw.serverReceipt === "object" && !Array.isArray(raw.serverReceipt)
+      ? canonical(raw.serverReceipt) : null;
     run.failure = raw.failure && typeof raw.failure === "object" ? raw.failure : null;
     run.createdAt = Number(raw.createdAt) || now(); run.updatedAt = Number(raw.updatedAt) || run.createdAt;
     return run;
